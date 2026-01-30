@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { SERVER_PORT } from './config/serverConfig.js';
 import { connectDB } from './config/dbConnection.js';
+import apiRouter from './routes/apiRouter.js';
 
 
 const app = express();
@@ -19,6 +20,8 @@ app.use(cors({
 app.get('/', (_, res) => {
     res.send('Hello, World!');
 });
+
+app.use('/api', apiRouter);
 
 app.listen(SERVER_PORT, () => {
     connectDB();
