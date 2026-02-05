@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS gd_report(
     description TEXT NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'approved', 'rejected','submitted')) DEFAULT 'submitted',
     approved_by_officer_id TEXT REFERENCES officer(officer_id),
+    assigned_officer_id TEXT REFERENCES officer(officer_id),
     submitted_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
 

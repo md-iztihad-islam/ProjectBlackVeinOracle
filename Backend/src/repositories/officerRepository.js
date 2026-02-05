@@ -27,3 +27,14 @@ export const getOfficerByEmailRepository = async (email) => {
         throw error;
     }
 }
+
+export const getAllOfficersRepository = async () => {
+    try {
+        const query = 'SELECT * FROM officer;';
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching all officers at getAllOfficersRepository:', error);
+        throw error;
+    }
+}

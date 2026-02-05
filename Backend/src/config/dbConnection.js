@@ -11,7 +11,7 @@ const pool = new Pool({
 export const connectDB = async () => {
     try {
         const client = await pool.connect();
-        client.query('SELECT NOW()'); // Test query to verify connection
+        client.query('SELECT NOW()');
         client.release();
         console.log('Database connected successfully');
         return pool;

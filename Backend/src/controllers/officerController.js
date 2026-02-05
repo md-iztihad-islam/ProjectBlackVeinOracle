@@ -1,4 +1,4 @@
-import { addOfficerService, signinOfficerService } from "../services/officerService.js";
+import { addOfficerService, getAllOfficersService, signinOfficerService } from "../services/officerService.js";
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addOfficerController = async (req, res) => {
@@ -75,6 +75,30 @@ export const signoutOfficerController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error signing out officer at signoutOfficerController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        })
+    }
+}
+
+export const getAllOfficersController = async (_, res) => {
+    try {
+        const officers = await getAllOfficersService();
+
+        if(!officers) {
+            return res.status(404).json({
+                success: false,
+                message: 'No officers found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: officers
+        });
+    } catch (error) {
+        console.log('Error fetching all officers at getAllOfficersController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

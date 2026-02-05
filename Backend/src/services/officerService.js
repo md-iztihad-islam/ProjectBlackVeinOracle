@@ -1,4 +1,4 @@
-import { addOfficerRepository, getOfficerByEmailRepository } from "../repositories/officerRepository.js";
+import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository } from "../repositories/officerRepository.js";
 import bcrypt from 'bcryptjs';
 
 export const addOfficerService = async (officerData) => {
@@ -31,6 +31,16 @@ export const signinOfficerService = async (email, password) => {
         return officer;
     } catch (error) {
         console.log('Error signing in officer at signinOfficerService:', error);
+        throw error;
+    }
+}
+
+export const getAllOfficersService = async () => {
+    try {
+        const officers = await getAllOfficersRepository();
+        return officers;
+    } catch (error) {
+        console.log('Error fetching all officers at getAllOfficersService:', error);
         throw error;
     }
 }
