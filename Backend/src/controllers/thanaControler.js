@@ -1,4 +1,4 @@
-import { addThanaService, signinThanaService } from "../services/thanaService.js";
+import { addHeadOfficerToThanaService, addThanaService, signinThanaService } from "../services/thanaService.js";
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addThanaContoller = async (req, res) => {
@@ -74,6 +74,41 @@ export const signoutThanaController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error signing out thana at signoutThanaController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        })
+    }
+}
+
+export const addHeadOfficerToThanaController = async (req, res) => {
+    try {
+        const { head_officer_id } = req.body;
+
+        const thana_id = req.id;
+
+        if(!thana_id || !head_officer_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thana ID and Head Officer ID are required'
+            });
+        }
+
+        const updatedThana = await addHeadOfficerToThanaService(thana_id, head_officer_id);
+
+        if(!updatedThana) {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to add head officer to thana'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedThana
+        });
+    } catch (error) {
+        console.log('Error adding head officer to thana at addHeadOfficerToThanaController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

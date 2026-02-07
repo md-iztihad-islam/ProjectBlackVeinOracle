@@ -28,3 +28,20 @@ export const getThanaByEmail = async (email) => {
         throw error;
     }
 }
+
+export const addHeadOfficerToThanaRepository = async (thana_id, head_officer_id) => {
+    try {
+        const query = `
+            UPDATE thana
+            SET head_officer_id = $1
+            WHERE thana_id = $2
+            RETURNING *;
+        `;
+        const values = [head_officer_id, thana_id];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error adding head officer to thana at addHeadOfficerToThanaRepository:', error);
+        throw error;
+    }
+}

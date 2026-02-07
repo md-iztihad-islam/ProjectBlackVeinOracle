@@ -1,4 +1,4 @@
-import { addThanaRepository, getThanaByEmail } from "../repositories/thanaRepository.js";
+import { addHeadOfficerToThanaRepository, addThanaRepository, getThanaByEmail } from "../repositories/thanaRepository.js";
 import bcrypt from 'bcryptjs';
 
 export const addThanaService = async (thanaData, admin_id) => {
@@ -32,6 +32,16 @@ export const signinThanaService = async (email, password) => {
         return thana;
     } catch (error) {
         console.log('Error signing in thana at signinThanaService:', error);
+        throw error;
+    }
+}
+
+export const addHeadOfficerToThanaService = async (thana_id, head_officer_id) => {
+    try {
+        const updatedThana = await addHeadOfficerToThanaRepository(thana_id, head_officer_id);
+        return updatedThana;
+    } catch (error) {
+        console.log('Error adding head officer to thana at addHeadOfficerToThanaService:', error);
         throw error;
     }
 }

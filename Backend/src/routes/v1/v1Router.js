@@ -8,6 +8,7 @@ import userRouter from './userRouter.js';
 import gdReportRouter from './gdReportRouter.js';
 import criminalRouter from './criminalRouter.js';
 import organizationRouter from './organizationRouter.js';
+import locationRouter from './locationRouter.js';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/user', userRouter);
 router.use('/gd-report', gdReportRouter);
 router.use('/criminal', criminalRouter);
 router.use('/organization', organizationRouter);
+router.use('/location', locationRouter);
 
 export default router;
