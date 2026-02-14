@@ -1,0 +1,52 @@
+import express from "express";
+import isAuthenticated from "../../utils/isAuthenticated.js";
+import {
+  addIncarcerationController,
+  getAllIncarcerationsController,
+  getIncarcerationByIdController,
+  getIncarcerationsByCriminalController,
+  getIncarcerationsByJailController,
+  updateIncarcerationController,
+  releaseIncarcerationController,
+  deleteIncarcerationController,
+} from "../../controllers/incarcerationController.js";
+
+
+
+const router = express.Router();
+
+
+
+router.post("/add-incarceration", isAuthenticated, addIncarcerationController);
+router.get("/get-incarcerations", getAllIncarcerationsController);
+router.get(
+  "/get-incarceration/:incarcerationId",
+  getIncarcerationByIdController,
+);
+router.get(
+  "/get-incarcerations-by-criminal/:criminalId",
+  getIncarcerationsByCriminalController,
+);
+router.get(
+  "/get-incarcerations-by-jail/:jailId",
+  getIncarcerationsByJailController,
+);
+router.put(
+  "/update-incarceration/:incarcerationId",
+  isAuthenticated,
+  updateIncarcerationController,
+);
+router.put(
+  "/release-incarceration/:incarcerationId",
+  isAuthenticated,
+  releaseIncarcerationController,
+);
+router.delete(
+  "/delete-incarceration/:incarcerationId",
+  isAuthenticated,
+  deleteIncarcerationController,
+);
+
+
+
+export default router;

@@ -9,6 +9,15 @@ import gdReportRouter from './gdReportRouter.js';
 import criminalRouter from './criminalRouter.js';
 import organizationRouter from './organizationRouter.js';
 import locationRouter from './locationRouter.js';
+import cellBlockRouter from "./cellBlockRouter.js";
+import cellRouter from "./cellRouter.js";
+import caseFileRouter from "./caseFileRouter.js";
+import arrestRecordRouter from "./arrestRecordRouter.js";
+import incarcerationRouter from "./incarcerationRouter.js";
+import bailRecordRouter from "./bailRecordRouter.js";
+import criminalOrganizationRouter from "./criminalOrganizationRouter.js";
+import criminalRelationRouter from "./criminalRelationRouter.js";
+import criminalLocationRouter from "./criminalLocationRouter.js";
 
 const router = express.Router();
 
@@ -22,5 +31,15 @@ router.use('/gd-report', gdReportRouter);
 router.use('/criminal', criminalRouter);
 router.use('/organization', organizationRouter);
 router.use('/location', locationRouter);
+router.use("/cell-block", cellBlockRouter);
+router.use("/cell", cellRouter);
+router.use("/case-file", caseFileRouter);
+router.use("/arrest-record", arrestRecordRouter);
+router.use("/incarceration", incarcerationRouter);
+router.use("/bail-record", bailRecordRouter);
+router.use("/criminal-organization", criminalOrganizationRouter);
+router.use("/criminal-relation", criminalRelationRouter);
+router.use("/criminal-location", criminalLocationRouter);
+
 
 export default router;
