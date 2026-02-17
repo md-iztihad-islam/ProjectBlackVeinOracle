@@ -166,7 +166,9 @@ CREATE TABLE IF NOT EXISTS jail(
     district VARCHAR(100) NOT NULL,
     zone VARCHAR(100) NOT NULL,
     address TEXT NOT NULL,
-    capacity INT NOT NULL CHECK (capacity > 0)
+    capacity INT NOT NULL CHECK (capacity > 0),
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS cell_block(

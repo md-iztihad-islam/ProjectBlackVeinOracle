@@ -38,3 +38,18 @@ export const getAllOfficersRepository = async () => {
         throw error;
     }
 }
+
+export const getOfficerByThanaIdRepository = async (thana_id) => {
+    try {
+        const query = `
+            SELECT *
+            FROM officer
+            WHERE thana_id = $1;
+        `;
+        const result = await pool.query(query, [thana_id]);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching officers by thana ID at getOfficerByThanaIdRepository:', error);
+        throw error;
+    }
+}

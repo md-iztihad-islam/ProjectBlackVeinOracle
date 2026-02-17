@@ -53,7 +53,7 @@ export const signinAdminController = async (req, res) => {
             success: true,
             message: 'Admin signed in successfully',
             data: {
-                admin: registeredAdmin,
+                user: registeredAdmin,
                 token: token
             }
         });

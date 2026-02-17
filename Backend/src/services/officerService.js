@@ -1,4 +1,4 @@
-import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository } from "../repositories/officerRepository.js";
+import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository } from "../repositories/officerRepository.js";
 import bcrypt from 'bcryptjs';
 
 export const addOfficerService = async (officerData) => {
@@ -41,6 +41,16 @@ export const getAllOfficersService = async () => {
         return officers;
     } catch (error) {
         console.log('Error fetching all officers at getAllOfficersService:', error);
+        throw error;
+    }
+}
+
+export const getOfficersByThanaIdService = async (thana_id) => {
+    try {
+        const officers = await getOfficerByThanaIdRepository(thana_id);
+        return officers;
+    } catch (error) {
+        console.log('Error fetching officers by thana ID at getOfficersByThanaIdService:', error);
         throw error;
     }
 }

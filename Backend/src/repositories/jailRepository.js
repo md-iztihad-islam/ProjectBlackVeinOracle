@@ -17,9 +17,29 @@ export const addJailRepository = async (jailData) => {
     }
 }
 
+export const getJailByEmailRepository = async (email) => {
+    try {
+        const query = `
+            SELECT * FROM jail WHERE email = $1;
+        `;
+        const values = [email];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {   
+        console.log('Error fetching jail by email at getJailByEmailRepository:', error);
+        throw error;
+    }
+}
+
 export const getAllJailsRepository = async () => {
     try {
-        const query = `SELECT * FROM jail;`;
+        const query = `
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
+            cb.block_id, cb.block_name,
+            c.cell_id, c.cell_number, c.capacity AS cell_capacity
+            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
+            LEFT JOIN cell c ON cb.block_id = c.block_id; 
+        `
         const result = await pool.query(query);
         return result.rows;
     } catch (error) {
@@ -30,12 +50,77 @@ export const getAllJailsRepository = async () => {
 
 export const getJailByIdRepository = async (jailId) => {
     try {
-        const query = `SELECT * FROM jail WHERE jail_id = $1;`;
+        const query = `
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
+            cb.block_id, cb.block_name,
+            c.cell_id, c.cell_number, c.capacity AS cell_capacity
+            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
+            LEFT JOIN cell c ON cb.block_id = c.block_id
+            WHERE j.jail_id = $1;  
+        `
         const values = [jailId];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {
         console.log('Error fetching jail by ID at getJailByIdRepository:', error);
+        throw error;
+    }
+}
+
+export const getJailByNameRepository = async (jailName) => {
+    try {
+        const query = `
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
+            cb.block_id, cb.block_name,
+            c.cell_id, c.cell_number, c.capacity AS cell_capacity
+            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
+            LEFT JOIN cell c ON cb.block_id = c.block_id
+            WHERE j.jail_name LIKE $1;  
+        `
+        const values = [`%${jailName}%`];
+        const result = await pool.query(query, values);
+        console.log('Query result for getJailByNameRepository:', result); // Debug log to check the query result
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching jail by name at getJailByNameRepository:', error);
+        throw error;
+    }
+}
+
+export const getJailByDistrictRepository = async (district) => {
+    try {
+       const query = `
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
+            cb.block_id, cb.block_name,
+            c.cell_id, c.cell_number, c.capacity AS cell_capacity
+            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
+            LEFT JOIN cell c ON cb.block_id = c.block_id
+            WHERE j.district LIKE $1;  
+        `
+        const values = [`%${district}%`];
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching jail by district at getJailByDistrictRepository:', error);
+        throw error;
+    }
+}
+
+export const getJailByZoneRepository = async (zone) => {
+    try {
+        const query = `
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
+            cb.block_id, cb.block_name,
+            c.cell_id, c.cell_number, c.capacity AS cell_capacity
+            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
+            LEFT JOIN cell c ON cb.block_id = c.block_id
+            WHERE j.zone LIKE $1;  
+        `
+        const values = [`%${zone}%`];
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching jail by zone at getJailByZoneRepository:', error);
         throw error;
     }
 }

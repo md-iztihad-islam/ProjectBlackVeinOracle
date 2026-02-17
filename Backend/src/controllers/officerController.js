@@ -54,7 +54,7 @@ export const signinOfficerController = async (req, res) => {
             success: true,
             message: 'Officer signed in successfully',
             data: {
-                officer: officer,
+                user: officer,
                 token: token
             }
         })
@@ -99,6 +99,31 @@ export const getAllOfficersController = async (_, res) => {
         });
     } catch (error) {
         console.log('Error fetching all officers at getAllOfficersController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        })
+    }
+}
+
+export const getOfficersByThanaIdController = async (req, res) => {
+    try {
+        const thana_id = req.id;
+        const officers = await getOfficersByThanaIdService(thana_id);
+
+        if(!officers) {
+            return res.status(404).json({
+                success: false,
+                message: 'No officers found for the given thana ID'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: officers
+        });
+    } catch (error) {
+        console.log('Error fetching officers by thana ID at getOfficersByThanaIdController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

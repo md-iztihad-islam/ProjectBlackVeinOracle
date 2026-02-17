@@ -53,7 +53,7 @@ export const signinThanaController = async (req, res) => {
             success: true,
             message: 'Thana signed in successfully',
             data: {
-                thana: registeredThana,
+                user: registeredThana,
                 token: token
             }
         })
