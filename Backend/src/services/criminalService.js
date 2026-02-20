@@ -1,4 +1,4 @@
-import { addCriminalRepository, getCriminalByIdRepository } from "../repositories/criminalRepository.js";
+import { addCriminalRepository, getCriminalByIdRepository, getCriminalsByThanaIdRepository } from "../repositories/criminalRepository.js";
 
 export const addCriminalService = async (criminalData) => {
     try {
@@ -16,6 +16,16 @@ export const getCriminalByIdService = async (criminalId) => {
         return criminalDetails;
     } catch (error) {
         console.log('Error fetching criminal by ID at getCriminalByIdService:', error);
+        throw error;
+    }
+}
+
+export const getCriminalsByThanaIdService = async (thanaId) => {
+    try {
+        const criminals = await getCriminalsByThanaIdRepository(thanaId);
+        return criminals;
+    } catch (error) {
+        console.log('Error fetching criminals by thana ID at getCriminalsByThanaIdService:', error);
         throw error;
     }
 }

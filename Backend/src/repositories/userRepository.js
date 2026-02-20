@@ -28,3 +28,15 @@ export const getUserByEmailRepository = async (email) => {
         throw error;
     }
 }
+
+export const getUserByIdRepository = async (userId) => {
+    try {
+        const query = `SELECT * FROM "user" WHERE user_id = $1;`;
+        const values = [userId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error fetching user by ID at getUserByIdRepository:', error);
+        throw error;
+    }
+}

@@ -1,4 +1,5 @@
-import { addCriminalService, getCriminalByIdService } from "../services/criminalService.js";
+import { getUserByIdRepository } from "../repositories/userRepository.js";
+import { addCriminalService, getCriminalByIdService, getCriminalsByThanaIdService } from "../services/criminalService.js";
 
 export const addCriminalController = async (req, res) => {
     try {
@@ -61,6 +62,39 @@ export const getCriminalByIdController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error fetching criminal by ID at getCriminalByIdController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        })
+    }
+}
+
+export const getCriminalsByThanaIdController = async (req, res) => {
+    try {
+        const { thanaId } = req.params;
+        
+        if(!thanaId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized access'
+            });
+        }
+
+        const criminals = await getCriminalsByThanaIdService(thanaId);
+
+        if(!criminals || criminals.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No criminals found for the specified thana'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: criminals
+        });
+    } catch (error) {
+        console.log('Error fetching criminals by thana ID at getCriminalsByThanaIdController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

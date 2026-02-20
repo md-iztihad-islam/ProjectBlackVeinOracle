@@ -26,10 +26,17 @@ export const getCriminalByIdRepository = async (criminalId) => {
                 criminal_organization.role, 
                 organization.name, 
                 organization.ideology, 
-                organization.threat_level
+                organization.threat_level,
+                arrest_record.arrest_id,
+                arrest_record.arrest_date,
+                arrest_record.bail_due_date,
+                arrest_record.custody_status AS arrest_custody_status,
+                arrest_record.thana_id AS arresting_thana_id,
+                arrest_record.case_reference
             FROM criminal 
             LEFT JOIN criminal_organization ON criminal.criminal_id = criminal_organization.criminal_id
             LEFT JOIN organization ON criminal_organization.org_id = organization.org_id
+            LEFT JOIN arrest_record ON criminal.criminal_id = arrest_record.criminal_id
             WHERE criminal.criminal_id = $1;
         `;
         const values = [criminalId];
@@ -37,6 +44,37 @@ export const getCriminalByIdRepository = async (criminalId) => {
         return result.rows;
     } catch (error) {
         console.log('Error fetching criminal by ID at getCriminalByIdRepository:', error);
+        throw error;
+    }
+}
+
+export const getCriminalsByThanaIdRepository = async (thanaId) => {
+    try {
+        const query = `
+            SELECT 
+                criminal.*, 
+                criminal_organization.org_id, 
+                criminal_organization.role, 
+                organization.name, 
+                organization.ideology, 
+                organization.threat_level,
+                arrest_record.arrest_id,
+                arrest_record.arrest_date,
+                arrest_record.bail_due_date,
+                arrest_record.custody_status AS arrest_custody_status,
+                arrest_record.thana_id AS arresting_thana_id,
+                arrest_record.case_reference
+            FROM criminal 
+            LEFT JOIN criminal_organization ON criminal.criminal_id = criminal_organization.criminal_id
+            LEFT JOIN organization ON criminal_organization.org_id = organization.org_id
+            LEFT JOIN arrest_record ON criminal.criminal_id = arrest_record.criminal_id
+            WHERE criminal.registered_thana_id = $1;
+        `;
+        const values = [thanaId];
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching criminals by thana ID at getCriminalsByThanaIdRepository:', error);
         throw error;
     }
 }

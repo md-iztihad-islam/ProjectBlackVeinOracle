@@ -1,4 +1,5 @@
-import { addHeadOfficerToThanaRepository, addThanaRepository, getThanaByEmail } from "../repositories/thanaRepository.js";
+import { tr } from "@faker-js/faker";
+import { addHeadOfficerToThanaRepository, addThanaRepository, getThanaByDistrictRepository, getThanaByEmail } from "../repositories/thanaRepository.js";
 import bcrypt from 'bcryptjs';
 
 export const addThanaService = async (thanaData, admin_id) => {
@@ -42,6 +43,16 @@ export const addHeadOfficerToThanaService = async (thana_id, head_officer_id) =>
         return updatedThana;
     } catch (error) {
         console.log('Error adding head officer to thana at addHeadOfficerToThanaService:', error);
+        throw error;
+    }
+}
+
+export const getThanasByDistrictService = async (district) => {
+    try {
+        const thanas = await getThanaByDistrictRepository(district);
+        return thanas;
+    } catch (error) {
+        console.log('Error fetching thanas by district at getThanasByDistrictService:', error);
         throw error;
     }
 }

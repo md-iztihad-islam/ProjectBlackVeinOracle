@@ -1,4 +1,4 @@
-import { addHeadOfficerToThanaService, addThanaService, signinThanaService } from "../services/thanaService.js";
+import { addHeadOfficerToThanaService, addThanaService, getThanasByDistrictService, signinThanaService } from "../services/thanaService.js";
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addThanaContoller = async (req, res) => {
@@ -109,6 +109,40 @@ export const addHeadOfficerToThanaController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding head officer to thana at addHeadOfficerToThanaController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        })
+    }
+}
+
+export const getThanasByDistrictController = async (req, res) => {
+    try {
+        console.log('Received request to get thanas by district with params:', req.params);
+        const { district } = req.params;
+
+        if(!district) {
+            return res.status(400).json({
+                success: false,
+                message: 'District is required'
+            });
+        }
+
+        const thanas = await getThanasByDistrictService(district);
+
+        if(!thanas || thanas.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No thanas found for the specified district'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: thanas
+        });
+    } catch (error) {
+        console.log('Error fetching thanas by district at getThanasByDistrictController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

@@ -45,3 +45,29 @@ export const addHeadOfficerToThanaRepository = async (thana_id, head_officer_id)
         throw error;
     }
 }
+
+export const getThanaByDistrictRepository = async (district) => {
+    try {
+        const query = `
+            SELECT * FROM thana
+            WHERE district = $1;
+        `;
+        const values = [district];
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching thanas by district at getThanaByDistrictRepository:', error);
+        throw error;
+    }
+}
+
+export const getAllThanasRepository = async () => {
+    try {
+        const query = 'SELECT * FROM thana;';
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching all thanas at getAllThanasRepository:', error);
+        throw error.message;
+    }
+}

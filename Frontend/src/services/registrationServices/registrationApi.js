@@ -38,16 +38,3 @@ export const registerJailApi = async (registrationData) => {
         }
     }
 }
-
-export const registerUserApi = async (registrationData) => {
-    try {
-        const response = await axiosInstance.post('/user/signup-user', registrationData);
-        return response.data;
-    } catch (error) {
-        console.log("User Registration API Error:", error);
-        return {
-            success: false,
-            error: "An error occurred during registration. Please try again."
-        }
-    }
-}

@@ -38,6 +38,7 @@ export const addGeneralDairyController = async (req, res) => {
 export const getGeneralDairiesByUserIdController = async (req, res) => {
     try {
         const userId = req.id;
+        console.log('Received request to get general dairies by user ID with userId:', userId);
         if(!userId) {
             return res.status(401).json({
                 success: false,

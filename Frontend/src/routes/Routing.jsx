@@ -6,8 +6,13 @@ import { Routes, Route } from "react-router-dom";
 import OfficerRegistrationPage from "@/pages/RegistrationPage/OfficerRegistrationPage";
 import ThanaRegistrationPage from "@/pages/RegistrationPage/ThanaRegistrationPage";
 import JailRegistrationPage from "@/pages/RegistrationPage/JailRegistrationPage";
-import UserRegistrationPage from "@/pages/RegistrationPage/UserRegistrationPage";
 import AdminDashboard from "@/pages/Dashboard/AdminDashboard";
+import AddGDReport from "@/pages/Dashboard/User/AddGDReport";
+import RegisterUser from "@/pages/Dashboard/User/RegisterUser";
+import SigninUser from "@/pages/Dashboard/User/SigninUser";
+import UserDashboard from "@/pages/Dashboard/User/UserDashboard";
+import UserProfile from "@/pages/Dashboard/User/UserProfile";
+// import EditProfile from "@/pages/Dashboard/User/EditProfile";
 
 function Routing(){
     return(
@@ -48,8 +53,33 @@ function Routing(){
             />
 
             <Route 
-                path="/access/user-register" 
-                element={<UserRegistrationPage />} 
+                path="/user-registration" 
+                element={<RegisterUser />} 
+            />
+
+            <Route
+                path="/user-signin"
+                element={<SigninUser />}
+            />
+
+            <Route
+                path="/user/dashboard"
+                element={<UserDashboard />}
+            />
+
+            <Route
+                path="/user/dashboard/profile"
+                element={<UserProfile />}
+            />
+
+            {/* <Route
+                path="/user/dashboard/profile/edit"
+                element={<EditProfile />}
+            /> */}
+
+            <Route
+                path="/user/dashboard/add-gd-report"
+                element={<AddGDReport />}
             />
 
             <Route 
