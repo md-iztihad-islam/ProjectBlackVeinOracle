@@ -1,4 +1,5 @@
-import { addJailService, getAllJailsService, getJailByDistrictService, getJailByIdService, getJailByNameService, getJailByZoneService } from "../services/jailService.js";
+import { addJailService, getAllJailsService, getJailByDistrictService, getJailByIdService, getJailByNameService, getJailByZoneService, signinJailService, updateJailService, deleteJailService } from "../services/jailService.js";
+import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addJailController = async (req, res) => {
     try {
@@ -44,6 +45,8 @@ export const signinJailController = async (req, res) => {
                 message: 'Invalid email or password'
             });
         }
+
+        const token = generateJwtToken(registeredJail.jail_id);
 
         return res.status(200).cookie("token", token, {httpOnly: true, sameSite: "strict", maxAge: 86400 * 1000}).json({
             success: true,
@@ -199,5 +202,59 @@ export const getJailByDistrictController = async (req, res) => {
             success: false,
             message: 'Internal server error'
         })
+    }
+}
+
+// by Rayyan 2.0
+export const updateJailController = async (req, res) => {
+    try {
+        const { jailId } = req.params;
+        const data = req.body;
+        const updatedJail = await updateJailService(jailId, data);
+
+        if (!updatedJail) {
+            return res.status(404).json({
+                success: false,
+                message: 'Jail not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedJail
+        });
+    } catch (error) {
+        console.log('Error updating jail at updateJailController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const deleteJailController = async (req, res) => {
+    try {
+        const { jailId } = req.params;
+        const deletedJail = await deleteJailService(jailId);
+
+        if (!deletedJail) {
+            return res.status(404).json({
+                success: false,
+                message: 'Jail not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Jail deleted successfully',
+            data: deletedJail
+        });
+    } catch (error) {
+        console.log('Error deleting jail at deleteJailController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 }

@@ -1,4 +1,4 @@
-import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository } from "../repositories/officerRepository.js";
+import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository } from "../repositories/officerRepository.js"; 
 import bcrypt from 'bcryptjs';
 
 export const addOfficerService = async (officerData) => {
@@ -51,6 +51,50 @@ export const getOfficersByThanaIdService = async (thana_id) => {
         return officers;
     } catch (error) {
         console.log('Error fetching officers by thana ID at getOfficersByThanaIdService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const getOfficersByRankService = async (rankId) => {
+    try {
+        const officers = await getOfficersByRankRepository(rankId);
+        return officers;
+    } catch (error) {
+        console.log('Error fetching officers by rank at getOfficersByRankService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const updateOfficerService = async (officerId, data) => {
+    try {
+        const updatedOfficer = await updateOfficerRepository(officerId, data);
+        return updatedOfficer;
+    } catch (error) {
+        console.log('Error updating officer at updateOfficerService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const deleteOfficerService = async (officerId) => {
+    try {
+        const deletedOfficer = await deleteOfficerRepository(officerId);
+        return deletedOfficer;
+    } catch (error) {
+        console.log('Error deleting officer at deleteOfficerService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const searchOfficersService = async (searchTerm) => {
+    try {
+        const officers = await searchOfficersRepository(searchTerm);
+        return officers;
+    } catch (error) {
+        console.log('Error searching officers at searchOfficersService:', error);
         throw error;
     }
 }

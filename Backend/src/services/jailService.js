@@ -1,4 +1,4 @@
-import { addJailRepository, getAllJailsRepository, getJailByDistrictRepository, getJailByEmailRepository, getJailByIdRepository, getJailByNameRepository, getJailByZoneRepository } from "../repositories/jailRepository.js";
+import { addJailRepository, getAllJailsRepository, getJailByDistrictRepository, getJailByEmailRepository, getJailByIdRepository, getJailByNameRepository, getJailByZoneRepository, updateJailRepository, deleteJailRepository } from "../repositories/jailRepository.js";
 import bcrypt from 'bcryptjs';
 
 export const addJailService = async (jailData) => {
@@ -81,6 +81,28 @@ export const getJailByDistrictService = async (district) => {
         return jails;
     } catch (error) {
         console.log('Error fetching jail by district at getJailByDistrictService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const updateJailService = async (jailId, data) => {
+    try {
+        const updatedJail = await updateJailRepository(jailId, data);
+        return updatedJail;
+    } catch (error) {
+        console.log('Error updating jail at updateJailService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const deleteJailService = async (jailId) => {
+    try {
+        const deletedJail = await deleteJailRepository(jailId);
+        return deletedJail;
+    } catch (error) {
+        console.log('Error deleting jail at deleteJailService:', error);
         throw error;
     }
 }

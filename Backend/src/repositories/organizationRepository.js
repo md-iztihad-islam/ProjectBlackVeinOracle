@@ -16,3 +16,70 @@ export const addOrganizationRepository = async (organizationData) => {
        throw error; 
     }
 }
+
+// by Rayyan 2.0
+
+export const getAllOrganizationsRepository = async () => {
+    try {
+        const query = 'SELECT * FROM organization;';
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching all organizations at getAllOrganizationsRepository:', error);
+        throw error;
+    }
+}
+
+
+
+export const getOrganizationByIdRepository = async (orgId) => {
+    try {
+        const query = 'SELECT * FROM organization WHERE org_id = $1;';
+        const result = await pool.query(query, [orgId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error fetching organization by ID at getOrganizationByIdRepository:', error);
+        throw error;
+    }
+}
+
+export const updateOrganizationRepository = async (orgId, data) => {
+    try {
+        const { org_name, org_type, threat_level, description } = data;
+        const query = `
+            UPDATE organization SET org_name = $1, org_type = $2, threat_level = $3, description = $4
+            WHERE org_id = $5
+            RETURNING *;
+        `;
+        const values = [org_name, org_type, threat_level, description, orgId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error updating organization at updateOrganizationRepository:', error);
+        throw error;
+    }
+}
+
+
+export const deleteOrganizationRepository = async (orgId) => {
+    try {
+        const query = 'DELETE FROM organization WHERE org_id = $1 RETURNING *;';
+        const result = await pool.query(query, [orgId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error deleting organization at deleteOrganizationRepository:', error);
+        throw error;
+    }
+}
+
+
+export const searchOrganizationsRepository = async (searchTerm) => {
+    try {
+        const query = 'SELECT * FROM organization WHERE org_name ILIKE $1 OR org_type ILIKE $1;';
+        const result = await pool.query(query, [`%${searchTerm}%`]);
+        return result.rows;
+    } catch (error) {
+        console.log('Error searching organizations at searchOrganizationsRepository:', error);
+        throw error;
+    }
+}

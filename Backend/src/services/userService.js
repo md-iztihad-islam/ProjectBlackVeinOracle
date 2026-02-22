@@ -1,4 +1,4 @@
-import { addUserRepository, getUserByEmailRepository } from "../repositories/userRepository.js";
+import { addUserRepository, getUserByEmailRepository, getUserByIdRepository, getAllUsersRepository, updateUserRepository, deleteUserRepository } from "../repositories/userRepository.js"; 
 import bcrypt from 'bcryptjs';
 
 export const addUserService = async (userData) => {
@@ -35,3 +35,46 @@ export const signinUserService = async (email, password) => {
     }
 }
 
+
+export const getUserByIdService = async (userId) => {
+    try {
+        const user = await getUserByIdRepository(userId);
+        return user;
+    } catch (error) {
+        console.log('Error fetching user by ID at getUserByIdService:', error);
+        throw error;
+    }
+}
+
+
+export const getAllUsersService = async () => {
+    try {
+        const users = await getAllUsersRepository();
+        return users;
+    } catch (error) {
+        console.log('Error fetching all users at getAllUsersService:', error);
+        throw error;
+    }
+}
+
+
+export const updateUserService = async (userId, data) => {
+    try {
+        const updatedUser = await updateUserRepository(userId, data);
+        return updatedUser;
+    } catch (error) {
+        console.log('Error updating user at updateUserService:', error);
+        throw error;
+    }
+}
+
+
+export const deleteUserService = async (userId) => {
+    try {
+        const deletedUser = await deleteUserRepository(userId);
+        return deletedUser;
+    } catch (error) {
+        console.log('Error deleting user at deleteUserService:', error);
+        throw error;
+    }
+}

@@ -44,7 +44,7 @@ function UserDashboard() {
                 </svg>
             ),
             color: "bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-200",
-            onClick: () => navigate("/user/dashboard/gd-reports"),
+            onClick: () => navigate("/user/dashboard"), 
         },
         {
             label: "My Profile",

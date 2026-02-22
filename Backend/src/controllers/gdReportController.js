@@ -1,4 +1,4 @@
-import { addGeneralDairyService, getGeneralDairiesByUserIdService, getGeneralDairyByIdService, updateGeneralDairyStatusService } from "../services/gdReportService.js";
+import { addGeneralDairyService, getGeneralDairiesByUserIdService, getGeneralDairyByIdService, updateGeneralDairyStatusService, getAllGeneralDairiesService, getGeneralDairiesByThanaService, deleteGeneralDairyService } from "../services/gdReportService.js"; 
 
 export const addGeneralDairyController = async (req, res) => {
     try {
@@ -63,7 +63,7 @@ export const getGeneralDairiesByUserIdController = async (req, res) => {
 
 export const getGeneralDairyByIdController = async (req, res) => {
     try {
-        const dairyId = req.params.id;
+        const { dairyId } = req.params;
 
         const dairy = await getGeneralDairyByIdService(dairyId);
 
@@ -89,7 +89,7 @@ export const getGeneralDairyByIdController = async (req, res) => {
 
 export const updateGeneralDairyStatusController = async (req, res) => {
     try {
-        const dairyId = req.params.id;
+        const { dairyId } = req.params;
         const approvedByOfficerId = req.id;
 
         if(!approvedByOfficerId) {
@@ -121,5 +121,91 @@ export const updateGeneralDairyStatusController = async (req, res) => {
             success: false,
             message: 'Internal server error'
         })
+    }
+}
+
+// by Rayyan 2.0
+export const getAllGeneralDairiesController = async (req, res) => {
+    try {
+        const dairies = await getAllGeneralDairiesService();
+
+        if (!dairies || dairies.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No general dairies found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: dairies
+        });
+    } catch (error) {
+        console.log('Error fetching all general dairies at getAllGeneralDairiesController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const getGeneralDairiesByThanaController = async (req, res) => {
+    try {
+        const { thanaId } = req.params;
+
+        if (!thanaId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thana ID is required'
+            });
+        }
+
+        const dairies = await getGeneralDairiesByThanaService(thanaId);
+
+        return res.status(200).json({
+            success: true,
+            data: dairies
+        });
+    } catch (error) {
+        console.log('Error fetching general dairies by thana at getGeneralDairiesByThanaController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const deleteGeneralDairyController = async (req, res) => {
+    try {
+        const { dairyId } = req.params;
+
+        if (!dairyId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Dairy ID is required'
+            });
+        }
+
+        const deletedDairy = await deleteGeneralDairyService(dairyId);
+
+        if (!deletedDairy) {
+            return res.status(404).json({
+                success: false,
+                message: 'General dairy not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: deletedDairy
+        });
+    } catch (error) {
+        console.log('Error deleting general dairy at deleteGeneralDairyController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 }

@@ -1,5 +1,4 @@
-import { tr } from "@faker-js/faker";
-import { addHeadOfficerToThanaRepository, addThanaRepository, getThanaByDistrictRepository, getThanaByEmail } from "../repositories/thanaRepository.js";
+import { addHeadOfficerToThanaRepository, addThanaRepository, getAllThanasRepository, getThanaByDistrictRepository, getThanaByEmail, getThanaByIdRepository, updateThanaRepository, deleteThanaRepository } from "../repositories/thanaRepository.js"; // by Rayyan 2.0
 import bcrypt from 'bcryptjs';
 
 export const addThanaService = async (thanaData, admin_id) => {
@@ -53,6 +52,51 @@ export const getThanasByDistrictService = async (district) => {
         return thanas;
     } catch (error) {
         console.log('Error fetching thanas by district at getThanasByDistrictService:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+
+export const getAllThanasService = async () => {
+    try {
+        const thanas = await getAllThanasRepository();
+        return thanas;
+    } catch (error) {
+        console.log('Error fetching all thanas at getAllThanasService:', error);
+        throw error;
+    }
+}
+
+
+export const getThanaByIdService = async (thanaId) => {
+    try {
+        const thana = await getThanaByIdRepository(thanaId);
+        return thana;
+    } catch (error) {
+        console.log('Error fetching thana by ID at getThanaByIdService:', error);
+        throw error;
+    }
+}
+
+
+export const updateThanaService = async (thanaId, data) => {
+    try {
+        const updatedThana = await updateThanaRepository(thanaId, data);
+        return updatedThana;
+    } catch (error) {
+        console.log('Error updating thana at updateThanaService:', error);
+        throw error;
+    }
+}
+
+
+export const deleteThanaService = async (thanaId) => {
+    try {
+        const deletedThana = await deleteThanaRepository(thanaId);
+        return deletedThana;
+    } catch (error) {
+        console.log('Error deleting thana at deleteThanaService:', error);
         throw error;
     }
 }

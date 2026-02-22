@@ -7,6 +7,9 @@ import {
   updateIncarcerationService,
   releaseIncarcerationService,
   deleteIncarcerationService,
+  findAvailableCellService,
+  transferCriminalService,
+  getTransferHistoryService,
 } from "../services/incarcerationService.js";
 
 
@@ -138,4 +141,41 @@ export const deleteIncarcerationController = async (req, res) => {
       .status(500)
       .json({ success: false, message: "Internal server error" });
   }
+};
+
+
+// by Rayyan 2.0
+
+
+export const findAvailableCellController = async (req, res) => {
+    try {
+        const data = await findAvailableCellService(req.params.jailId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at findAvailableCellController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+
+export const transferCriminalController = async (req, res) => {
+    try {
+        const { criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy } = req.body;
+        const data = await transferCriminalService(criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy);
+        return res.status(200).json({ success: true, message: "Transfer successful", data });
+    } catch (error) {
+        console.log("Error at transferCriminalController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+
+export const getTransferHistoryController = async (req, res) => {
+    try {
+        const data = await getTransferHistoryService(req.params.criminalId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getTransferHistoryController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
 };

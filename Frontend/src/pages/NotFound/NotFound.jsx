@@ -76,7 +76,7 @@ const NotFound = () => {
                 Trace Back
             </button>
             <button 
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/')} 
                 className="btn bg-red-600 hover:bg-red-700 text-white border-none shadow-[0_0_15px_rgba(220,38,38,0.3)] hover:shadow-[0_0_25px_rgba(220,38,38,0.5)] transition-all"
             >
                 <Home size={18} />

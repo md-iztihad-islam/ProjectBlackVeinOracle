@@ -145,3 +145,53 @@ export const getIncarcerationsByCriminalRepository = async (criminalId) => {
     throw error;
   }
 };
+
+
+// by Rayyan 2.0
+
+
+export const findAvailableCellRepository = async (jailId) => {
+    try {
+        const query = `SELECT fn_find_available_cell($1) AS cell_id`;
+        const result = await pool.query(query, [jailId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log("Error at findAvailableCellRepository:", error);
+        throw error;
+    }
+};
+
+
+
+export const transferCriminalRepository = async (criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy) => {
+    try {
+        const query = `CALL proc_transfer_criminal($1, $2, $3, $4, $5, $6)`;
+        await pool.query(query, [criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy]);
+        return { success: true };
+    } catch (error) {
+        console.log("Error at transferCriminalRepository:", error);
+        throw error;
+    }
+};
+
+
+
+export const getTransferHistoryRepository = async (criminalId) => {
+    try {
+        const query = `
+            SELECT ct.*, 
+                   fj.jail_name AS from_jail_name, 
+                   tj.jail_name AS to_jail_name
+            FROM criminal_transfer ct
+            LEFT JOIN jail fj ON ct.from_jail_id = fj.jail_id
+            LEFT JOIN jail tj ON ct.to_jail_id = tj.jail_id
+            WHERE ct.criminal_id = $1
+            ORDER BY ct.transferred_at DESC
+        `;
+        const result = await pool.query(query, [criminalId]);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getTransferHistoryRepository:", error);
+        throw error;
+    }
+};

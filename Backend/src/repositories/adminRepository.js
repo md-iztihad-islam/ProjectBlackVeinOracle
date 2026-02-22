@@ -27,3 +27,57 @@ export const getAdminByUsername = async (username) => {
         throw error;
     }
 }
+
+// by Rayyan 2.0
+export const getAllAdminsRepository = async () => {
+    try {
+        const query = 'SELECT * FROM admin;';
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching all admins at getAllAdminsRepository:', error);
+        throw error;
+    }
+}
+
+
+export const getAdminByIdRepository = async (adminId) => {
+    try {
+        const query = 'SELECT * FROM admin WHERE admin_id = $1;';
+        const result = await pool.query(query, [adminId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error fetching admin by ID at getAdminByIdRepository:', error);
+        throw error;
+    }
+}
+
+
+export const updateAdminRepository = async (adminId, data) => {
+    try {
+        const { full_name, username, email } = data;
+        const query = `
+            UPDATE admin SET full_name = $1, username = $2, email = $3
+            WHERE admin_id = $4
+            RETURNING *;
+        `;
+        const values = [full_name, username, email, adminId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error updating admin at updateAdminRepository:', error);
+        throw error;
+    }
+}
+
+
+export const deleteAdminRepository = async (adminId) => {
+    try {
+        const query = 'DELETE FROM admin WHERE admin_id = $1 RETURNING *;';
+        const result = await pool.query(query, [adminId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error deleting admin at deleteAdminRepository:', error);
+        throw error;
+    }
+}

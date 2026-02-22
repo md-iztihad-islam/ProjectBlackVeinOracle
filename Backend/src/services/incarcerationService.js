@@ -7,6 +7,9 @@ import {
   updateIncarcerationRepository,
   releaseIncarcerationRepository,
   deleteIncarcerationRepository,
+  findAvailableCellRepository,
+  transferCriminalRepository,
+  getTransferHistoryRepository,
 } from "../repositories/incarcerationRepository.js";
 
 
@@ -81,4 +84,34 @@ export const deleteIncarcerationService = async (id) => {
   } catch (e) {
     throw e;
   }
+};
+
+
+// by Rayyan 2.0
+
+export const findAvailableCellService = async (jailId) => {
+    try {
+        return await findAvailableCellRepository(jailId);
+    } catch (error) {
+        console.log("Error at findAvailableCellService:", error);
+        throw error;
+    }
+};
+
+export const transferCriminalService = async (criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy) => {
+    try {
+        return await transferCriminalRepository(criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy);
+    } catch (error) {
+        console.log("Error at transferCriminalService:", error);
+        throw error;
+    }
+};
+
+export const getTransferHistoryService = async (criminalId) => {
+    try {
+        return await getTransferHistoryRepository(criminalId);
+    } catch (error) {
+        console.log("Error at getTransferHistoryService:", error);
+        throw error;
+    }
 };

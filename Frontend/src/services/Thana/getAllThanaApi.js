@@ -2,7 +2,7 @@ import axiosInstance from "@/helpers/axiosInstance";
 
 async function getAllThanaApi() {
     try {
-        const response = await axiosInstance.get('/thana/get-all-thana');
+        const response = await axiosInstance.get('/thana/get-all-thanas'); 
         return response.data;
     } catch (error) {
         console.log("Error in getAllThanaApi: ", error);

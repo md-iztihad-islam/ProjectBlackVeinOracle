@@ -136,3 +136,18 @@ export const getBailRecordsByCriminalRepository = async (criminalId) => {
     throw error;
   }
 };
+
+
+// by Rayyan 2.0
+
+
+export const processBailDecisionRepository = async (bailId, decision, bailAmount = null, suretyName = null) => {
+    try {
+        const query = `CALL proc_process_bail($1, $2, $3, $4)`;
+        await pool.query(query, [bailId, decision, bailAmount, suretyName]);
+        return { success: true };
+    } catch (error) {
+        console.log("Error at processBailDecisionRepository:", error);
+        throw error;
+    }
+};

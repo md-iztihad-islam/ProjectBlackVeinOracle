@@ -122,7 +122,7 @@ function HomePage() {
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link to="/dashboard">
+            <Link to="/access">
               <Button size="lg" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-8 glow-crimson">
                 <Shield size={18} />
                 Enter Oracle
@@ -220,7 +220,7 @@ function HomePage() {
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             Authorized personnel only. All activities are monitored and recorded.
           </p>
-          <Link to="/dashboard" className="mt-8 inline-block">
+          <Link to="/access" className="mt-8 inline-block">
             <Button size="lg" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-10">
               <Lock size={18} />
               Secure Login

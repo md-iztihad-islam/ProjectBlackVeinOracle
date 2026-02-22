@@ -34,7 +34,7 @@ export const OfficerRegistrationPage = () => {
     onSuccess: (data) => {
       if (data.success) {
         setTimeout(() => {
-          navigate('/login/officer');
+          navigate('/access/login/officer'); 
         }, 2000);
       } else {
         setValidationError(data.error || 'Registration failed');
@@ -118,7 +118,7 @@ export const OfficerRegistrationPage = () => {
       return;
     }
 
-    const { confirm_password, ...registrationData } = formData;
+    const { confirm_password: _confirm_password, ...registrationData } = formData;
     registerMutation.mutate(registrationData);
   };
 

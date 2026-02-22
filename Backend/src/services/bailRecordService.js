@@ -6,6 +6,7 @@ import {
   getBailRecordsByArrestRepository,
   updateBailRecordRepository,
   deleteBailRecordRepository,
+  processBailDecisionRepository,
 } from "../repositories/bailRecordRepository.js";
 
 
@@ -70,4 +71,16 @@ export const deleteBailRecordService = async (id) => {
   } catch (e) {
     throw e;
   }
+};
+
+
+// by Rayyan 2.0
+
+export const processBailDecisionService = async (bailId, decision, bailAmount, suretyName) => {
+    try {
+        return await processBailDecisionRepository(bailId, decision, bailAmount, suretyName);
+    } catch (error) {
+        console.log("Error at processBailDecisionService:", error);
+        throw error;
+    }
 };

@@ -2,13 +2,13 @@ import pool from '../config/dbConnection.js';
 
 export const addJailRepository = async (jailData) => {
     try {
-        const { jail_name, district, zone, address, capacity } = jailData;
+        const { jail_name, district, zone, address, capacity, email, password } = jailData; 
         const query = `
-            INSERT INTO jail (jail_name, district, zone, address, capacity)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO jail (jail_name, district, zone, address, capacity, email, password)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *;
         `;
-        const values = [jail_name, district, zone, address, capacity];
+        const values = [jail_name, district, zone, address, capacity, email, password];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {
@@ -79,7 +79,7 @@ export const getJailByNameRepository = async (jailName) => {
         `
         const values = [`%${jailName}%`];
         const result = await pool.query(query, values);
-        console.log('Query result for getJailByNameRepository:', result); // Debug log to check the query result
+        console.log('Query result for getJailByNameRepository:', result); 
         return result.rows;
     } catch (error) {
         console.log('Error fetching jail by name at getJailByNameRepository:', error);
@@ -121,6 +121,36 @@ export const getJailByZoneRepository = async (zone) => {
         return result.rows;
     } catch (error) {
         console.log('Error fetching jail by zone at getJailByZoneRepository:', error);
+        throw error;
+    }
+}
+
+// by Rayyan 2.0
+export const updateJailRepository = async (jailId, data) => {
+    try {
+        const { jail_name, zone, district, capacity } = data;
+        const query = `
+            UPDATE jail SET jail_name = $1, zone = $2, district = $3, capacity = $4
+            WHERE jail_id = $5
+            RETURNING *;
+        `;
+        const values = [jail_name, zone, district, capacity, jailId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error updating jail at updateJailRepository:', error);
+        throw error;
+    }
+}
+
+
+export const deleteJailRepository = async (jailId) => {
+    try {
+        const query = 'DELETE FROM jail WHERE jail_id = $1 RETURNING *;';
+        const result = await pool.query(query, [jailId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error deleting jail at deleteJailRepository:', error);
         throw error;
     }
 }

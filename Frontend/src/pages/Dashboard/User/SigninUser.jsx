@@ -15,9 +15,13 @@ function SigninUser() {
     const { mutate: signinUser, isPending } = useMutation({
         mutationFn: (credentials) => signinUserApi(credentials),
         onSuccess: (data) => {
-            alert("Sign in successful! Redirecting to your dashboard...");
+      
+            if (!data?.success) {
+                alert(data?.message || "Failed to sign in. Please check your credentials.");
+                return;
+            }
             console.log("Login successful, received data:", data);
-            setUser(data?.data.user);
+            setUser(data?.data?.user);
             navigate("/user/dashboard");
         },
         onError: () => {
@@ -151,7 +155,7 @@ function SigninUser() {
                             Don't have an account?{" "}
                             <button
                                 type="button"
-                                onClick={() => navigate("/register")}
+                                onClick={() => navigate("/user-registration")} 
                                 className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
                             >
                                 Create one

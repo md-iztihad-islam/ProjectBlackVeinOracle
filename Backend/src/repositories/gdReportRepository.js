@@ -59,3 +59,39 @@ export const updateGeneralDairyStatusRepository = async (dairyId, status, approv
         throw error;
     }
 }
+
+// by Rayyan 2.0
+export const getAllGeneralDairiesRepository = async () => {
+    try {
+        const query = 'SELECT * FROM gd_report ORDER BY gd_id DESC;';
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching all general dairies at getAllGeneralDairiesRepository:', error);
+        throw error;
+    }
+}
+
+
+export const getGeneralDairiesByThanaRepository = async (thanaId) => {
+    try {
+        const query = 'SELECT * FROM gd_report WHERE thana_id = $1 ORDER BY gd_id DESC;';
+        const result = await pool.query(query, [thanaId]);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching general dairies by thana at getGeneralDairiesByThanaRepository:', error);
+        throw error;
+    }
+}
+
+
+export const deleteGeneralDairyRepository = async (dairyId) => {
+    try {
+        const query = 'DELETE FROM gd_report WHERE gd_id = $1 RETURNING *;';
+        const result = await pool.query(query, [dairyId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error deleting general dairy at deleteGeneralDairyRepository:', error);
+        throw error;
+    }
+}

@@ -6,6 +6,7 @@ import {
   getBailRecordsByArrestService,
   updateBailRecordService,
   deleteBailRecordService,
+  processBailDecisionService,
 } from "../services/bailRecordService.js";
 
 
@@ -108,4 +109,19 @@ export const deleteBailRecordController = async (req, res) => {
       .status(500)
       .json({ success: false, message: "Internal server error" });
   }
+};
+
+
+// by Rayyan 2.0
+
+
+export const processBailDecisionController = async (req, res) => {
+    try {
+        const { bailId, decision, bailAmount, suretyName } = req.body;
+        const data = await processBailDecisionService(bailId, decision, bailAmount, suretyName);
+        return res.status(200).json({ success: true, message: `Bail ${decision}`, data });
+    } catch (error) {
+        console.log("Error at processBailDecisionController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
 };

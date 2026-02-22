@@ -71,3 +71,43 @@ export const getAllThanasRepository = async () => {
         throw error.message;
     }
 }
+
+// by Rayyan 2.0
+export const getThanaByIdRepository = async (thanaId) => {
+    try {
+        const query = 'SELECT * FROM thana WHERE thana_id = $1;';
+        const result = await pool.query(query, [thanaId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error fetching thana by ID at getThanaByIdRepository:', error);
+        throw error;
+    }
+}
+
+
+export const updateThanaRepository = async (thanaId, data) => {
+    try {
+        const { thana_name, district, zone } = data;
+        const query = `
+            UPDATE thana SET thana_name=$1, district=$2, zone=$3 WHERE thana_id=$4
+            RETURNING *;
+        `;
+        const values = [thana_name, district, zone, thanaId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error updating thana at updateThanaRepository:', error);
+        throw error;
+    }
+}
+
+export const deleteThanaRepository = async (thanaId) => {
+    try {
+        const query = 'DELETE FROM thana WHERE thana_id=$1 RETURNING *;';
+        const result = await pool.query(query, [thanaId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error deleting thana at deleteThanaRepository:', error);
+        throw error;
+    }
+}

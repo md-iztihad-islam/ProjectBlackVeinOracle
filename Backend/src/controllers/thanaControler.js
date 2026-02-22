@@ -1,4 +1,4 @@
-import { addHeadOfficerToThanaService, addThanaService, getThanasByDistrictService, signinThanaService } from "../services/thanaService.js";
+import { addHeadOfficerToThanaService, addThanaService, getAllThanasService, getThanasByDistrictService, signinThanaService, getThanaByIdService, updateThanaService, deleteThanaService } from "../services/thanaService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addThanaContoller = async (req, res) => {
@@ -147,5 +147,134 @@ export const getThanasByDistrictController = async (req, res) => {
             success: false,
             message: 'Internal server error'
         })
+    }
+}
+
+// by Rayyan 2.0
+
+export const getAllThanasController = async (req, res) => {
+    try {
+        const thanas = await getAllThanasService();
+
+        if (!thanas || thanas.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No thanas found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: thanas
+        });
+    } catch (error) {
+        console.log('Error fetching all thanas at getAllThanasController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const getThanaByIdController = async (req, res) => {
+    try {
+        const { thanaId } = req.params;
+
+        if (!thanaId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thana ID is required'
+            });
+        }
+
+        const thana = await getThanaByIdService(thanaId);
+
+        if (!thana) {
+            return res.status(404).json({
+                success: false,
+                message: 'Thana not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: thana
+        });
+    } catch (error) {
+        console.log('Error fetching thana by ID at getThanaByIdController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const updateThanaController = async (req, res) => {
+    try {
+        const { thanaId } = req.params;
+        const data = req.body;
+
+        if (!thanaId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thana ID is required'
+            });
+        }
+
+        const updatedThana = await updateThanaService(thanaId, data);
+
+        if (!updatedThana) {
+            return res.status(404).json({
+                success: false,
+                message: 'Thana not found or update failed'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedThana
+        });
+    } catch (error) {
+        console.log('Error updating thana at updateThanaController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const deleteThanaController = async (req, res) => {
+    try {
+        const { thanaId } = req.params;
+
+        if (!thanaId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thana ID is required'
+            });
+        }
+
+        const deletedThana = await deleteThanaService(thanaId);
+
+        if (!deletedThana) {
+            return res.status(404).json({
+                success: false,
+                message: 'Thana not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: deletedThana
+        });
+    } catch (error) {
+        console.log('Error deleting thana at deleteThanaController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 }

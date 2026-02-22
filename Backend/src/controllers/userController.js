@@ -1,4 +1,4 @@
-import { addUserService, signinUserService } from "../services/userService.js";
+import { addUserService, getUserByIdService, signinUserService, getAllUsersService, updateUserService, deleteUserService } from "../services/userService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addUserController = async (req, res) => {
@@ -76,5 +76,134 @@ export const signoutUserController = async (req, res) => {
             success: false,
             message: 'Internal server error'
         })
+    }
+}
+
+// by Rayyan 2.0
+
+export const getUserByIdController = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const user = await getUserByIdService(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: user
+        });
+    } catch (error) {
+        console.log('Error fetching user by ID at getUserByIdController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const getAllUsersController = async (req, res) => {
+    try {
+        const users = await getAllUsersService();
+
+        if (!users || users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No users found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: users
+        });
+    } catch (error) {
+        console.log('Error fetching all users at getAllUsersController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const updateUserController = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const data = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const updatedUser = await updateUserService(userId, data);
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found or update failed'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedUser
+        });
+    } catch (error) {
+        console.log('Error updating user at updateUserController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const deleteUserController = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const deletedUser = await deleteUserService(userId);
+
+        if (!deletedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: deletedUser
+        });
+    } catch (error) {
+        console.log('Error deleting user at deleteUserController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 }

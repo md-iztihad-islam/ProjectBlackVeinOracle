@@ -9,6 +9,9 @@ import {
   updateIncarcerationController,
   releaseIncarcerationController,
   deleteIncarcerationController,
+  findAvailableCellController,
+  transferCriminalController,
+  getTransferHistoryController,
 } from "../../controllers/incarcerationController.js";
 
 
@@ -46,6 +49,11 @@ router.delete(
   isAuthenticated,
   deleteIncarcerationController,
 );
+
+// by Rayyan 2.0
+router.get("/find-cell/:jailId", isAuthenticated, findAvailableCellController);
+router.post("/transfer", isAuthenticated, transferCriminalController);
+router.get("/transfers/:criminalId", isAuthenticated, getTransferHistoryController);
 
 
 

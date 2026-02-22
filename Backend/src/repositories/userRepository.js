@@ -40,3 +40,43 @@ export const getUserByIdRepository = async (userId) => {
         throw error;
     }
 }
+
+// by Rayyan 2.0
+export const getAllUsersRepository = async () => {
+    try {
+        const query = `SELECT user_id, full_name, nid_number, email, phone, address FROM "user";`;
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching all users at getAllUsersRepository:', error);
+        throw error;
+    }
+}
+
+export const updateUserRepository = async (userId, data) => {
+    try {
+        const { full_name, phone, address } = data;
+        const query = `
+            UPDATE "user" SET full_name=$1, phone=$2, address=$3 WHERE user_id=$4
+            RETURNING user_id, full_name, email, phone, address;
+        `;
+        const values = [full_name, phone, address, userId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error updating user at updateUserRepository:', error);
+        throw error;
+    }
+}
+
+
+export const deleteUserRepository = async (userId) => {
+    try {
+        const query = `DELETE FROM "user" WHERE user_id=$1 RETURNING user_id, full_name, email;`;
+        const result = await pool.query(query, [userId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error deleting user at deleteUserRepository:', error);
+        throw error;
+    }
+}

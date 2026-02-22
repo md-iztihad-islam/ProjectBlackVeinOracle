@@ -18,6 +18,8 @@ import bailRecordRouter from "./bailRecordRouter.js";
 import criminalOrganizationRouter from "./criminalOrganizationRouter.js";
 import criminalRelationRouter from "./criminalRelationRouter.js";
 import criminalLocationRouter from "./criminalLocationRouter.js";
+import analyticsRouter from "./analyticsRouter.js";
+import notificationRouter from "./notificationRouter.js";
 
 const router = express.Router();
 
@@ -40,6 +42,8 @@ router.use("/bail-record", bailRecordRouter);
 router.use("/criminal-organization", criminalOrganizationRouter);
 router.use("/criminal-relation", criminalRelationRouter);
 router.use("/criminal-location", criminalLocationRouter);
+router.use("/analytics", analyticsRouter);
+router.use("/notification", notificationRouter);
 
 
 export default router;

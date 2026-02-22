@@ -1,4 +1,4 @@
-import { addOfficerService, getAllOfficersService, signinOfficerService } from "../services/officerService.js";
+import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService } from "../services/officerService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addOfficerController = async (req, res) => {
@@ -30,7 +30,7 @@ export const addOfficerController = async (req, res) => {
 
 export const signinOfficerController = async (req, res) => {
     try {
-        console.log('Signin Officer Request Body:', req.body); // Debugging line    
+        console.log('Signin Officer Request Body:', req.body);   
         const { email, password } = req.body;
         if(!email || !password) {
             return res.status(400).json({
@@ -108,7 +108,7 @@ export const getAllOfficersController = async (_, res) => {
 
 export const getOfficersByThanaIdController = async (req, res) => {
     try {
-        const thana_id = req.id;
+        const thana_id = req.params.thana_id; 
         const officers = await getOfficersByThanaIdService(thana_id);
 
         if(!officers) {
@@ -128,5 +128,128 @@ export const getOfficersByThanaIdController = async (req, res) => {
             success: false,
             message: 'Internal server error'
         })
+    }
+}
+
+// by Rayyan 2.0
+export const getOfficersByRankController = async (req, res) => {
+    try {
+        const { rankId } = req.params;
+
+        if (!rankId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rank ID is required'
+            });
+        }
+
+        const officers = await getOfficersByRankService(rankId);
+
+        return res.status(200).json({
+            success: true,
+            data: officers
+        });
+    } catch (error) {
+        console.log('Error fetching officers by rank at getOfficersByRankController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const updateOfficerController = async (req, res) => {
+    try {
+        const { officerId } = req.params;
+        const data = req.body;
+
+        if (!officerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Officer ID is required'
+            });
+        }
+
+        const updatedOfficer = await updateOfficerService(officerId, data);
+
+        if (!updatedOfficer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Officer not found or update failed'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedOfficer
+        });
+    } catch (error) {
+        console.log('Error updating officer at updateOfficerController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const deleteOfficerController = async (req, res) => {
+    try {
+        const { officerId } = req.params;
+
+        if (!officerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Officer ID is required'
+            });
+        }
+
+        const deletedOfficer = await deleteOfficerService(officerId);
+
+        if (!deletedOfficer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Officer not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: deletedOfficer
+        });
+    } catch (error) {
+        console.log('Error deleting officer at deleteOfficerController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+
+export const searchOfficersController = async (req, res) => {
+    try {
+        const { q } = req.query;
+
+        if (!q) {
+            return res.status(400).json({
+                success: false,
+                message: 'Search query is required'
+            });
+        }
+
+        const officers = await searchOfficersService(q);
+
+        return res.status(200).json({
+            success: true,
+            data: officers
+        });
+    } catch (error) {
+        console.log('Error searching officers at searchOfficersController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 }

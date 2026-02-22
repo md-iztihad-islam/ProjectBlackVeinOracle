@@ -1,4 +1,4 @@
-import { addAdminService, signinAdminService } from "../services/adminService.js";
+import { addAdminService, signinAdminService, getAllAdminsService, getAdminByIdService, updateAdminService, deleteAdminService } from "../services/adminService.js";
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addAdminController = async (req, res) => {
@@ -80,3 +80,94 @@ export const signoutAdminController = async (req, res) => {
         })
     }
 }
+
+// by Rayyan 2.0
+export const getAllAdminsController = async (req, res) => {
+    try {
+        const admins = await getAllAdminsService();
+        return res.status(200).json({ success: true, data: admins });
+    } catch (error) {
+        console.log("Error at getAllAdminsController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+
+export const getAdminByIdController = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+        const admin = await getAdminByIdService(adminId);
+
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: admin
+        });
+    } catch (error) {
+        console.log('Error fetching admin by ID at getAdminByIdController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+
+export const updateAdminController = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+        const data = req.body;
+        const updatedAdmin = await updateAdminService(adminId, data);
+
+        if (!updatedAdmin) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedAdmin
+        });
+    } catch (error) {
+        console.log('Error updating admin at updateAdminController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+
+export const deleteAdminController = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+        const deletedAdmin = await deleteAdminService(adminId);
+
+        if (!deletedAdmin) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Admin deleted successfully',
+            data: deletedAdmin
+        });
+    } catch (error) {
+        console.log('Error deleting admin at deleteAdminController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};

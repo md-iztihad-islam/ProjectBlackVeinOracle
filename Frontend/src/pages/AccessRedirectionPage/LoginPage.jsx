@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 // import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button'; // by Rayyan 2.0 — was Button (uppercase)
+import { Input } from '@/components/ui/input'; // by Rayyan 2.0 — was Input (uppercase)
 import { Shield, Building2, UserCog, Building, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { adminLoginApi, jailLoginApi, officerLoginApi, thanaLoginApi } from '@/services/authServices/loginApi';
@@ -62,7 +62,7 @@ export const LoginPage = () => {
     const [showPassword, setShowPassword] = useState(false);
 
 
-    const { mutate: loginMutation, isLoading, error } = useMutation({
+    const { mutate: loginMutation, isPending, error } = useMutation({ // by Rayyan 2.0 — was isLoading
         mutationFn:(credentials) => {
             if(userType === 'admin') {
                 return adminLoginApi(credentials);
@@ -75,13 +75,24 @@ export const LoginPage = () => {
             }
         },
         onSuccess: (data) => {
+       
+            if (!data?.success) {
+                alert(data?.error || data?.message || "Login failed. Please try again.");
+                return;
+            }
             console.log("Login successful:", data);
-            alert("Login successful!");
-            setUser(data?.data.user)
-            navigate('/dashboard');
+            setUser(data?.data?.user);
+    
+            const dashboardRoutes = {
+                admin: '/admin/dashboard',
+                thana: '/access',
+                officer: '/access', 
+                jail: '/access',
+            };
+            navigate(dashboardRoutes[userType] || '/access');
         },
         onError: (error) => {
-            alert(error.error || "Login failed. Please try again.");
+            alert(error?.message || "Login failed. Please try again.");
         }
     })
     
@@ -258,13 +269,13 @@ export const LoginPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isPending}
               className={`w-full bg-gradient-to-r ${config.gradient} text-white font-semibold px-6 py-4 rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group`}
               style={{ 
-                boxShadow: isLoading ? 'none' : `0 10px 30px -10px ${config.bgGlow.replace('bg-', 'rgba(')}0.5)` 
+                boxShadow: isPending ? 'none' : `0 10px 30px -10px ${config.bgGlow.replace('bg-', 'rgba(')}0.5)` 
               }}
             >
-              {isLoading ? (
+              {isPending ? (
                 <>
                   <span className="loading loading-spinner loading-sm"></span>
                   <span>Authenticating...</span>

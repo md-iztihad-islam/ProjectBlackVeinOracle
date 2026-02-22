@@ -27,9 +27,8 @@ export const ThanaRegistrationPage = () => {
     mutationFn: registerThanaApi,
     onSuccess: (data) => {
       if (data.success) {
-        // Show success and redirect
         setTimeout(() => {
-          navigate('/login/thana');
+          navigate('/access/login/thana'); 
         }, 2000);
       } else {
         setValidationError(data.error || 'Registration failed');
@@ -108,7 +107,7 @@ export const ThanaRegistrationPage = () => {
       return;
     }
 
-    const { confirm_password, ...registrationData } = formData;
+    const { confirm_password: _confirm_password, ...registrationData } = formData;
     registerMutation.mutate(registrationData);
   };
 
