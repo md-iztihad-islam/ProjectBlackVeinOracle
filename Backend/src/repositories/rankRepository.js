@@ -32,7 +32,7 @@ export const getAllRanksRepository = async () => {
 
 export const getRankByIdRepository = async (rankId) => {
     try {
-        const query = 'SELECT * FROM rank WHERE rank_id = $1;';
+        const query = 'SELECT * FROM rank WHERE rank_code = $1;';
         const result = await pool.query(query, [rankId]);
         return result.rows[0];
     } catch (error) {
@@ -44,13 +44,13 @@ export const getRankByIdRepository = async (rankId) => {
 
 export const updateRankRepository = async (rankId, data) => {
     try {
-        const { rank_name, rank_level } = data;
+        const { rank_name, level } = data;
         const query = `
-            UPDATE rank SET rank_name = $1, rank_level = $2
-            WHERE rank_id = $3
+            UPDATE rank SET rank_name = $1, level = $2
+            WHERE rank_code = $3
             RETURNING *;
         `;
-        const values = [rank_name, rank_level, rankId];
+        const values = [rank_name, level, rankId];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {
@@ -61,7 +61,7 @@ export const updateRankRepository = async (rankId, data) => {
 
 export const deleteRankRepository = async (rankId) => {
     try {
-        const query = 'DELETE FROM rank WHERE rank_id = $1 RETURNING *;';
+        const query = 'DELETE FROM rank WHERE rank_code = $1 RETURNING *;';
         const result = await pool.query(query, [rankId]);
         return result.rows[0];
     } catch (error) {

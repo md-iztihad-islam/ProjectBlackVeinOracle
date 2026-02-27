@@ -19,6 +19,8 @@ export const addAdminController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding admin at addAdminController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -138,6 +140,8 @@ export const updateAdminController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error updating admin at updateAdminController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

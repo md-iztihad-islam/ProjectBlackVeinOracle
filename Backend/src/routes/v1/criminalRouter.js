@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/wanted', getWantedCriminalsController);
 router.get('/area/:district', getCriminalsByAreaController);
 
-router.post('/add-criminal', isAuthenticated, requireRole("thana", "officer"), addCriminalController);
+router.post('/add-criminal', isAuthenticated, requireRole("admin", "thana", "officer"), addCriminalController);
 router.get('/get-criminal/:criminalid', isAuthenticated, requireRole("admin", "thana", "officer"), getCriminalByIdController);
 router.get('/get-criminals-by-thana/:thanaId', isAuthenticated, requireRole("admin", "thana"), getCriminalsByThanaIdController);
 

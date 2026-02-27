@@ -18,6 +18,8 @@ export const addCriminalOrganizationController = async (req, res) => {
     return res.status(201).json({ success: true, data: result });
   } catch (error) {
     console.log("Error at addCriminalOrganizationController:", error);
+    if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+    if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -69,6 +71,8 @@ export const updateCriminalOrganizationController = async (req, res) => {
         .json({ success: false, message: "Link not found" });
     return res.status(200).json({ success: true, data: result });
   } catch (error) {
+    if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+    if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });

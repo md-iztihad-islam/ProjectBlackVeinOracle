@@ -26,6 +26,8 @@ export const addOrganizationController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding organization at addOrganizationController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -114,6 +116,8 @@ export const updateOrganizationController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error updating organization at updateOrganizationController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

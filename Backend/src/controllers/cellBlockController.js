@@ -22,6 +22,8 @@ export const addCellBlockController = async (req, res) => {
     });
   } catch (error) {
     console.log("Error at addCellBlockController:", error);
+    if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+    if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -98,6 +100,8 @@ export const updateCellBlockController = async (req, res) => {
         });
     } catch (error) {
         console.log("Error at updateCellBlockController:", error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: "Internal server error"

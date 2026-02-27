@@ -1,5 +1,9 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import { adminSignoutApi } from "@/services/authServices/signoutApi";
+import userStore from "@/state/userStore";
 import {
   Building2,
   Shield,
@@ -49,6 +53,14 @@ import {
 function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
+  const { clearUser } = userStore();
+
+  const handleSignout = async () => {
+    await adminSignoutApi();
+    clearUser();
+    navigate("/");
+  };
 
   // Mock data - replace with actual API calls
   const stats = [
@@ -188,6 +200,9 @@ function AdminDashboard() {
               </div>
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4" />
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleSignout} className="hover:bg-red-600 hover:scale-105 transition-all duration-200">
+                Sign Out
               </Button>
             </div>
           </div>

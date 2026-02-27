@@ -20,6 +20,8 @@ export const addThanaContoller = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding thana at addThanaContoller:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -83,9 +85,7 @@ export const signoutThanaController = async (req, res) => {
 
 export const addHeadOfficerToThanaController = async (req, res) => {
     try {
-        const { head_officer_id } = req.body;
-
-        const thana_id = req.id;
+        const { head_officer_id, thana_id } = req.body;
 
         if(!thana_id || !head_officer_id) {
             return res.status(400).json({
@@ -109,6 +109,8 @@ export const addHeadOfficerToThanaController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding head officer to thana at addHeadOfficerToThanaController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -238,6 +240,8 @@ export const updateThanaController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error updating thana at updateThanaController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

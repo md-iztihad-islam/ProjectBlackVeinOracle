@@ -16,6 +16,8 @@ export const addCriminalLocationController = async (req, res) => {
     return res.status(201).json({ success: true, data: result });
   } catch (error) {
     console.log("Error at addCriminalLocationController:", error);
+    if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+    if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });

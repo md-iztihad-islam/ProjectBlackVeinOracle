@@ -1,11 +1,21 @@
 import getGDReportByUserApi from "@/services/GDReport/getGDReportByUserApi";
+import { userSignoutApi } from "@/services/authServices/signoutApi";
 import userStore from "@/state/userStore";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useState as useSignoutState } from "react";
 
 function UserDashboard() {
     const navigate = useNavigate();
-    const { user } = userStore();
+    const { user, clearUser } = userStore();
+    const [signingOut, setSigningOut] = useSignoutState(false);
+
+    const handleSignout = async () => {
+        setSigningOut(true);
+        await userSignoutApi();
+        clearUser();
+        navigate("/");
+    };
     const userId = user?.user_id;
 
     const { data: gdReportsData, isLoading } = useQuery({
@@ -44,7 +54,7 @@ function UserDashboard() {
                 </svg>
             ),
             color: "bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-200",
-            onClick: () => navigate("/user/dashboard"), 
+            onClick: () => navigate("/user/dashboard/gd-reports"),
         },
         {
             label: "My Profile",
@@ -81,17 +91,29 @@ function UserDashboard() {
             <div className="relative max-w-4xl mx-auto flex flex-col gap-6">
 
                 {/* Header */}
-                <div>
-                    <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium tracking-widest uppercase rounded-full px-3 py-1 mb-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                        Bangladesh Police
+                <div className="flex items-start justify-between">
+                    <div>
+                        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium tracking-widest uppercase rounded-full px-3 py-1 mb-3">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                            Bangladesh Police
+                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
+                            Welcome back, <span className="text-blue-400">{user?.full_name?.split(" ")[0] ?? "User"}</span>
+                        </h1>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Here's an overview of your GD portal activity.
+                        </p>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
-                        Welcome back, <span className="text-blue-400">{user?.full_name?.split(" ")[0] ?? "User"}</span>
-                    </h1>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Here's an overview of your GD portal activity.
-                    </p>
+                    <button
+                        onClick={handleSignout}
+                        disabled={signingOut}
+                        className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 hover:scale-105 hover:border-red-500/40 border border-red-500/20 text-red-400 text-sm font-medium rounded-lg px-4 py-2 transition-all duration-200"
+                    >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        {signingOut ? "Signing out…" : "Sign Out"}
+                    </button>
                 </div>
 
                 {/* Stat cards */}

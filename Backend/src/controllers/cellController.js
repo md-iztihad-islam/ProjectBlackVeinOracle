@@ -16,6 +16,8 @@ export const addCellController = async (req, res) => {
     if (!r) return res.status(400).json({ success: false, message: "Failed" });
     return res.status(201).json({ success: true, data: r });
   } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+    if (e.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -75,6 +77,8 @@ export const updateCellController = async (req, res) => {
         .json({ success: false, message: "Cell not found" });
     return res.status(200).json({ success: true, data: r });
   } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+    if (e.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });

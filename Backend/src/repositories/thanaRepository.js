@@ -68,7 +68,7 @@ export const getAllThanasRepository = async () => {
         return result.rows;
     } catch (error) {
         console.log('Error fetching all thanas at getAllThanasRepository:', error);
-        throw error.message;
+        throw error;
     }
 }
 

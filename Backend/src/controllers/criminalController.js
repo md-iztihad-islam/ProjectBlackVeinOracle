@@ -1,19 +1,21 @@
-// by Rayyan 2.0 — removed dead import getUserByIdRepository
+
 import { addCriminalService, getCriminalByIdService, getCriminalsByThanaIdService, getCriminalFullProfileService, getCriminalTimelineService, recalculateCriminalRiskService, getAllCriminalsService, updateCriminalService, deleteCriminalService, getCriminalsByStatusService, searchCriminalsService, getWantedCriminalsService, getCriminalsByAreaService } from "../services/criminalService.js"; // by Rayyan 2.0
 
 export const addCriminalController = async (req, res) => {
     try {
         const criminalData = req.body;
-        const thanaId = req.id;
+        const callerId = req.id;
 
-        if(!thanaId) {
+        if(!callerId) {
             return res.status(401).json({
                 success: false,
                 message: 'Unauthorized access'
             });
         }
 
-        criminalData.registered_thana_id = thanaId;
+        if (!criminalData.registered_thana_id) {
+            criminalData.registered_thana_id = callerId;
+        }
         const newCriminal = await addCriminalService(criminalData);
 
         if(!newCriminal) {
@@ -29,6 +31,8 @@ export const addCriminalController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding criminal at addCriminalController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -192,6 +196,8 @@ export const updateCriminalController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error at updateCriminalController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

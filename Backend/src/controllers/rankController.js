@@ -18,6 +18,8 @@ export const addRankController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding rank at addRankController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -105,6 +107,8 @@ export const updateRankController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error updating rank at updateRankController:', error);
+        if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
+        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
             success: false,
             message: 'Internal server error'
