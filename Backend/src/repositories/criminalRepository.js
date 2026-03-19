@@ -133,13 +133,13 @@ export const getAllCriminalsRepository = async () => {
 
 export const updateCriminalRepository = async (criminalId, data) => {
     try {
-        const { full_name, nid, date_of_birth, gender, phone, address, status } = data;
+        const { full_name, nid, status, risk_level } = data;
         const query = `
-            UPDATE criminal SET full_name=$1, nid=$2, date_of_birth=$3, gender=$4, phone=$5, address=$6, status=$7
-            WHERE criminal_id=$8
+            UPDATE criminal SET full_name=$1, nid=$2, status=$3, risk_level=$4
+            WHERE criminal_id=$5
             RETURNING *;
         `;
-        const values = [full_name, nid, date_of_birth, gender, phone, address, status, criminalId];
+        const values = [full_name, nid, status, risk_level, criminalId];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {
@@ -189,11 +189,12 @@ export const getWantedCriminalsRepository = async () => {
     try {
         const query = `
             SELECT c.*, t.thana_name,
-                cl.district AS last_seen_district, cl.zone AS last_seen_zone, cl.address AS last_seen_address
+                l.district AS last_seen_district, l.zone AS last_seen_zone, l.address AS last_seen_address
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
             LEFT JOIN criminal_location cl ON c.criminal_id = cl.criminal_id
-            WHERE c.status = 'wanted'
+            LEFT JOIN location l ON cl.location_id = l.location_id
+            WHERE c.status IN ('wanted', 'escaped')
             ORDER BY c.risk_level DESC;
         `;
         const result = await pool.query(query);
@@ -208,12 +209,13 @@ export const getWantedCriminalsRepository = async () => {
 export const getCriminalsByAreaRepository = async (district) => {
     try {
         const query = `
-            SELECT c.*, cl.district, cl.zone, cl.address, cl.noted_at,
+            SELECT c.*, l.district, l.zone, l.address, cl.noted_at,
                 t.thana_name AS registered_thana
             FROM criminal c
             JOIN criminal_location cl ON c.criminal_id = cl.criminal_id
+            JOIN location l ON cl.location_id = l.location_id
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
-            WHERE cl.district ILIKE $1
+            WHERE l.district ILIKE $1
             ORDER BY cl.noted_at DESC;
         `;
         const result = await pool.query(query, [`%${district}%`]);

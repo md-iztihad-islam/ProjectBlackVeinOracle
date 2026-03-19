@@ -2,13 +2,13 @@ import pool from "../config/dbConnection.js";
 
 export const addGeneralDairyRepository = async (dairyData) => {
     try {
-        const { user_id, thana_id, description } = dairyData;
+        const { user_id, thana_id, description, gd_type, incident_date, incident_location } = dairyData;
         const query = `
-            INSERT INTO gd_report (user_id, thana_id, description)
-            VALUES ($1, $2, $3)
+            INSERT INTO gd_report (user_id, thana_id, gd_type, description, incident_date, incident_location)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *;
         `;
-        const values = [user_id, thana_id, description];
+        const values = [user_id, thana_id, gd_type || 'other', description, incident_date || null, incident_location || null];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {

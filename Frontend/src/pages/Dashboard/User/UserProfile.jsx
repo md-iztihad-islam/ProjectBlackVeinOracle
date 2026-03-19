@@ -61,7 +61,7 @@ function UserProfile() {
                                 <p className="text-sm text-slate-500">{user?.email}</p>
                             </div>
                             <button
-                                onClick={() => navigate("/user/dashboard")} 
+                                onClick={() => navigate("/user/dashboard/profile/edit")} 
                                 className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-200 text-sm font-medium rounded-lg px-3 py-2 transition-all duration-200 flex-shrink-0"
                             >
                                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

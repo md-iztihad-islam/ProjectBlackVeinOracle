@@ -16,7 +16,7 @@ function EditProfile() {
         mutationFn: (data) => updateUserApi(data),
         onSuccess: (data) => {
             setUser(data?.user ?? { ...user, full_name: fullName, phone, address });
-            navigate("/user/profile");
+            navigate("/user/dashboard/profile");
         },
         onError: () => alert("Failed to update profile. Please try again."),
     });
@@ -49,7 +49,7 @@ function EditProfile() {
                 {/* Back + header */}
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => navigate("/user/profile")}
+                        onClick={() => navigate("/user/dashboard/profile")}
                         className="p-2 rounded-lg bg-gray-800 border border-white/[0.07] text-slate-400 hover:text-slate-200 transition-colors"
                     >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -153,7 +153,7 @@ function EditProfile() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => navigate("/user/profile")}
+                            onClick={() => navigate("/user/dashboard/profile")}
                             className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-400 hover:text-slate-200 text-sm font-medium rounded-lg px-4 py-2.5 transition-all duration-200"
                         >
                             Cancel

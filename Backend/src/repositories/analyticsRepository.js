@@ -73,7 +73,7 @@ export const getGdReportAnalyticsRepository = async () => {
                 t.thana_name,
                 COUNT(*) AS total_gd_reports,
                 COUNT(*) FILTER (WHERE g.status = 'submitted') AS submitted,
-                COUNT(*) FILTER (WHERE g.status = 'pending') AS pending,
+                COUNT(*) FILTER (WHERE g.status = 'assigned') AS assigned,
                 COUNT(*) FILTER (WHERE g.status = 'approved') AS approved,
                 COUNT(*) FILTER (WHERE g.status = 'rejected') AS rejected,
                 ROUND(
@@ -270,6 +270,7 @@ export const getDashboardOverviewRepository = async () => {
                 (SELECT COUNT(*) FROM criminal WHERE status = 'in_custody') AS in_custody,
                 (SELECT COUNT(*) FROM criminal WHERE status = 'on_bail') AS on_bail,
                 (SELECT COUNT(*) FROM criminal WHERE status = 'escaped') AS escaped,
+                (SELECT COUNT(*) FROM criminal WHERE status = 'wanted') AS wanted,
                 (SELECT COUNT(*) FROM criminal WHERE risk_level >= 7) AS high_risk,
                 (SELECT COUNT(*) FROM jail) AS total_jails,
                 (SELECT COUNT(*) FROM thana) AS total_thanas,

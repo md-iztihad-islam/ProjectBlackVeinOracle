@@ -29,8 +29,9 @@ function UserDashboard() {
     const stats = [
         { label: "Total Reports",  value: gdReports.length,                                                             color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20"    },
         { label: "Submitted",      value: gdReports.filter((r) => r.status?.toLowerCase() === "submitted").length,      color: "text-sky-400",     bg: "bg-sky-500/10 border-sky-500/20"      },
-        { label: "Pending",        value: gdReports.filter((r) => r.status?.toLowerCase() === "pending").length,        color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20"  },
-        { label: "Resolved",       value: gdReports.filter((r) => r.status?.toLowerCase() === "resolved").length,       color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
+        { label: "Assigned",       value: gdReports.filter((r) => r.status?.toLowerCase() === "assigned").length,       color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20"  },
+        { label: "Approved",       value: gdReports.filter((r) => r.status?.toLowerCase() === "approved").length,       color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
+        { label: "Rejected",       value: gdReports.filter((r) => r.status?.toLowerCase() === "rejected").length,       color: "text-red-400",     bg: "bg-red-500/10 border-red-500/20"      },
     ];
 
     const quickActions = [
@@ -67,6 +68,28 @@ function UserDashboard() {
             color: "bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-200",
             onClick: () => navigate("/user/dashboard/profile"),
         },
+        {
+            label: "Wanted Criminals",
+            description: "View wanted / escaped criminal alerts",
+            icon: (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z" /><line x1="12" y1="8" x2="12" y2="13" /><circle cx="12" cy="16" r="1" />
+                </svg>
+            ),
+            color: "bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-200",
+            onClick: () => navigate("/user/dashboard/wanted-criminals"),
+        },
+        {
+            label: "Criminals by Area",
+            description: "Search criminal sightings by district",
+            icon: (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                </svg>
+            ),
+            color: "bg-gray-800 hover:bg-gray-700 border border-white/[0.07] text-slate-200",
+            onClick: () => navigate("/user/dashboard/criminals-by-area"),
+        },
     ];
 
     const recentReports = gdReports.slice(0, 3);
@@ -74,8 +97,8 @@ function UserDashboard() {
     const statusBadge = (s) => {
         switch (s?.toLowerCase()) {
             case "submitted": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-            case "pending":   return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-            case "resolved":  return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+            case "assigned":  return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+            case "approved":  return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
             case "rejected":  return "bg-red-500/10 text-red-400 border-red-500/20";
             default:          return "bg-slate-500/10 text-slate-400 border-slate-500/20";
         }
@@ -131,7 +154,7 @@ function UserDashboard() {
                 {/* Quick actions */}
                 <div>
                     <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Quick Actions</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {quickActions.map((action) => (
                             <button
                                 key={action.label}
@@ -153,7 +176,7 @@ function UserDashboard() {
                     <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.05]">
                         <h2 className="text-sm font-semibold text-slate-200 tracking-tight">Recent Reports</h2>
                         <button
-                            onClick={() => navigate("/user/gd-reports")}
+                            onClick={() => navigate("/user/dashboard/gd-reports")}
                             className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
                         >
                             View all →
@@ -171,7 +194,7 @@ function UserDashboard() {
                         <div className="flex flex-col items-center justify-center py-10 gap-3">
                             <p className="text-sm text-slate-500">No reports filed yet.</p>
                             <button
-                                onClick={() => navigate("/user/add-gd-report")}
+                                onClick={() => navigate("/user/dashboard/add-gd-report")}
                                 className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
                             >
                                 File your first report →
@@ -185,7 +208,7 @@ function UserDashboard() {
                                 <li
                                     key={report.gd_id}
                                     className="px-5 sm:px-6 py-4 flex items-start justify-between gap-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
-                                    onClick={() => navigate("/user/gd-reports")}
+                                    onClick={() => navigate("/user/dashboard/gd-reports")}
                                 >
                                     <div className="flex flex-col gap-1 min-w-0">
                                         <span className="text-xs font-mono text-slate-500">GD-{report.gd_id}</span>

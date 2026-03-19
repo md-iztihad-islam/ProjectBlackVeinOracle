@@ -19,10 +19,29 @@ const DISTRICTS = [
     "Sunamganj", "Sylhet", "Tangail", "Thakurgaon",
 ];
 
+const GD_TYPES = [
+    { value: "theft", label: "Theft" },
+    { value: "lost_document", label: "Lost Document" },
+    { value: "missing_person", label: "Missing Person" },
+    { value: "accident", label: "Accident" },
+    { value: "assault", label: "Assault / Violence" },
+    { value: "robbery", label: "Robbery / Dacoity" },
+    { value: "fraud", label: "Fraud / Cheating" },
+    { value: "domestic_violence", label: "Domestic Violence" },
+    { value: "property_dispute", label: "Property Dispute" },
+    { value: "suspicious_activity", label: "Suspicious Activity" },
+    { value: "threat", label: "Threat / Intimidation" },
+    { value: "noise_disturbance", label: "Noise / Disturbance" },
+    { value: "other", label: "Other" },
+];
+
 function AddGDReport() {
     const [thana, setThana] = useState("");
     const [description, setDescription] = useState("");
     const [district, setDistrict] = useState("");
+    const [gdType, setGdType] = useState("");
+    const [incidentDate, setIncidentDate] = useState("");
+    const [incidentLocation, setIncidentLocation] = useState("");
     const [submitted, setSubmitted] = useState(false);
 
     const { data: thanaData, isLoading: thanaLoading } = useQuery({
@@ -42,6 +61,9 @@ function AddGDReport() {
             setThana("");
             setDescription("");
             setDistrict("");
+            setGdType("");
+            setIncidentDate("");
+            setIncidentLocation("");
             setTimeout(() => setSubmitted(false), 4000);
         },
         onError: () => {
@@ -58,14 +80,16 @@ function AddGDReport() {
         e.preventDefault();
         const gdData = {
             thana_id: thana,
+            gd_type: gdType,
             description,
-            status: "pending",
+            incident_date: incidentDate || null,
+            incident_location: incidentLocation || null,
         };
         console.log("Submitting GD report with data:", gdData);
         addGDReport(gdData);
     };
 
-    const isFormValid = district && thana && description.trim().length > 0;
+    const isFormValid = district && thana && gdType && description.trim().length > 0;
 
     return (
         <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 sm:p-6">
@@ -153,6 +177,50 @@ function AddGDReport() {
                             </div>
                         </div>
 
+                        {/* GD Type */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                Report Type
+                            </label>
+                            <select
+                                value={gdType}
+                                onChange={(e) => setGdType(e.target.value)}
+                                className="w-full bg-gray-800 border border-white/[0.07] text-slate-200 text-sm rounded-lg px-3 py-2.5 appearance-none cursor-pointer outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 hover:border-white/[0.12] transition-all duration-200"
+                            >
+                                <option value="" disabled className="text-slate-500 bg-gray-800">Select report type</option>
+                                {GD_TYPES.map((t) => (
+                                    <option key={t.value} value={t.value} className="bg-gray-800 text-slate-200">{t.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Incident Date + Location row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                    Incident Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={incidentDate}
+                                    onChange={(e) => setIncidentDate(e.target.value)}
+                                    className="w-full bg-gray-800 border border-white/[0.07] text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 hover:border-white/[0.12] transition-all duration-200"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                    Incident Location
+                                </label>
+                                <input
+                                    type="text"
+                                    value={incidentLocation}
+                                    onChange={(e) => setIncidentLocation(e.target.value)}
+                                    placeholder="e.g. Dhanmondi 27, Road 5"
+                                    className="w-full bg-gray-800 border border-white/[0.07] text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none placeholder:text-slate-600 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 hover:border-white/[0.12] transition-all duration-200"
+                                />
+                            </div>
+                        </div>
+
                         {/* Description */}
                         <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -179,7 +247,7 @@ function AddGDReport() {
                         <div className="flex items-center gap-2 text-xs text-slate-500">
                             <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                             Filed as{" "}
-                            <span className="text-slate-400 font-medium">Pending</span>
+                            <span className="text-slate-400 font-medium">Submitted</span>
                         </div>
 
                         <button
