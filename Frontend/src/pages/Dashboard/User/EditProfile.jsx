@@ -11,19 +11,27 @@ function EditProfile() {
     const [fullName, setFullName] = useState(user?.full_name ?? "");
     const [phone, setPhone] = useState(user?.phone ?? "");
     const [address, setAddress] = useState(user?.address ?? "");
+    const userId = user?.user_id;
 
     const { mutate: updateUser, isPending } = useMutation({
-        mutationFn: (data) => updateUserApi(data),
+        mutationFn: ({ userId, updatedData }) => updateUserApi({ userId, updatedData }),
         onSuccess: (data) => {
             setUser(data?.user ?? { ...user, full_name: fullName, phone, address });
-            navigate("/user/profile");
+            navigate("/user/dashboard/profile");
         },
         onError: () => alert("Failed to update profile. Please try again."),
     });
 
+    console.log("EditProfile render: ", { fullName, phone, address });
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        updateUser({ full_name: fullName, phone, address });
+        const updatedData = {
+            full_name: fullName,
+            phone,
+            address,
+        }
+        updateUser({ userId, updatedData });
     };
 
     const inputClass =

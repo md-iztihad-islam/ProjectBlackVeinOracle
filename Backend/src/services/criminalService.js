@@ -30,7 +30,6 @@ export const getCriminalsByThanaIdService = async (thanaId) => {
     }
 }
 
-
 // by Rayyan 2.0
 
 export const getCriminalFullProfileService = async (criminalId) => {

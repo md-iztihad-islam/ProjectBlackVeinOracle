@@ -55,6 +55,7 @@ export const getAllUsersRepository = async () => {
 
 export const updateUserRepository = async (userId, data) => {
     try {
+        console.log('Updating user with ID:', userId, 'and data:', data);
         const { full_name, phone, address } = data;
         const query = `
             UPDATE "user" SET full_name=$1, phone=$2, address=$3 WHERE user_id=$4

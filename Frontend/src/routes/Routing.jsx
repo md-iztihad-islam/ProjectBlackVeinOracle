@@ -12,6 +12,8 @@ import RegisterUser from "@/pages/Dashboard/User/RegisterUser";
 import SigninUser from "@/pages/Dashboard/User/SigninUser";
 import UserDashboard from "@/pages/Dashboard/User/UserDashboard";
 import UserProfile from "@/pages/Dashboard/User/UserProfile";
+import EditProfile from "@/pages/Dashboard/User/EditProfile";
+import GDReport from "@/pages/Dashboard/User/GDReports";
 // import EditProfile from "@/pages/Dashboard/User/EditProfile";
 
 function Routing(){
@@ -72,14 +74,19 @@ function Routing(){
                 element={<UserProfile />}
             />
 
-            {/* <Route
+            <Route
                 path="/user/dashboard/profile/edit"
                 element={<EditProfile />}
-            /> */}
+            />
 
             <Route
                 path="/user/dashboard/add-gd-report"
                 element={<AddGDReport />}
+            />
+
+            <Route
+                path="/user/dashboard/gd-reports"
+                element={<GDReport />}
             />
 
             <Route 

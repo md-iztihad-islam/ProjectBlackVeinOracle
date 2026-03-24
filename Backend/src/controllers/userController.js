@@ -147,6 +147,8 @@ export const updateUserController = async (req, res) => {
         const { userId } = req.params;
         const data = req.body;
 
+        console.log('Received request to update user with ID:', userId, 'and data:', data);
+
         if (!userId) {
             return res.status(400).json({
                 success: false,
