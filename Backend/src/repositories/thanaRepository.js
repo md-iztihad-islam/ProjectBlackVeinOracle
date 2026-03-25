@@ -87,12 +87,16 @@ export const getThanaByIdRepository = async (thanaId) => {
 
 export const updateThanaRepository = async (thanaId, data) => {
     try {
-        const { thana_name, district, zone } = data;
+        console.log('Data received in updateThanaRepository:', data);
+        const { thana_name, district, zone, address, phone, email } = data;
+        const { head_officer_id } = data || {};
         const query = `
-            UPDATE thana SET thana_name=$1, district=$2, zone=$3 WHERE thana_id=$4
+            UPDATE thana
+            SET thana_name=$1, district=$2, zone=$3, address=$4, phone=$5, email=$6, head_officer_id=$8
+            WHERE thana_id=$7
             RETURNING *;
         `;
-        const values = [thana_name, district, zone, thanaId];
+        const values = [thana_name, district, zone, address, phone, email, thanaId, head_officer_id];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {

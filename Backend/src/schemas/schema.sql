@@ -111,8 +111,11 @@ CREATE TABLE IF NOT EXISTS gd_report(
     gd_id BIGSERIAL PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     thana_id TEXT NOT NULL REFERENCES thana(thana_id) ON DELETE CASCADE,
+    gd_type VARCHAR(30) NOT NULL CHECK (gd_type IN ('theft','lost_document','missing_person','accident','assault','robbery','fraud','domestic_violence','property_dispute','suspicious_activity','threat','noise_disturbance','other')) DEFAULT 'other',
     description TEXT NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'approved', 'rejected','submitted')) DEFAULT 'submitted',
+    incident_date DATE,
+    incident_location TEXT,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('submitted', 'assigned', 'approved', 'rejected')) DEFAULT 'submitted',
     approved_by_officer_id TEXT REFERENCES officer(officer_id),
     assigned_officer_id TEXT REFERENCES officer(officer_id),
     submitted_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
@@ -122,7 +125,7 @@ CREATE TABLE IF NOT EXISTS criminal(
     criminal_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('CRM'),
     full_name VARCHAR(100) NOT NULL,
     nid VARCHAR(20) UNIQUE NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('in_custody','on_bail','released','escaped','unknown')) DEFAULT 'unknown',
+    status TEXT NOT NULL CHECK (status IN ('in_custody','on_bail','released','escaped','unknown','wanted')) DEFAULT 'unknown',
     risk_level INT NOT NULL CHECK (risk_level BETWEEN 1 AND 10) DEFAULT 1,
     registered_thana_id TEXT REFERENCES thana(thana_id)
 );
@@ -345,7 +348,7 @@ LEFT JOIN LATERAL (
     ORDER BY cl.noted_at DESC                
     LIMIT 1 --latest er jonno                               
 ) cl_latest ON TRUE                          
-WHERE c.status = 'escaped'         
+WHERE c.status IN ('escaped', 'wanted')         
    OR c.risk_level >= 7;   
 
 
