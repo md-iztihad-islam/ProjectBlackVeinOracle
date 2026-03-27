@@ -34,11 +34,8 @@ export const getJailByEmailRepository = async (email) => {
 export const getAllJailsRepository = async () => {
     try {
         const query = `
-            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
-            cb.block_id, cb.block_name,
-            c.cell_id, c.cell_number, c.capacity AS cell_capacity
-            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
-            LEFT JOIN cell c ON cb.block_id = c.block_id; 
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity, j.email
+            FROM jail j;
         `
         const result = await pool.query(query);
         return result.rows;
@@ -51,12 +48,9 @@ export const getAllJailsRepository = async () => {
 export const getJailByIdRepository = async (jailId) => {
     try {
         const query = `
-            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity,
-            cb.block_id, cb.block_name,
-            c.cell_id, c.cell_number, c.capacity AS cell_capacity
-            FROM jail j LEFT JOIN cell_block cb ON j.jail_id = cb.jail_id
-            LEFT JOIN cell c ON cb.block_id = c.block_id
-            WHERE j.jail_id = $1;  
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity, j.email
+            FROM jail j
+            WHERE j.jail_id = $1;
         `
         const values = [jailId];
         const result = await pool.query(query, values);

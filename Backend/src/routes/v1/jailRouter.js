@@ -13,8 +13,6 @@ router.get('/get-jail/:jailId', isAuthenticated, requireRole("admin", "jail"), g
 router.get('/get-jail-by-name/:jailName', isAuthenticated, requireRole("admin", "jail"), getJailByNameController);
 router.get('/get-jail-by-zone/:zone', isAuthenticated, requireRole("admin", "jail"), getJailByZoneController);
 router.get('/get-jail-by-district/:district', isAuthenticated, requireRole("admin", "jail"), getJailByDistrictController);
-
-// by Rayyan 2.0
 router.put('/update-jail/:jailId', isAuthenticated, requireRole("admin"), updateJailController);
 router.delete('/delete-jail/:jailId', isAuthenticated, requireRole("admin"), deleteJailController);
 

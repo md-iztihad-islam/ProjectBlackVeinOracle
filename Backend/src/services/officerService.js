@@ -1,4 +1,4 @@
-import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository } from "../repositories/officerRepository.js"; 
+import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository, getOfficerByIdRepository } from "../repositories/officerRepository.js"; 
 import bcrypt from 'bcryptjs';
 
 export const addOfficerService = async (officerData) => {
@@ -88,13 +88,22 @@ export const deleteOfficerService = async (officerId) => {
     }
 }
 
-// by Rayyan 2.0
 export const searchOfficersService = async (searchTerm) => {
     try {
         const officers = await searchOfficersRepository(searchTerm);
         return officers;
     } catch (error) {
         console.log('Error searching officers at searchOfficersService:', error);
+        throw error;
+    }
+}
+
+export const getOfficerByIdService = async (officerId) => {
+    try {
+        const officer = await getOfficerByIdRepository(officerId);
+        return officer;
+    } catch (error) {
+        console.log('Error fetching officer by ID at getOfficerByIdService:', error);
         throw error;
     }
 }

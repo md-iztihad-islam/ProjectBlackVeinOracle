@@ -1,7 +1,5 @@
 import pool from '../config/dbConnection.js';
 
-//By Rayyan
-
 
 // criminal er full profile — cases, arrests, org memberships shob ekta row te 
 export const getCriminalFullProfileRepository = async (criminalId) => {

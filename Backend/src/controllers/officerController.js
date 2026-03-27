@@ -1,4 +1,4 @@
-import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService } from "../services/officerService.js"; 
+import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService, getOfficerByIdService } from "../services/officerService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addOfficerController = async (req, res) => {
@@ -251,6 +251,38 @@ export const searchOfficersController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error searching officers at searchOfficersController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const getOfficerByIdController = async (req, res) => {
+    try {
+        const { officerId } = req.params;
+        if (!officerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Officer ID is required'
+            });
+        }
+
+        const officer = await getOfficerByIdService(officerId);
+
+        if (!officer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Officer not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: officer
+        });
+    } catch (error) {
+        console.log('Error fetching officer by ID at getOfficerByIdController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

@@ -35,6 +35,24 @@ import AddThana from "@/pages/Dashboard/Admin/Thana/AddThana";
 import ThanaList from "@/pages/Dashboard/Admin/Thana/ThanaList";
 import UpdateThana from "@/pages/Dashboard/Admin/Thana/UpdateThana";
 import AssignThanaHead from "@/pages/Dashboard/Admin/Thana/AssignThanaHead";
+import RankAdminDashboard from "@/pages/Dashboard/Admin/Rank/RankAdminDashboard";
+import AddRank from "@/pages/Dashboard/Admin/Rank/AddRank";
+import RankList from "@/pages/Dashboard/Admin/Rank/RankList";
+import UpdateRank from "@/pages/Dashboard/Admin/Rank/UpdateRank";
+import AssignRank from "@/pages/Dashboard/Admin/Rank/AssignRank";
+import JailAdminDashboard from "@/pages/Dashboard/Admin/Jail/JailAdminDashboard";
+import JailList from "@/pages/Dashboard/Admin/Jail/JailList";
+import UpdateJail from "@/pages/Dashboard/Admin/Jail/UpdateJail";
+import AddJail from "@/pages/Dashboard/Admin/Jail/AddJail";
+import JailDashBoard from "@/pages/Dashboard/Jail/JailDashboard";
+import CellBlockList from "@/pages/Dashboard/Jail/CellBlock/CellBlockList";
+import AddCellBlock from "@/pages/Dashboard/Jail/CellBlock/AddCellBlock";
+import UpdateCellBlock from "@/pages/Dashboard/Jail/CellBlock/UpdateCellBlock";
+import ThanaDashboard from "@/pages/Dashboard/Thana/ThanaDashboard";
+import AddCriminal from "@/pages/Dashboard/Thana/CriminalPart/AddCriminal";
+import UpdateCriminal from "@/pages/Dashboard/Thana/CriminalPart/UpdateCriminal";
+import CellList from "@/pages/Dashboard/Jail/Cell/CellList";
+import AddCell from "@/pages/Dashboard/Jail/Cell/AddCell";
 
 
 
@@ -62,28 +80,47 @@ function Routing() {
       <Route path="/admin/dashboard/thanadashboard/thana-list/update-thana/:thana_id" element={<UpdateThana />} />
       <Route path="/admin/dashboard/thanadashboard/thana-list/thana-head/:thana_id" element={<AssignThanaHead />} />
 
+      <Route path="/admin/dashboard/rankdashboard" element={<RankAdminDashboard />} />
+      <Route path="/admin/dashboard/rankdashboard/add-rank" element={<AddRank />} />
+      <Route path="/admin/dashboard/rankdashboard/rank-list" element={<RankList />} />
+      <Route path="/admin/dashboard/rankdashboard/rank-list/update-rank/:rankId" element={<UpdateRank />} />
+      <Route path="/admin/dashboard/rankdashboard/rank-list/assign-rank/:rankId" element={<AssignRank />} />
+
+      <Route path="/admin/dashboard/jaildashboard" element={<JailAdminDashboard />} />
+      <Route path="/admin/dashboard/jaildashboard/add-jail" element={<AddJail />} />
+      <Route path="/admin/dashboard/jaildashboard/jail-list" element={<JailList />} />
+      <Route path="/admin/dashboard/jaildashboard/jail-list/update-jail/:jailId" element={<UpdateJail />} />
+
+
+      {/* Jail */}
+      <Route path="/jail/dashboard" element={<JailDashBoard />} />
+      <Route path="/jail/dashboard/cell-block-list" element={<CellBlockList />} />
+      <Route path="/jail/dashboard/add-cell-block" element={<AddCellBlock />} />
+      <Route path="/jail/dashboard/cell-block-list/update-cell-block/:cellBlockId" element={<UpdateCellBlock />} />
+
+      <Route path="/jail/dashboard/cellblock/:blockId/cells" element={<CellList />} />
+      <Route path="/jail/dashboard/cellblock/:blockId/addcell" element={<AddCell />} />
+
       {/* Thana */}
       
-
-      {/* Thana
       <Route path="/thana/dashboard" element={<ThanaDashboard />} />
       <Route path="/thana/add-criminal" element={<AddCriminal />} />
       <Route
         path="/thana/update-criminal/:criminalId"
         element={<UpdateCriminal />}
       />
-      <Route path="/thana/add-case-file" element={<AddCaseFile />} />
-      <Route
+      {/* <Route path="/thana/add-case-file" element={<AddCaseFile />} /> */}
+      {/* <Route
         path="/thana/update-case-file/:caseId"
         element={<UpdateCaseFile />}
-      />
-      <Route path="/thana/add-officer" element={<AddOfficer />} />
+      /> */}
+      {/* <Route path="/thana/add-officer" element={<AddOfficer />} />
       <Route
         path="/thana/update-officer/:officerId"
         element={<UpdateOfficer />}
-      />
-      <Route path="/thana/add-location" element={<AddLocation />} />
-      <Route path="/thana/add-organization" element={<AddOrganization />} /> */}
+      /> */}
+      {/* <Route path="/thana/add-location" element={<AddLocation />} /> */}
+      {/* <Route path="/thana/add-organization" element={<AddOrganization />} /> */}
 
       {/* Officer */}
       <Route path="/officer/dashboard" element={<OfficerDashboard />} />

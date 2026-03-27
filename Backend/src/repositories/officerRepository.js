@@ -54,7 +54,6 @@ export const getOfficerByThanaIdRepository = async (thana_id) => {
     }
 }
 
-// by Rayyan 2.0
 export const getOfficersByRankRepository = async (rankId) => {
     try {
         const query = `SELECT o.*, r.rank_name FROM officer o JOIN rank r ON o.rank_code = r.rank_code WHERE o.rank_code = $1;`;
@@ -104,6 +103,17 @@ export const searchOfficersRepository = async (searchTerm) => {
         return result.rows;
     } catch (error) {
         console.log('Error searching officers at searchOfficersRepository:', error);
+        throw error;
+    }
+}
+
+export const getOfficerByIdRepository = async (officerId) => {
+    try {
+        const query = 'SELECT * FROM officer WHERE officer_id = $1;';
+        const result = await pool.query(query, [officerId]);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error fetching officer by ID at getOfficerByIdRepository:', error);
         throw error;
     }
 }
