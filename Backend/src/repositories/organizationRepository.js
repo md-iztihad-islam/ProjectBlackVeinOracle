@@ -45,13 +45,17 @@ export const getOrganizationByIdRepository = async (orgId) => {
 
 export const updateOrganizationRepository = async (orgId, data) => {
     try {
-        const { org_name, org_type, threat_level, description } = data;
+        const { name, ideology, threat_level } = data;
         const query = `
-            UPDATE organization SET org_name = $1, org_type = $2, threat_level = $3, description = $4
-            WHERE org_id = $5
+            UPDATE organization
+            SET
+                name = COALESCE($1, name),
+                ideology = COALESCE($2, ideology),
+                threat_level = COALESCE($3, threat_level)
+            WHERE org_id = $4
             RETURNING *;
         `;
-        const values = [org_name, org_type, threat_level, description, orgId];
+        const values = [name, ideology, threat_level, orgId];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {
@@ -75,7 +79,7 @@ export const deleteOrganizationRepository = async (orgId) => {
 
 export const searchOrganizationsRepository = async (searchTerm) => {
     try {
-        const query = 'SELECT * FROM organization WHERE org_name ILIKE $1 OR org_type ILIKE $1;';
+        const query = 'SELECT * FROM organization WHERE name ILIKE $1 OR ideology ILIKE $1;';
         const result = await pool.query(query, [`%${searchTerm}%`]);
         return result.rows;
     } catch (error) {

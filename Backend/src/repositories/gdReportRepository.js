@@ -4,9 +4,21 @@ export const addGeneralDairyRepository = async (dairyData) => {
     try {
         const { user_id, thana_id, description, gd_type, incident_date, incident_location } = dairyData;
         const query = `
-            INSERT INTO gd_report (user_id, thana_id, gd_type, description, incident_date, incident_location)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *;
+            WITH inserted_gd AS (
+                INSERT INTO gd_report (user_id, thana_id, gd_type, description, incident_date, incident_location)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *
+            ),
+            inserted_notification AS (
+                INSERT INTO notification (target_role, target_id, title, message)
+                SELECT
+                    'user',
+                    user_id,
+                    'GD Submitted',
+                    'Your GD report has been submitted successfully and is pending review by thana.'
+                FROM inserted_gd
+            )
+            SELECT * FROM inserted_gd;
         `;
         const values = [user_id, thana_id, gd_type || 'other', description, incident_date || null, incident_location || null];
         const result = await pool.query(query, values);
@@ -44,12 +56,24 @@ export const getGeneralDairyByIdRepository = async (dairyId) => {
 export const updateGeneralDairyStatusRepository = async (dairyId, status, approvedByOfficerId, assignedOfficerId) => {
     try {
         const query = `
-            UPDATE gd_report
-            SET status = $1,
-                approved_by_officer_id = $2,
-                assigned_officer_id = $3
-            WHERE gd_id = $4
-            RETURNING *;
+            WITH updated_gd AS (
+                UPDATE gd_report
+                SET status = $1,
+                    approved_by_officer_id = COALESCE($2, approved_by_officer_id),
+                    assigned_officer_id = COALESCE($3, assigned_officer_id)
+                WHERE gd_id = $4
+                RETURNING *
+            ),
+            inserted_notification AS (
+                INSERT INTO notification (target_role, target_id, title, message)
+                SELECT
+                    'user',
+                    user_id,
+                    'GD Status Updated',
+                    'Your GD report #' || gd_id || ' status is now: ' || status
+                FROM updated_gd
+            )
+            SELECT * FROM updated_gd;
         `;
         const values = [status, approvedByOfficerId, assignedOfficerId, dairyId];
         const result = await pool.query(query, values);

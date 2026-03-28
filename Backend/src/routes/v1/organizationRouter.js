@@ -10,7 +10,7 @@ router.get('/get-all-organizations', isAuthenticated, getAllOrganizationsControl
 router.get('/get-organization/:orgId', isAuthenticated, getOrganizationByIdController);
 
 // by Rayyan 2.0
-router.put('/update-organization/:orgId', isAuthenticated, requireRole("admin"), updateOrganizationController);
+router.put('/update-organization/:orgId', isAuthenticated, requireRole("admin", "thana"), updateOrganizationController);
 router.delete('/delete-organization/:orgId', isAuthenticated, requireRole("admin"), deleteOrganizationController);
 router.get('/search-organizations', isAuthenticated, searchOrganizationsController);
 

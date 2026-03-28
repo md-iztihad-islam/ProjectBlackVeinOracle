@@ -152,9 +152,18 @@ export const getIncarcerationsByCriminalRepository = async (criminalId) => {
 
 export const findAvailableCellRepository = async (jailId) => {
     try {
-        const query = `SELECT fn_find_available_cell($1) AS cell_id`;
-        const result = await pool.query(query, [jailId]);
-        return result.rows[0];
+    const query = `
+      SELECT ce.cell_id
+      FROM cell ce
+      JOIN cell_block cb ON ce.block_id = cb.block_id
+      WHERE cb.jail_id = $1
+        AND ce.number_of_people < ce.capacity
+        AND ce.status <> 'maintenance'
+      ORDER BY (ce.capacity - ce.number_of_people) DESC, ce.cell_id
+      LIMIT 1
+    `;
+    const result = await pool.query(query, [jailId]);
+    return { cell_id: result.rows[0]?.cell_id || null };
     } catch (error) {
         console.log("Error at findAvailableCellRepository:", error);
         throw error;
@@ -165,12 +174,77 @@ export const findAvailableCellRepository = async (jailId) => {
 
 export const transferCriminalRepository = async (criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy) => {
     try {
+    if (!criminalId || !fromJailId || !toJailId || !reason) {
+      throw new Error("criminalId, fromJailId, toJailId, and reason are required");
+    }
+
+    if (fromJailId === toJailId) {
+      throw new Error("From jail and To jail cannot be the same");
+    }
+
+    let resolvedCellId = toCellId || null;
+
+    // If caller passes a block id (CLB-*), resolve best available cell in that block.
+    if (resolvedCellId && /^CLB-/i.test(resolvedCellId)) {
+      const blockCellQuery = `
+        SELECT ce.cell_id
+        FROM cell ce
+        JOIN cell_block cb ON ce.block_id = cb.block_id
+        WHERE cb.block_id = $1
+          AND cb.jail_id = $2
+          AND ce.number_of_people < ce.capacity
+          AND ce.status <> 'maintenance'
+        ORDER BY (ce.capacity - ce.number_of_people) DESC, ce.cell_id
+        LIMIT 1
+      `;
+      const blockCellResult = await pool.query(blockCellQuery, [resolvedCellId, toJailId]);
+      resolvedCellId = blockCellResult.rows[0]?.cell_id || null;
+      if (!resolvedCellId) {
+        throw new Error(`No available cell found in block ${toCellId} under jail ${toJailId}`);
+      }
+    }
+
+    // If no cell id provided, auto-pick best available cell from destination jail.
+    if (!resolvedCellId) {
+      const autoCellQuery = `
+        SELECT ce.cell_id
+        FROM cell ce
+        JOIN cell_block cb ON ce.block_id = cb.block_id
+        WHERE cb.jail_id = $1
+          AND ce.number_of_people < ce.capacity
+          AND ce.status <> 'maintenance'
+        ORDER BY (ce.capacity - ce.number_of_people) DESC, ce.cell_id
+        LIMIT 1
+      `;
+      const autoCellResult = await pool.query(autoCellQuery, [toJailId]);
+      resolvedCellId = autoCellResult.rows[0]?.cell_id || null;
+      if (!resolvedCellId) {
+        throw new Error(`No available cell found in destination jail ${toJailId}`);
+      }
+    } else {
+      // Validate the provided/derived cell belongs to destination jail and is available.
+      const validateCellQuery = `
+        SELECT ce.cell_id
+        FROM cell ce
+        JOIN cell_block cb ON ce.block_id = cb.block_id
+        WHERE ce.cell_id = $1
+          AND cb.jail_id = $2
+          AND ce.number_of_people < ce.capacity
+          AND ce.status <> 'maintenance'
+        LIMIT 1
+      `;
+      const validateCellResult = await pool.query(validateCellQuery, [resolvedCellId, toJailId]);
+      if (!validateCellResult.rows[0]) {
+        throw new Error(`Cell ${resolvedCellId} is invalid/unavailable for destination jail ${toJailId}`);
+      }
+    }
+
         const query = `CALL proc_transfer_criminal($1, $2, $3, $4, $5, $6)`;
-        await pool.query(query, [criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy]);
-        return { success: true };
+    await pool.query(query, [criminalId, fromJailId, toJailId, resolvedCellId, reason, authorizedBy]);
+    return { success: true, toCellId: resolvedCellId };
     } catch (error) {
         console.log("Error at transferCriminalRepository:", error);
-        throw error;
+    throw new Error(error?.message || "Transfer failed");
     }
 };
 

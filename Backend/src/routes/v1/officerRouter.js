@@ -13,7 +13,7 @@ router.get('/get-officer-by-id/:officerId', isAuthenticated, requireRole("admin"
 router.get('/get-officers-by-thana/:thana_id', isAuthenticated, requireRole("admin", "thana"), getOfficersByThanaIdController);
 router.get('/get-officers-by-rank/:rankId', isAuthenticated, requireRole("admin", "thana"), getOfficersByRankController);
 router.put('/update-officer/:officerId', isAuthenticated, requireRole("admin", "thana"), updateOfficerController);
-router.delete('/delete-officer/:officerId', isAuthenticated, requireRole("admin"), deleteOfficerController);
+router.delete('/delete-officer/:officerId', isAuthenticated, requireRole("admin", "thana"), deleteOfficerController);
 router.get('/search-officers', isAuthenticated, requireRole("admin", "thana"), searchOfficersController);
 
 export default router;

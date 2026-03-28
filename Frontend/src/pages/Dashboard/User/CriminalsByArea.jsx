@@ -15,6 +15,7 @@ function CriminalsByArea() {
   });
 
   const rows = data?.data || [];
+  const apiFailed = Boolean(district && data && data.success === false);
 
   return (
     <div className="min-h-screen bg-gray-950 text-slate-100 p-6">
@@ -51,6 +52,8 @@ function CriminalsByArea() {
           <p className="text-slate-400">Search by district to view records.</p>
         ) : isLoading ? (
           <p className="text-slate-400">Loading...</p>
+        ) : apiFailed ? (
+          <p className="text-rose-400">Failed to fetch records. Please retry.</p>
         ) : rows.length === 0 ? (
           <p className="text-slate-400">No records found for this district.</p>
         ) : (
@@ -77,7 +80,7 @@ function CriminalsByArea() {
                     <td className="px-4 py-3">{r.full_name}</td>
                     <td className="px-4 py-3 capitalize">{r.status}</td>
                     <td className="px-4 py-3">{r.risk_level}</td>
-                    <td className="px-4 py-3">{r.district || district}</td>
+                    <td className="px-4 py-3">{r.district || r.last_seen_district || district}</td>
                     <td className="px-4 py-3">{r.zone || "N/A"}</td>
                     <td className="px-4 py-3">
                       {r.noted_at

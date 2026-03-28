@@ -36,17 +36,17 @@ router.get('/organization-threat-analysis', isAuthenticated, requireRole("admin"
 router.get('/custody-overview', isAuthenticated, requireRole("admin", "thana", "jail"), getCustodyOverviewController);
 router.get('/inmates-due-for-bail', isAuthenticated, requireRole("admin", "thana", "jail"), getInmatesDueForBailController);
 router.get('/cell-occupancy-details/:jailId', isAuthenticated, requireRole("admin", "jail"), getCellOccupancyDetailsController);
-router.get('/dashboard-overview', isAuthenticated, requireRole("admin"), getDashboardOverviewController);
+router.get('/dashboard-overview', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getDashboardOverviewController);
 
 router.get('/criminals-above-avg-cases', isAuthenticated, requireRole("admin", "thana"), getCriminalsAboveAvgCasesController);
 router.get('/criminal-ranking', isAuthenticated, requireRole("admin", "thana"), getCriminalRankingController);
 router.get('/free-org-members', isAuthenticated, requireRole("admin", "thana"), getFreeOrgMembersController);
 router.get('/monthly-arrest-trend', isAuthenticated, requireRole("admin", "thana"), getMonthlyArrestTrendController);
 
-router.get('/thana-performance', isAuthenticated, requireRole("admin"), getThanaPerformanceController);
-router.get('/jail-occupancy-detail', isAuthenticated, requireRole("admin", "jail"), getJailOccupancyDetailController);
-router.get('/officer-workload', isAuthenticated, requireRole("admin", "thana"), getOfficerWorkloadController);
-router.get('/district-crime-stats', isAuthenticated, requireRole("admin", "thana"), getDistrictCrimeStatsController);
+router.get('/thana-performance', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getThanaPerformanceController);
+router.get('/jail-occupancy-detail', isAuthenticated, requireRole("admin", "jail", "thana", "officer"), getJailOccupancyDetailController);
+router.get('/officer-workload', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getOfficerWorkloadController);
+router.get('/district-crime-stats', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getDistrictCrimeStatsController);
 
 
 router.get('/audit-logs', isAuthenticated, requireRole("admin"), getAuditLogsController);

@@ -46,7 +46,11 @@ export const updateLocationRepository = async (locationId, data) => {
     try {
         const { address, district, zone } = data;
         const query = `
-            UPDATE location SET address = $1, district = $2, zone = $3
+            UPDATE location
+            SET
+                address = COALESCE(NULLIF($1, ''), address),
+                district = COALESCE(NULLIF($2, ''), district),
+                zone = COALESCE(NULLIF($3, ''), zone)
             WHERE location_id = $4
             RETURNING *;
         `;

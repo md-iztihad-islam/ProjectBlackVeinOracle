@@ -135,11 +135,20 @@ export const updateCriminalRepository = async (criminalId, data) => {
     try {
         const { full_name, nid, status, risk_level } = data;
         const query = `
-            UPDATE criminal SET full_name=$1, nid=$2, status=$3, risk_level=$4
+            UPDATE criminal
+            SET
+                full_name = COALESCE(NULLIF($1, ''), full_name),
+                nid = COALESCE(NULLIF($2, ''), nid),
+                status = COALESCE(NULLIF($3, ''), status),
+                risk_level = COALESCE($4, risk_level)
             WHERE criminal_id=$5
             RETURNING *;
         `;
-        const values = [full_name, nid, status, risk_level, criminalId];
+        const normalizedRiskLevel =
+            typeof risk_level === "number" && !Number.isNaN(risk_level)
+                ? risk_level
+                : null;
+        const values = [full_name, nid, status, normalizedRiskLevel, criminalId];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {
@@ -188,12 +197,28 @@ export const searchCriminalsRepository = async (searchTerm) => {
 export const getWantedCriminalsRepository = async () => {
     try {
         const query = `
-            SELECT c.*, t.thana_name,
-                l.district AS last_seen_district, l.zone AS last_seen_zone, l.address AS last_seen_address
+            SELECT
+                c.criminal_id,
+                c.full_name,
+                c.nid,
+                c.status,
+                c.risk_level,
+                c.registered_thana_id,
+                t.thana_name AS registered_thana,
+                COALESCE(last_loc.district, t.district) AS last_seen_district,
+                last_loc.zone AS last_seen_zone,
+                last_loc.address AS last_seen_address,
+                last_loc.noted_at AS last_seen_at
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
-            LEFT JOIN criminal_location cl ON c.criminal_id = cl.criminal_id
-            LEFT JOIN location l ON cl.location_id = l.location_id
+            LEFT JOIN LATERAL (
+                SELECT l.district, l.zone, l.address, cl.noted_at
+                FROM criminal_location cl
+                JOIN location l ON l.location_id = cl.location_id
+                WHERE cl.criminal_id = c.criminal_id
+                ORDER BY cl.noted_at DESC NULLS LAST
+                LIMIT 1
+            ) last_loc ON TRUE
             WHERE c.status IN ('wanted', 'escaped')
             ORDER BY c.risk_level DESC;
         `;
@@ -208,17 +233,34 @@ export const getWantedCriminalsRepository = async () => {
 // by Rayyan 2.0
 export const getCriminalsByAreaRepository = async (district) => {
     try {
+        const normalizedDistrict = String(district || '').trim();
         const query = `
-            SELECT c.*, l.district, l.zone, l.address, cl.noted_at,
-                t.thana_name AS registered_thana
+            SELECT
+                c.criminal_id,
+                c.full_name,
+                c.nid,
+                c.status,
+                c.risk_level,
+                c.registered_thana_id,
+                t.thana_name AS registered_thana,
+                COALESCE(last_loc.district, t.district) AS district,
+                last_loc.zone,
+                last_loc.address,
+                last_loc.noted_at
             FROM criminal c
-            JOIN criminal_location cl ON c.criminal_id = cl.criminal_id
-            JOIN location l ON cl.location_id = l.location_id
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
-            WHERE l.district ILIKE $1
-            ORDER BY cl.noted_at DESC;
+            LEFT JOIN LATERAL (
+                SELECT l.district, l.zone, l.address, cl.noted_at
+                FROM criminal_location cl
+                JOIN location l ON l.location_id = cl.location_id
+                WHERE cl.criminal_id = c.criminal_id
+                ORDER BY cl.noted_at DESC NULLS LAST
+                LIMIT 1
+            ) last_loc ON TRUE
+            WHERE COALESCE(last_loc.district, t.district, '') ILIKE $1
+            ORDER BY c.risk_level DESC, last_loc.noted_at DESC NULLS LAST;
         `;
-        const result = await pool.query(query, [`%${district}%`]);
+        const result = await pool.query(query, [`%${normalizedDistrict}%`]);
         return result.rows;
     } catch (error) {
         console.log('Error fetching criminals by area at getCriminalsByAreaRepository:', error);

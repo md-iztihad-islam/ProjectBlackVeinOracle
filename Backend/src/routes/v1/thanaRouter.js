@@ -10,7 +10,7 @@ router.post('/signin-thana', signinThanaController);
 router.post('/signout-thana', isAuthenticated, signoutThanaController);
 router.post('/add-head-officer', isAuthenticated, requireRole("admin"), addHeadOfficerToThanaController);
 router.get('/get-thanas-by-district/:district', isAuthenticated, requireRole("admin", "thana", "user"), getThanasByDistrictController); // by Rayyan 2.0 — added "user" role so AddGDReport page works
-router.get('/get-all-thanas', isAuthenticated, requireRole("admin", "user"), getAllThanasController); // by Rayyan 2.0 — added "user" role so UserDashboard GD form works
+router.get('/get-all-thanas', isAuthenticated, requireRole("admin", "user", "thana", "officer", "jail"), getAllThanasController); // by Rayyan 2.0 — added flexible role access for dashboard population
 // by Rayyan 2.0
 router.get('/get-thana-by-id/:thanaId', isAuthenticated, requireRole("admin", "thana"), getThanaByIdController);
 router.put('/update-thana/:thanaId', isAuthenticated, requireRole("admin"), updateThanaController);

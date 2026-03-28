@@ -911,7 +911,7 @@
 
 // export default AdminDashboard;
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminSignoutApi } from "@/services/authServices/signoutApi";
 import {
@@ -924,19 +924,35 @@ import {
   getAllGDReports,
   getDashboardOverview,
   addThana,
+  addJail,
   addRank,
   addHeadOfficer as _addHeadOfficer,
   deleteThana,
 } from "@/services/Admin/adminApi";
+import {
+  getAllCriminalLocations,
+  getAllCriminalOrganizationLinks,
+  getAllCriminalRelations,
+  getAllLocations,
+  getAllOrganizations,
+} from "@/services/Thana/thanaApi";
+import {
+  getCriminalRanking,
+  getDistrictCrimeStats,
+  getOfficerWorkload,
+  getThanaPerformance,
+} from "@/services/Analytics/analyticsApi";
+import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 function AdminDashboard() {
   const navigate = useNavigate();
-  const { clearUser } = userStore();
+  const { clearUser, user } = userStore();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddThana, setShowAddThana] = useState(false);
+  const [showAddJail, setShowAddJail] = useState(false);
   const [showAddRank, setShowAddRank] = useState(false);
 
   // Form states
@@ -955,12 +971,43 @@ function AdminDashboard() {
     rank_name: "",
     level: "",
   });
+  const [jailForm, setJailForm] = useState({
+    jail_name: "",
+    district: "",
+    zone: "",
+    address: "",
+    capacity: "",
+    email: "",
+    password: "",
+  });
 
   const handleSignout = async () => {
     await adminSignoutApi();
     clearUser();
     navigate("/");
   };
+
+  useEffect(() => {
+    const id = user?.admin_id || user?.thana_id || user?.officer_id || user?.jail_id || user?.user_id;
+    if (!id) return;
+
+    if (String(id).startsWith("ADM")) return;
+    if (String(id).startsWith("JAL")) {
+      navigate("/jail/dashboard", { replace: true });
+      return;
+    }
+    if (String(id).startsWith("THN")) {
+      navigate("/thana/dashboard", { replace: true });
+      return;
+    }
+    if (String(id).startsWith("OFC")) {
+      navigate("/officer/dashboard", { replace: true });
+      return;
+    }
+    if (String(id).startsWith("USR")) {
+      navigate("/user/dashboard", { replace: true });
+    }
+  }, [navigate, user]);
 
   // Queries — live data from backend
   const { data: thanasData } = useQuery({
@@ -991,9 +1038,49 @@ function AdminDashboard() {
     queryKey: ["allGDReports"],
     queryFn: getAllGDReports,
   });
+  const { data: organizationsData } = useQuery({
+    queryKey: ["allOrganizations"],
+    queryFn: getAllOrganizations,
+  });
+  const { data: locationsData } = useQuery({
+    queryKey: ["allLocations"],
+    queryFn: getAllLocations,
+  });
+  const { data: criminalOrgLinksData } = useQuery({
+    queryKey: ["allCriminalOrgLinks"],
+    queryFn: getAllCriminalOrganizationLinks,
+  });
+  const { data: criminalRelationsData } = useQuery({
+    queryKey: ["allCriminalRelations"],
+    queryFn: getAllCriminalRelations,
+  });
+  const { data: criminalLocationLinksData } = useQuery({
+    queryKey: ["allCriminalLocationLinks"],
+    queryFn: getAllCriminalLocations,
+  });
   const { data: _overviewData } = useQuery({
     queryKey: ["dashboardOverview"],
     queryFn: getDashboardOverview,
+  });
+  const { data: districtStatsData } = useQuery({
+    queryKey: ["admin-district-stats"],
+    queryFn: getDistrictCrimeStats,
+  });
+  const { data: officerWorkloadData } = useQuery({
+    queryKey: ["admin-officer-workload"],
+    queryFn: getOfficerWorkload,
+  });
+  const { data: criminalRankingData } = useQuery({
+    queryKey: ["admin-criminal-ranking"],
+    queryFn: getCriminalRanking,
+  });
+  const { data: thanaPerformanceData } = useQuery({
+    queryKey: ["admin-thana-performance"],
+    queryFn: getThanaPerformance,
+  });
+  const { data: unreadNotificationData } = useQuery({
+    queryKey: ["admin-unread-notification-count"],
+    queryFn: getUnreadNotificationCount,
   });
 
   const thanas = thanasData?.data || [];
@@ -1003,6 +1090,18 @@ function AdminDashboard() {
   const jails = jailsData?.data || [];
   const users = usersData?.data || [];
   const gdReports = gdData?.data || [];
+  const organizations = organizationsData?.data || [];
+  const locations = locationsData?.data || [];
+  const criminalOrgLinks = criminalOrgLinksData?.data || [];
+  const criminalRelations = criminalRelationsData?.data || [];
+  const criminalLocationLinks = criminalLocationLinksData?.data || [];
+  const districtStats = districtStatsData?.data || [];
+  const officerWorkload = officerWorkloadData?.data || [];
+  const criminalRanking = criminalRankingData?.data || [];
+  const thanaPerformance = thanaPerformanceData?.data || [];
+  const unreadNotificationCount = Number(
+    unreadNotificationData?.data?.unread_count || 0,
+  );
 
   // Mutations
   const addThanaMut = useMutation({
@@ -1038,6 +1137,26 @@ function AdminDashboard() {
       }
     },
   });
+  const addJailMut = useMutation({
+    mutationFn: (d) => addJail(d),
+    onSuccess: (r) => {
+      if (r.success) {
+        queryClient.invalidateQueries(["allJails"]);
+        setShowAddJail(false);
+        setJailForm({
+          jail_name: "",
+          district: "",
+          zone: "",
+          address: "",
+          capacity: "",
+          email: "",
+          password: "",
+        });
+      } else {
+        alert(r.message || "Failed to add jail");
+      }
+    },
+  });
   const deleteThanaMut = useMutation({
     mutationFn: (id) => deleteThana(id),
     onSuccess: () => queryClient.invalidateQueries(["allThanas"]),
@@ -1065,15 +1184,56 @@ function AdminDashboard() {
   const btnCls =
     "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200";
 
+  const renderTable = (rows, columns, emptyText = "No data found") => (
+    <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+            {columns.map((c) => (
+              <th key={c.key} className="text-left p-3">
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="p-6 text-center text-slate-500">
+                {emptyText}
+              </td>
+            </tr>
+          ) : (
+            rows.map((row, idx) => (
+              <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02]">
+                {columns.map((c) => (
+                  <td key={c.key} className="p-3 text-slate-200">
+                    {row?.[c.key] ?? "—"}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "thanas", label: `Thanas (${thanas.length})` },
     { id: "officers", label: `Officers (${officers.length})` },
     { id: "criminals", label: `Criminals (${criminals.length})` },
     { id: "jails", label: `Jails (${jails.length})` },
+    { id: "organizations", label: `Organizations (${organizations.length})` },
+    { id: "locations", label: `Locations (${locations.length})` },
+    { id: "criminal-relations", label: `Relations (${criminalRelations.length})` },
+    { id: "criminal-org-links", label: `Org Links (${criminalOrgLinks.length})` },
+    { id: "criminal-location-links", label: `Location Links (${criminalLocationLinks.length})` },
     { id: "ranks", label: `Ranks (${ranks.length})` },
     { id: "users", label: `Users (${users.length})` },
     { id: "gd-reports", label: `GD Reports (${gdReports.length})` },
+    { id: "analytics", label: "Analytics" },
   ];
 
   return (
@@ -1092,12 +1252,29 @@ function AdminDashboard() {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleSignout}
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-sm rounded-lg transition-all"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/admin/dashboard/notifications")}
+              className="relative w-10 h-10 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-300 rounded-lg transition-all flex items-center justify-center"
+              aria-label="Notifications"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadNotificationCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleSignout}
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-sm rounded-lg transition-all"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1133,6 +1310,16 @@ function AdminDashboard() {
               { label: "Jails", val: jails.length, color: "text-purple-400" },
               { label: "Ranks", val: ranks.length, color: "text-cyan-400" },
               { label: "Users", val: users.length, color: "text-amber-400" },
+              {
+                label: "Organizations",
+                val: organizations.length,
+                color: "text-fuchsia-400",
+              },
+              {
+                label: "Locations",
+                val: locations.length,
+                color: "text-teal-400",
+              },
               {
                 label: "GD Reports",
                 val: gdReports.length,
@@ -1418,39 +1605,265 @@ function AdminDashboard() {
 
         {/* Jails */}
         {activeTab === "jails" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">ID</th>
-                  <th className="text-left p-3">Name</th>
-                  <th className="text-left p-3">District</th>
-                  <th className="text-left p-3">Zone</th>
-                  <th className="text-left p-3">Capacity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {jails.map((j) => (
-                  <tr
-                    key={j.jail_id}
-                    className="border-b border-white/5 hover:bg-white/[0.02]"
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Jails</h2>
+              <button
+                onClick={() => setShowAddJail(!showAddJail)}
+                className={`${btnCls} bg-blue-600 hover:bg-blue-500 text-white`}
+              >
+                + Add Jail
+              </button>
+            </div>
+
+            {showAddJail && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addJailMut.mutate({
+                    ...jailForm,
+                    capacity: Number(jailForm.capacity || 0),
+                  });
+                }}
+                className="bg-gray-900 border border-white/5 rounded-xl p-5 grid grid-cols-2 gap-3"
+              >
+                <input
+                  placeholder="Jail Name"
+                  value={jailForm.jail_name}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, jail_name: e.target.value })
+                  }
+                  className={inputCls}
+                  required
+                />
+                <input
+                  placeholder="District"
+                  value={jailForm.district}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, district: e.target.value })
+                  }
+                  className={inputCls}
+                  required
+                />
+                <input
+                  placeholder="Zone"
+                  value={jailForm.zone}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, zone: e.target.value })
+                  }
+                  className={inputCls}
+                  required
+                />
+                <input
+                  placeholder="Address"
+                  value={jailForm.address}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, address: e.target.value })
+                  }
+                  className={inputCls}
+                  required
+                />
+                <input
+                  placeholder="Capacity"
+                  type="number"
+                  min="1"
+                  value={jailForm.capacity}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, capacity: e.target.value })
+                  }
+                  className={inputCls}
+                  required
+                />
+                <input
+                  placeholder="Email"
+                  type="email"
+                  value={jailForm.email}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, email: e.target.value })
+                  }
+                  className={inputCls}
+                  required
+                />
+                <input
+                  placeholder="Password"
+                  type="password"
+                  value={jailForm.password}
+                  onChange={(e) =>
+                    setJailForm({ ...jailForm, password: e.target.value })
+                  }
+                  className={`${inputCls} col-span-2`}
+                  required
+                />
+                <div className="col-span-2 flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={addJailMut.isPending}
+                    className={`${btnCls} bg-green-600 hover:bg-green-500 text-white`}
                   >
-                    <td className="p-3 font-mono text-xs">{j.jail_id}</td>
-                    <td className="p-3 font-medium">{j.jail_name}</td>
-                    <td className="p-3 text-slate-400">{j.district}</td>
-                    <td className="p-3 text-slate-400">{j.zone}</td>
-                    <td className="p-3 font-mono">{j.capacity}</td>
+                    {addJailMut.isPending ? "Adding..." : "Add Jail"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddJail(false)}
+                    className={`${btnCls} bg-gray-700 text-slate-300`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">ID</th>
+                    <th className="text-left p-3">Name</th>
+                    <th className="text-left p-3">District</th>
+                    <th className="text-left p-3">Zone</th>
+                    <th className="text-left p-3">Capacity</th>
                   </tr>
-                ))}
-                {jails.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
-                      No jails found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {jails.map((j) => (
+                    <tr
+                      key={j.jail_id}
+                      className="border-b border-white/5 hover:bg-white/[0.02]"
+                    >
+                      <td className="p-3 font-mono text-xs">{j.jail_id}</td>
+                      <td className="p-3 font-medium">{j.jail_name}</td>
+                      <td className="p-3 text-slate-400">{j.district}</td>
+                      <td className="p-3 text-slate-400">{j.zone}</td>
+                      <td className="p-3 font-mono">{j.capacity}</td>
+                    </tr>
+                  ))}
+                  {jails.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-6 text-center text-slate-500">
+                        No jails found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Organizations */}
+        {activeTab === "organizations" &&
+          renderTable(organizations, [
+            { key: "org_id", label: "ID" },
+            { key: "name", label: "Name" },
+            { key: "ideology", label: "Ideology" },
+            { key: "threat_level", label: "Threat" },
+          ])}
+
+        {/* Locations */}
+        {activeTab === "locations" &&
+          renderTable(locations, [
+            { key: "location_id", label: "ID" },
+            { key: "district", label: "District" },
+            { key: "zone", label: "Zone" },
+            { key: "address", label: "Address" },
+          ])}
+
+        {/* Criminal Relations */}
+        {activeTab === "criminal-relations" &&
+          renderTable(criminalRelations, [
+            { key: "relation_id", label: "Relation ID" },
+            { key: "criminal_id_1", label: "Criminal A ID" },
+            { key: "criminal_1_name", label: "Criminal A Name" },
+            { key: "criminal_id_2", label: "Criminal B ID" },
+            { key: "criminal_2_name", label: "Criminal B Name" },
+            { key: "relation_type", label: "Type" },
+          ])}
+
+        {/* Criminal Organization Links */}
+        {activeTab === "criminal-org-links" &&
+          renderTable(criminalOrgLinks, [
+            { key: "criminal_id", label: "Criminal ID" },
+            { key: "criminal_name", label: "Criminal Name" },
+            { key: "org_id", label: "Org ID" },
+            { key: "organization_name", label: "Organization" },
+            { key: "threat_level", label: "Threat" },
+            { key: "role", label: "Role" },
+          ])}
+
+        {/* Criminal Location Links */}
+        {activeTab === "criminal-location-links" &&
+          renderTable(criminalLocationLinks, [
+            { key: "criminal_location_id", label: "Link ID" },
+            { key: "criminal_id", label: "Criminal ID" },
+            { key: "criminal_name", label: "Criminal Name" },
+            { key: "location_id", label: "Location ID" },
+            { key: "district", label: "District" },
+            { key: "zone", label: "Zone" },
+            { key: "address", label: "Address" },
+            { key: "noted_at", label: "Noted At" },
+          ])}
+
+        {/* Analytics */}
+        {activeTab === "analytics" && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold mb-2">District Crime Stats</h2>
+              {renderTable(districtStats, [
+                { key: "district", label: "District" },
+                { key: "total_criminals", label: "Total Criminals" },
+                { key: "high_risk_criminals", label: "High Risk" },
+                { key: "total_cases", label: "Total Cases" },
+                { key: "open_cases", label: "Open Cases" },
+                { key: "total_arrests", label: "Arrests" },
+                { key: "active_thanas", label: "Active Thanas" },
+              ])}
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Officer Workload</h2>
+              {renderTable(officerWorkload, [
+                { key: "officer_id", label: "Officer ID" },
+                { key: "full_name", label: "Officer" },
+                { key: "badge_no", label: "Badge" },
+                { key: "rank_name", label: "Rank" },
+                { key: "thana_name", label: "Thana" },
+                { key: "assigned_gds", label: "Assigned GD" },
+                { key: "approved_gds", label: "Approved GD" },
+                { key: "total_workload", label: "Total Workload" },
+                { key: "workload_rank", label: "Rank" },
+              ])}
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Criminal Ranking</h2>
+              {renderTable(criminalRanking, [
+                { key: "criminal_id", label: "Criminal ID" },
+                { key: "full_name", label: "Name" },
+                { key: "status", label: "Status" },
+                { key: "arrest_count", label: "Arrests" },
+                { key: "case_count", label: "Case Count" },
+                { key: "overall_rank", label: "Overall Rank" },
+                { key: "status_rank", label: "Status Rank" },
+              ])}
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Thana Performance</h2>
+              {renderTable(thanaPerformance, [
+                { key: "thana_id", label: "Thana ID" },
+                { key: "thana_name", label: "Thana" },
+                { key: "district", label: "District" },
+                { key: "officer_count", label: "Officers" },
+                { key: "total_cases", label: "Total Cases" },
+                { key: "closed_cases", label: "Closed Cases" },
+                { key: "case_closure_rate", label: "Case Closure %" },
+                { key: "total_gd_reports", label: "Total GD" },
+                { key: "approved_gds", label: "Approved GD" },
+                { key: "gd_approval_rate", label: "GD Approval %" },
+                { key: "criminals_registered", label: "Criminals" },
+                { key: "performance_rank", label: "Performance Rank" },
+              ])}
+            </div>
           </div>
         )}
 

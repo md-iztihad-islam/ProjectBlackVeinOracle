@@ -112,7 +112,7 @@ export const LoginPage = () => {
         admin: "/admin/dashboard",
         thana: "/thana/dashboard",
         officer: "/officer/dashboard",
-        jail: "/admin/dashboard",
+        jail: "/jail/dashboard",
       };
       navigate(dashboardRoutes[userType] || "/access");
     },

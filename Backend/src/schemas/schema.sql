@@ -970,20 +970,77 @@ CREATE TRIGGER trg_criminal_status_on_arrest
 --escapre korle
 CREATE OR REPLACE FUNCTION fn_escape_alert()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_registered_thana TEXT;
+    v_last_known_location TEXT;
+    v_last_seen_at TIMESTAMPTZ;
+    v_escape_from_context TEXT;
+    v_alert_time TEXT;
 BEGIN
     IF NEW.status = 'escaped' AND (OLD.status IS NULL OR OLD.status <> 'escaped') THEN
-        INSERT INTO notification (target_role, target_id, title, message)
-        VALUES ('thana', NULL, ' CRIMINAL ESCAPED!',
-                'URGENT: ' || NEW.full_name || ' (ID: ' || NEW.criminal_id ||
-                ', Risk: ' || NEW.risk_level || ') has ESCAPED.');
+        SELECT t.thana_name
+        INTO v_registered_thana
+        FROM thana t
+        WHERE t.thana_id = NEW.registered_thana_id;
+
+        SELECT
+            (COALESCE(l.address, 'Unknown address') || ', ' || COALESCE(l.district, 'Unknown district')),
+            cl.noted_at
+        INTO v_last_known_location, v_last_seen_at
+        FROM criminal_location cl
+        JOIN location l ON l.location_id = cl.location_id
+        WHERE cl.criminal_id = NEW.criminal_id
+        ORDER BY cl.noted_at DESC NULLS LAST
+        LIMIT 1;
+
+        SELECT
+            ('Escaped From: ' || COALESCE(j.jail_name, 'Unknown jail') ||
+             CASE WHEN ce.cell_number IS NOT NULL THEN ' / Cell ' || ce.cell_number ELSE '' END)
+        INTO v_escape_from_context
+        FROM incarceration i
+        JOIN arrest_record ar ON ar.arrest_id = i.arrest_id
+        LEFT JOIN jail j ON j.jail_id = i.jail_id
+        LEFT JOIN cell ce ON ce.cell_id = i.cell_id
+        WHERE ar.criminal_id = NEW.criminal_id
+        ORDER BY i.admitted_at DESC NULLS LAST
+        LIMIT 1;
+
+        v_alert_time := TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS');
 
         INSERT INTO notification (target_role, target_id, title, message)
-        VALUES ('officer', NULL, ' CRIMINAL ESCAPED!',
-                'Be on lookout: ' || NEW.full_name || ' (ID: ' || NEW.criminal_id || ')');
+        VALUES (
+            'thana',
+            NULL,
+            'CRIMINAL ESCAPE ALERT',
+            'Escaped At: ' || v_alert_time || E'\n' ||
+            'Criminal: ' || NEW.full_name || ' (' || NEW.criminal_id || ')' || E'\n' ||
+            'Risk Level: ' || NEW.risk_level || E'\n' ||
+            'Registered Thana: ' || COALESCE(v_registered_thana, 'Unknown') || E'\n' ||
+            'Last Known Location: ' || COALESCE(v_last_known_location, 'No location record') ||
+            CASE WHEN v_last_seen_at IS NOT NULL
+                THEN ' (Seen: ' || TO_CHAR(v_last_seen_at, 'YYYY-MM-DD HH24:MI:SS') || ')'
+                ELSE ''
+            END || E'\n' ||
+            COALESCE(v_escape_from_context, 'Escaped From: unavailable')
+        );
 
         INSERT INTO notification (target_role, target_id, title, message)
-        VALUES ('admin', NULL, ' ESCAPE ALERT!',
-                'Criminal ' || NEW.full_name || ' has escaped. Risk Level: ' || NEW.risk_level);
+        VALUES (
+            'officer',
+            NULL,
+            'CRIMINAL ESCAPE ALERT',
+            'Be on lookout for ' || NEW.full_name || ' (' || NEW.criminal_id || ')' ||
+            '. Risk ' || NEW.risk_level || '. Last known: ' || COALESCE(v_last_known_location, 'Unknown')
+        );
+
+        INSERT INTO notification (target_role, target_id, title, message)
+        VALUES (
+            'admin',
+            NULL,
+            'ESCAPE ALERT',
+            'Criminal ' || NEW.full_name || ' (' || NEW.criminal_id || ') escaped at ' || v_alert_time ||
+            '. Risk: ' || NEW.risk_level || '. Registered thana: ' || COALESCE(v_registered_thana, 'Unknown')
+        );
     END IF;
     RETURN NEW;
 END;

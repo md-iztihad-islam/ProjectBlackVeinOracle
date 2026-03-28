@@ -8,7 +8,7 @@ const router = express.Router();
 router.post('/add-jail', isAuthenticated, requireRole("admin"), addJailController);
 router.post('/signin-jail', signinJailController);
 router.post('/signout-jail', isAuthenticated, signoutJailController);
-router.get('/get-jails', isAuthenticated, requireRole("admin", "jail"), getAllJailsController);
+router.get('/get-jails', isAuthenticated, requireRole("admin", "jail", "thana", "officer"), getAllJailsController);
 router.get('/get-jail/:jailId', isAuthenticated, requireRole("admin", "jail"), getJailByIdController);
 router.get('/get-jail-by-name/:jailName', isAuthenticated, requireRole("admin", "jail"), getJailByNameController);
 router.get('/get-jail-by-zone/:zone', isAuthenticated, requireRole("admin", "jail"), getJailByZoneController);
