@@ -1,4 +1,4 @@
-import { addGeneralDairyService, getGeneralDairiesByUserIdService, getGeneralDairyByIdService, updateGeneralDairyStatusService, getAllGeneralDairiesService, getGeneralDairiesByThanaService, deleteGeneralDairyService } from "../services/gdReportService.js"; 
+import { addGeneralDairyService, getGeneralDairiesByUserIdService, getGeneralDairyByIdService, updateGeneralDairyStatusService, getAllGeneralDairiesService, getGeneralDairiesByThanaService, deleteGeneralDairyService, getGeneralDairiesByAssignedOfficerService, respondToGeneralDairyService } from "../services/gdReportService.js"; 
 
 export const addGeneralDairyController = async (req, res) => {
     try {
@@ -128,7 +128,6 @@ export const updateGeneralDairyStatusController = async (req, res) => {
     }
 }
 
-// by Rayyan 2.0
 export const getAllGeneralDairiesController = async (req, res) => {
     try {
         const dairies = await getAllGeneralDairiesService();
@@ -207,6 +206,66 @@ export const deleteGeneralDairyController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error deleting general dairy at deleteGeneralDairyController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const getGeneralDairiesByAssignedOfficerController = async (req, res) => {
+    try {
+        const officerId = req.id;
+        if (!officerId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized access'
+            });
+        }
+
+        const dairies = await getGeneralDairiesByAssignedOfficerService(officerId);
+
+        return res.status(200).json({
+            success: true,
+            data: dairies
+        });
+    } catch (error) {
+        console.log('Error fetching general dairies by assigned officer at getGeneralDairiesByAssignedOfficerController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const respondToGeneralDairyController = async (req, res) => {
+    try {
+        const { dairyId } = req.params;
+        const { status } = req.body;
+        const officerId = req.id;
+
+        if (!officerId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized access'
+            });
+        }
+
+        const updatedDairy = await respondToGeneralDairyService(dairyId, status);
+
+        if (!updatedDairy) {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to update general dairy status'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedDairy
+        });
+    } catch (error) {
+        console.log('Error responding to general dairy at respondToGeneralDairyController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

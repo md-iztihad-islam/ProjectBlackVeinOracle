@@ -39,8 +39,6 @@ router.delete(
   isAuthenticated,
   deleteBailRecordController,
 );
-
-// by Rayyan 2.0
 router.post("/process-decision", isAuthenticated, processBailDecisionController);
 
 export default router;

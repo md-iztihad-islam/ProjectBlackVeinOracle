@@ -60,7 +60,6 @@ export const updateGeneralDairyStatusRepository = async (dairyId, status, approv
     }
 }
 
-// by Rayyan 2.0
 export const getAllGeneralDairiesRepository = async () => {
     try {
         const query = 'SELECT * FROM gd_report ORDER BY gd_id DESC;';
@@ -96,8 +95,6 @@ export const deleteGeneralDairyRepository = async (dairyId) => {
     }
 }
 
-//by Iztihad
-
 export const getSubmittedGeneralDairiesByThanaRepository = async (thanaId) => {
     try {
         const query = 'SELECT * FROM gd_report WHERE thana_id = $1 AND status = $2 ORDER BY gd_id DESC;';
@@ -105,6 +102,34 @@ export const getSubmittedGeneralDairiesByThanaRepository = async (thanaId) => {
         return result.rows;
     } catch (error) {
         console.log('Error fetching submitted general dairies by thana at getSubmittedGeneralDairiesByThanaRepository:', error);
+        throw error;
+    }
+}
+
+export const getGeneralDairiesByAssignedOfficerRepository = async (officerId) => {
+    try {
+        const query = 'SELECT * FROM gd_report WHERE assigned_officer_id = $1 ORDER BY gd_id DESC;';
+        const result = await pool.query(query, [officerId]);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching general dairies by assigned officer at getGeneralDairiesByAssignedOfficerRepository:', error);
+        throw error;
+    }
+}
+
+export const respondToGeneralDairyRepository = async (dairyId, status) => {
+    try {
+        const query = `
+            UPDATE gd_report
+            SET status = $1
+            WHERE gd_id = $2
+            RETURNING *;
+        `;
+        const values = [status, dairyId];
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    } catch (error) {
+        console.log('Error responding to general dairy at respondToGeneralDairyRepository:', error);
         throw error;
     }
 }

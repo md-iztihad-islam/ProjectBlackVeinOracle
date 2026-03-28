@@ -1,4 +1,4 @@
-import { addGeneralDairyRepository, getGeneralDairiesByUserIdRepository, getGeneralDairyByIdRepository, updateGeneralDairyStatusRepository, getAllGeneralDairiesRepository, getGeneralDairiesByThanaRepository, deleteGeneralDairyRepository } from "../repositories/gdReportRepository.js"; // by Rayyan 2.0
+import { addGeneralDairyRepository, getGeneralDairiesByUserIdRepository, getGeneralDairyByIdRepository, updateGeneralDairyStatusRepository, getAllGeneralDairiesRepository, getGeneralDairiesByThanaRepository, deleteGeneralDairyRepository, getGeneralDairiesByAssignedOfficerRepository, respondToGeneralDairyRepository } from "../repositories/gdReportRepository.js"; // by Rayyan 2.0
 
 export const addGeneralDairyService = async (dairyData) => {
     try {
@@ -62,13 +62,32 @@ export const getGeneralDairiesByThanaService = async (thanaId) => {
     }
 }
 
-// by Rayyan 2.0
 export const deleteGeneralDairyService = async (dairyId) => {
     try {
         const deletedDairy = await deleteGeneralDairyRepository(dairyId);
         return deletedDairy;
     } catch (error) {
         console.log('Error deleting general dairy at deleteGeneralDairyService:', error);
+        throw error;
+    }
+}
+
+export const getGeneralDairiesByAssignedOfficerService = async (officerId) => {
+    try {
+        const dairies = await getGeneralDairiesByAssignedOfficerRepository(officerId);
+        return dairies;
+    } catch (error) {
+        console.log('Error fetching general dairies by assigned officer at getGeneralDairiesByAssignedOfficerService:', error);
+        throw error;
+    }
+}
+
+export const respondToGeneralDairyService = async (dairyId, status) => {
+    try {
+        const updatedDairy = await respondToGeneralDairyRepository(dairyId, status);
+        return updatedDairy;
+    } catch (error) {
+        console.log('Error responding to general dairy at respondToGeneralDairyService:', error);
         throw error;
     }
 }

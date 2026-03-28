@@ -53,6 +53,14 @@ import AddCriminal from "@/pages/Dashboard/Thana/CriminalPart/AddCriminal";
 import UpdateCriminal from "@/pages/Dashboard/Thana/CriminalPart/UpdateCriminal";
 import CellList from "@/pages/Dashboard/Jail/Cell/CellList";
 import AddCell from "@/pages/Dashboard/Jail/Cell/AddCell";
+import ArrestRecordList from "@/pages/Dashboard/Officer/Arrest/ArrestRecordList";
+import UpdateArrestRecord from "@/pages/Dashboard/Officer/Arrest/UpdateArrestRecord";
+import ArrestRecordDetails from "@/pages/Dashboard/Officer/Arrest/ArrestRecordDetails";
+import AddArrestRecord from "@/pages/Dashboard/Officer/Arrest/AddArrestRecord";
+import AddBailRecord from "@/pages/Dashboard/Officer/Bail/AddBailRecord";
+import UpdateBailRecord from "@/pages/Dashboard/Officer/Bail/UpdateBailRecord";
+import BailRecordDetails from "@/pages/Dashboard/Officer/Bail/BailRecordDetails";
+import ResponseToGD from "@/pages/Dashboard/Officer/GDPart/ResponseToGD";
 
 
 
@@ -124,9 +132,16 @@ function Routing() {
 
       {/* Officer */}
       <Route path="/officer/dashboard" element={<OfficerDashboard />} />
+      <Route path="/officer/dashboard/arrest-records" element={<ArrestRecordList />} />
+      <Route path="/officer/dashboard/update-arrest-record/:arrestId" element={<UpdateArrestRecord />} />
+      <Route path="/officer/dashboard/arrest-record-details/:arrestId" element={<ArrestRecordDetails />} />
+      <Route path="/officer/dashboard/add-arrest-record" element={<AddArrestRecord />} />
+      <Route path="/officer/dashboard/arrest-record-details/:arrestId/add-bail" element={<AddBailRecord />} />
+      <Route path="/officer/dashboard/arrest-records/:arrestId/update-bail/:bailId" element={<UpdateBailRecord />} />
+      <Route path="/officer/dashboard/arrest-records/:arrestId/bail-record-details/:bailId" element={<BailRecordDetails />} />
       <Route path="/officer/dashboard/gd-list" element={<GDList />} />
       <Route path="/officer/dashboard/gd-list/:dairyId" element={<GDDetails />} />
-      {/* <Route path="/officer/respond-gd/:gdId" element={<ResponseToGD />} /> */}
+      <Route path="/officer/respond-gd/:gdId" element={<ResponseToGD />} />
 
       {/* User */}
       <Route path="/user-registration" element={<RegisterUser />} />
