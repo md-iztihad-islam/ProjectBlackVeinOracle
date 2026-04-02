@@ -1,6 +1,7 @@
 import addArrestRecordApi from "@/services/ArrestRecord/addArrestRecordApi";
+import getCriminalByNameApi from "@/services/Criminal/getCriminalByNameApi";
 import userStore from "@/state/userStore";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -45,6 +46,17 @@ export default function AddArrestRecord() {
   const [bailDueDate, setBailDueDate] = useState("");
   const [custodyStatus, setCustodyStatus] = useState("in_custody");
   const [caseReference, setCaseReference] = useState("");
+  const [name, setName] = useState("");
+
+  const { data: criminalData } = useQuery({
+    queryKey: ["criminalByName", name],
+    queryFn: () => getCriminalByNameApi(name),
+    enabled: !!name.trim(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const criminals = criminalData?.data || [];
+
 
   const { mutate: addArrestRecord, isPending, isSuccess, isError } = useMutation({
     mutationFn: (arrestData) => addArrestRecordApi(arrestData),

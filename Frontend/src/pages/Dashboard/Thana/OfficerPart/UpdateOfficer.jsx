@@ -16,10 +16,28 @@ function UpdateOfficer() {
 		badge_no: "",
 		rank_code: "",
 		thana_id: "",
+		email: "",
+		image_url: "",
+		nid_number: "",
+		father_name: "",
+		mother_name: "",
+		birth_date: "",
+		gender: "",
 	});
 	const set = (k, v) => setForm({ ...form, [k]: v });
 	const inputCls =
 		"w-full bg-gray-800 border border-white/10 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50";
+
+	const getAgeFromBirthDate = (birthDate) => {
+		if (!birthDate) return "";
+		const dob = new Date(birthDate);
+		if (Number.isNaN(dob.getTime())) return "";
+		const now = new Date();
+		let age = now.getFullYear() - dob.getFullYear();
+		const m = now.getMonth() - dob.getMonth();
+		if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age -= 1;
+		return age >= 0 ? age : "";
+	};
 
 	const { data: officerData, isLoading: isLoadingOfficer } = useQuery({
 		queryKey: ["officer-by-id", officerId],
@@ -28,6 +46,10 @@ function UpdateOfficer() {
 	});
 
 	const currentOfficer = officerData?.data || {};
+	const effectiveBirthDate = form.birth_date || currentOfficer.birth_date || "";
+	const effectiveGender = form.gender || currentOfficer.gender || "";
+	const effectiveImageUrl = form.image_url || currentOfficer.image_url || "";
+	const calculatedAge = getAgeFromBirthDate(effectiveBirthDate);
 
 	const { mutate, isPending } = useMutation({
 		mutationFn: () => {
@@ -37,6 +59,13 @@ function UpdateOfficer() {
 				badge_no: form.badge_no || currentOfficer.badge_no || "",
 				rank_code: form.rank_code || currentOfficer.rank_code || "",
 				thana_id: form.thana_id || currentOfficer.thana_id || "",
+				email: form.email || currentOfficer.email || "",
+				image_url: form.image_url || currentOfficer.image_url || "",
+				nid_number: form.nid_number || currentOfficer.nid_number || "",
+				father_name: form.father_name || currentOfficer.father_name || "",
+				mother_name: form.mother_name || currentOfficer.mother_name || "",
+				birth_date: form.birth_date || currentOfficer.birth_date || null,
+				gender: form.gender || currentOfficer.gender || "",
 			};
 			return updateOfficer(officerId, payload);
 		},
@@ -123,6 +152,80 @@ function UpdateOfficer() {
 							className={inputCls}
 						/>
 					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">Email</label>
+						<input
+							type="email"
+							value={form.email || currentOfficer.email || ""}
+							onChange={(e) => set("email", e.target.value)}
+							className={inputCls}
+						/>
+					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">NID Number</label>
+						<input
+							value={form.nid_number || currentOfficer.nid_number || ""}
+							onChange={(e) => set("nid_number", e.target.value)}
+							className={inputCls}
+						/>
+					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">Father's Name</label>
+						<input
+							value={form.father_name || currentOfficer.father_name || ""}
+							onChange={(e) => set("father_name", e.target.value)}
+							className={inputCls}
+						/>
+					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">Mother's Name</label>
+						<input
+							value={form.mother_name || currentOfficer.mother_name || ""}
+							onChange={(e) => set("mother_name", e.target.value)}
+							className={inputCls}
+						/>
+					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">Birth Date</label>
+						<input
+							type="date"
+							value={effectiveBirthDate}
+							onChange={(e) => set("birth_date", e.target.value)}
+							className={inputCls}
+						/>
+						{calculatedAge !== "" && (
+							<p className="mt-1 text-xs text-blue-300">Calculated Age: {calculatedAge}</p>
+						)}
+					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">Gender</label>
+						<select
+							value={effectiveGender}
+							onChange={(e) => set("gender", e.target.value)}
+							className={inputCls}
+						>
+							<option value="">Select gender</option>
+							<option value="male">Male</option>
+							<option value="female">Female</option>
+							<option value="other">Other</option>
+						</select>
+					</div>
+					<div>
+						<label className="text-xs text-slate-400 uppercase">Image URL / Data URL</label>
+						<input
+							value={effectiveImageUrl}
+							onChange={(e) => set("image_url", e.target.value)}
+							className={inputCls}
+						/>
+					</div>
+					{effectiveImageUrl && (
+						<div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-white/10">
+							<div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+								<img src={effectiveImageUrl} alt="Officer preview" className="w-full h-full rounded-full object-cover" />
+							</div>
+							<p className="text-xs text-slate-400">Profile image preview</p>
+						</div>
+					)}
 					<button
 						type="submit"
 						disabled={isPending}

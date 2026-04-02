@@ -1,8 +1,7 @@
 import addThanaApi from "@/services/Thana/addThanaApi";
-import userStore from "@/state/userStore";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ZONES = [
   "Dhaka Metro", "Chittagong Metro", "Rajshahi",
@@ -31,9 +30,14 @@ const inputClass =
 const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2";
 
 export default function AddThana() {
-  const { user } = userStore();
-  const adminId = user?.admin_id;
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const [form, setForm] = useState({
     thana_name: "", district: "", zone: "",
@@ -48,7 +52,7 @@ export default function AddThana() {
     onSuccess: () => {
       setForm({ thana_name: "", district: "", zone: "", address: "", phone: "", email: "", password: "" });
       setFormError("");
-      navigate("/admin/dashboard/thanadashboard/thana-list");
+      navigateWithModal("/admin/dashboard/thanadashboard/thana-list");
     },
     onError: () => setFormError("Failed to add thana. Please check your inputs and try again."),
   });
@@ -57,7 +61,8 @@ export default function AddThana() {
     setFormError("");
     const missing = Object.values(form).some((v) => !v.trim());
     if (missing) { setFormError("All fields are required."); return; }
-    addThanaMutation({ ...form, created_by_admin_id: adminId });
+    // created_by_admin_id is resolved securely in backend from authenticated admin token
+    addThanaMutation({ ...form });
   };
 
   return (
@@ -87,12 +92,6 @@ export default function AddThana() {
       </div>
 
       <div className="h-px bg-gradient-to-r from-lime-400/30 via-lime-400/10 to-transparent mb-10" />
-
-      {/* ── Admin ID strip ── */}
-      <div className="flex items-center justify-between bg-lime-400/5 border border-lime-400/15 px-4 py-3 mb-8 max-w-2xl">
-        <span className="text-[11px] text-slate-600 tracking-widest uppercase">Created by Admin ID</span>
-        <span className="text-lime-400 text-[12px]">{admin_id || "—"}</span>
-      </div>
 
       {/* ── Error ── */}
       {formError && (
@@ -169,7 +168,7 @@ export default function AddThana() {
             {isLoading ? "SAVING..." : "+ ADD THANA"}
           </button>
           <button
-            onClick={() => navigate("/admin/dashboard/thanadashboard/thana-list")}
+            onClick={() => navigateWithModal("/admin/dashboard/thanadashboard/thana-list")}
             className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
           >
             CANCEL

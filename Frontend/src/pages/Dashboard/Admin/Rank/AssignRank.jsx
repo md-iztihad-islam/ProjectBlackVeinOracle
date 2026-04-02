@@ -3,12 +3,19 @@ import updateOfficerApi from "@/services/Officer/updateOfficerApi";
 import getRankByIdApi from "@/services/Rank/getRankByIdApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 export default function AssignRank() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { rankId } = useParams();
   const queryClient = useQueryClient();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const [officerId, setOfficerId] = useState("");
   const [officerIdInput, setOfficerIdInput] = useState("");  // controlled input, separate from query key
@@ -253,7 +260,7 @@ export default function AssignRank() {
             </div>
 
             <button
-              onClick={() => navigate("/admin/dashboard/rankdashboard/rank-list")}
+              onClick={() => navigateWithModal("/admin/dashboard/rankdashboard/rank-list")}
               className="w-full border border-slate-800 text-slate-600 py-3 text-[12px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
             >
               ← BACK TO LIST

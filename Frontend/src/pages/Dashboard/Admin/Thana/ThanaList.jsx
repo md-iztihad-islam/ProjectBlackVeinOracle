@@ -2,12 +2,13 @@ import deleteThanaApi from "@/services/Thana/deleteThanaApi";
 import getAllThanaApi from "@/services/Thana/getAllThanaApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const BASE = "/admin/dashboard/thanadashboard";
 
 export default function ThanaList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -36,6 +37,12 @@ export default function ThanaList() {
     onError: () => alert("Failed to delete thana. Please try again."),
   });
 
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
+
   return (
     <div
       className="min-h-screen bg-[#080a0e] text-slate-300 px-6 py-10 md:px-10"
@@ -60,7 +67,7 @@ export default function ThanaList() {
           </h1>
         </div>
         <button
-          onClick={() => navigate(`${BASE}/add-thana`)}
+          onClick={() => navigateWithModal(`${BASE}/add-thana`)}
           className="flex items-center gap-2 bg-cyan-400 text-[#080a0e] px-6 py-3 text-sm font-black tracking-widest uppercase hover:bg-cyan-300 hover:-translate-y-0.5 transition-all duration-150"
         >
           + Add Thana
@@ -173,7 +180,7 @@ export default function ThanaList() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() =>
-                              navigate(`${BASE}/thana-list/update-thana/${thana.thana_id}`)
+                              navigateWithModal(`${BASE}/thana-list/update-thana/${thana.thana_id}`)
                             }
                             className="border border-slate-800 text-slate-400 px-3 py-1.5 text-[11px] font-bold tracking-widest uppercase hover:border-cyan-400/40 hover:text-cyan-400 transition-all duration-150"
                           >
@@ -181,7 +188,7 @@ export default function ThanaList() {
                           </button>
                           <button
                             onClick={() =>
-                              navigate(`${BASE}/thana-list/thana-head/${thana.thana_id}`)
+                              navigateWithModal(`${BASE}/thana-list/thana-head/${thana.thana_id}`)
                             }
                             className="border border-slate-800 text-amber-400 px-3 py-1.5 text-[11px] font-bold tracking-widest uppercase hover:border-amber-400/40 hover:bg-amber-400/5 transition-all duration-150"
                           >

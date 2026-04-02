@@ -43,7 +43,62 @@ export const getGeneralDairiesByUserIdRepository = async (userId) => {
 
 export const getGeneralDairyByIdRepository = async (dairyId) => {
     try {
-        const query = `SELECT * FROM gd_report WHERE gd_id = $1;`;
+        const query = `
+            SELECT
+                g.*,
+                json_build_object(
+                    'user_id', u.user_id,
+                    'full_name', u.full_name,
+                    'nid_number', u.nid_number,
+                    'phone', u.phone,
+                    'email', u.email,
+                    'address', u.address,
+                    'birth_date', u.birth_date,
+                    'gender', u.gender
+                ) AS complainant,
+                json_build_object(
+                    'thana_id', t.thana_id,
+                    'thana_name', t.thana_name,
+                    'district', t.district,
+                    'zone', t.zone,
+                    'address', t.address,
+                    'phone', t.phone,
+                    'email', t.email,
+                    'head_officer_id', t.head_officer_id
+                ) AS thana,
+                CASE
+                    WHEN ao.officer_id IS NULL THEN NULL
+                    ELSE json_build_object(
+                        'officer_id', ao.officer_id,
+                        'badge_no', ao.badge_no,
+                        'full_name', ao.full_name,
+                        'rank_code', ao.rank_code,
+                        'thana_id', ao.thana_id,
+                        'phone', ao.phone,
+                        'email', ao.email,
+                        'gender', ao.gender
+                    )
+                END AS assigned_officer,
+                CASE
+                    WHEN ap.officer_id IS NULL THEN NULL
+                    ELSE json_build_object(
+                        'officer_id', ap.officer_id,
+                        'badge_no', ap.badge_no,
+                        'full_name', ap.full_name,
+                        'rank_code', ap.rank_code,
+                        'thana_id', ap.thana_id,
+                        'phone', ap.phone,
+                        'email', ap.email,
+                        'gender', ap.gender
+                    )
+                END AS approved_by_officer
+            FROM gd_report g
+            JOIN "user" u ON g.user_id = u.user_id
+            JOIN thana t ON g.thana_id = t.thana_id
+            LEFT JOIN officer ao ON g.assigned_officer_id = ao.officer_id
+            LEFT JOIN officer ap ON g.approved_by_officer_id = ap.officer_id
+            WHERE g.gd_id = $1;
+        `;
         const values = [dairyId];
         const result = await pool.query(query, values);
         return result.rows[0];

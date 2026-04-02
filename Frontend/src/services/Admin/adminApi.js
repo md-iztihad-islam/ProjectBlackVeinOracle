@@ -32,6 +32,33 @@ export async function getAllCriminals() {
 	}
 }
 
+export async function getCriminalFullProfile(criminalId) {
+	try {
+		const res = await axiosInstance.get(`/criminal/profile/${criminalId}`);
+		return res.data;
+	} catch (e) {
+		return { success: false, data: null, error: extractApiError(e) };
+	}
+}
+
+export async function getCriminalTimeline(criminalId) {
+	try {
+		const res = await axiosInstance.get(`/criminal/timeline/${criminalId}`);
+		return res.data;
+	} catch (e) {
+		return { success: false, data: [], error: extractApiError(e) };
+	}
+}
+
+export async function getCriminalCaseHistory(criminalId) {
+	try {
+		const res = await axiosInstance.get(`/criminal/case-history/${criminalId}`);
+		return res.data;
+	} catch (e) {
+		return { success: false, data: [], error: extractApiError(e) };
+	}
+}
+
 export async function getAllRanks() {
 	try {
 		const res = await axiosInstance.get("/rank/get-all-ranks");
@@ -62,6 +89,15 @@ export async function getAllUsers() {
 export async function getAllGDReports() {
 	try {
 		const res = await axiosInstance.get("/gd-report/get-all-general-dairies");
+		return res.data;
+	} catch (e) {
+		return { success: false, data: [], error: extractApiError(e) };
+	}
+}
+
+export async function getAllCaseFiles() {
+	try {
+		const res = await axiosInstance.get("/case-file/get-case-files");
 		return res.data;
 	} catch (e) {
 		return { success: false, data: [], error: extractApiError(e) };

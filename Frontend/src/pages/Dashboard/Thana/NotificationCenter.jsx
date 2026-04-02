@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   getMyNotifications,
   getUnreadNotificationCount,
@@ -7,9 +7,58 @@ import {
   markNotificationRead,
 } from "@/services/Notification/notificationApi";
 
+const pickFirst = (...values) => values.find((v) => typeof v === "string" && v.trim() !== "") || null;
+
+const parseNotificationMessageMeta = (message) => {
+  const text = String(message || "");
+
+  const criminalIdMatch =
+    text.match(/Criminal\s*ID\s*:\s*([^\n]+)/i) ||
+    text.match(/Criminal\s*:\s*.*\(([^)]+)\)/i) ||
+    text.match(/\b(CRM-[A-Za-z0-9-]+|CR-[A-Za-z0-9-]+|CID-[A-Za-z0-9-]+)\b/i);
+
+  const locationMatch =
+    text.match(/Last\s*Known\s*Location\s*:\s*([^\n]+)/i) ||
+    text.match(/Last\s*known\s*:\s*([^\n.]+)/i) ||
+    text.match(/Location\s*:\s*([^\n]+)/i);
+
+  const escapedFromMatch = text.match(/Escaped\s*From\s*:\s*([^\n]+)/i);
+
+  return {
+    criminalId: criminalIdMatch?.[1]?.trim() || null,
+    location: locationMatch?.[1]?.trim() || null,
+    escapedFrom: escapedFromMatch?.[1]?.trim() || null,
+  };
+};
+
+const getNotificationMeta = (n) => {
+  const parsed = parseNotificationMessageMeta(n?.message);
+
+  return {
+    criminalId: pickFirst(n?.criminal_id, n?.criminalId, parsed.criminalId),
+    location: pickFirst(
+      n?.last_known_location,
+      n?.lastKnownLocation,
+      n?.location_name,
+      n?.location,
+      parsed.location
+    ),
+    escapedFrom: pickFirst(n?.escape_from, n?.escaped_from, n?.escapedFrom, parsed.escapedFrom),
+  };
+};
+
 function NotificationCenter() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/thana/dashboard");
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["myNotifications"],
@@ -40,8 +89,8 @@ function NotificationCenter() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-200 p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
@@ -65,16 +114,34 @@ function NotificationCenter() {
           <div className="flex gap-2">
             <button
               onClick={() => readAllMut.mutate()}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm"
+              disabled={readAllMut.isPending || unreadCount === 0}
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm disabled:opacity-50"
             >
               Mark all read
             </button>
             <button
-              onClick={() => navigate("/thana/dashboard")}
+              onClick={handleBack}
               className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
             >
               Back
             </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+            <p className="text-xs uppercase text-slate-500">Total Alerts</p>
+            <p className="text-2xl font-bold text-slate-100 mt-1">{notifications.length}</p>
+          </div>
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+            <p className="text-xs uppercase text-slate-500">Unread</p>
+            <p className="text-2xl font-bold text-amber-300 mt-1">{unreadCount}</p>
+          </div>
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+            <p className="text-xs uppercase text-slate-500">Read</p>
+            <p className="text-2xl font-bold text-emerald-300 mt-1">
+              {Math.max(notifications.length - unreadCount, 0)}
+            </p>
           </div>
         </div>
 
@@ -87,8 +154,32 @@ function NotificationCenter() {
             <ul className="divide-y divide-white/5">
               {notifications.map((n) => (
                 <li key={n.notification_id} className="p-4 flex items-start justify-between gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium text-slate-100">{n.title}</p>
+                    {(() => {
+                      const meta = getNotificationMeta(n);
+                      if (!meta.criminalId && !meta.location && !meta.escapedFrom) return null;
+
+                      return (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {meta.criminalId && (
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/20">
+                              Criminal ID: {meta.criminalId}
+                            </span>
+                          )}
+                          {meta.location && (
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20 max-w-full truncate">
+                              Last Location: {meta.location}
+                            </span>
+                          )}
+                          {meta.escapedFrom && (
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-400/20 max-w-full truncate">
+                              Escaped From: {meta.escapedFrom}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <p className="text-sm text-slate-400 mt-1 whitespace-pre-line">{n.message}</p>
                     <p className="text-xs text-slate-500 mt-2">
                       {n.created_at ? new Date(n.created_at).toLocaleString() : "—"}

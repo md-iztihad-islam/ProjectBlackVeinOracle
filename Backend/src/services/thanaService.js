@@ -1,4 +1,4 @@
-import { addHeadOfficerToThanaRepository, addThanaRepository, getAllThanasRepository, getThanaByDistrictRepository, getThanaByEmail, getThanaByIdRepository, updateThanaRepository, deleteThanaRepository } from "../repositories/thanaRepository.js"; // by Rayyan 2.0
+import { addHeadOfficerToThanaRepository, addThanaRepository, getAllThanasRepository, getThanaByDistrictRepository, getThanaByEmail, getThanaByIdRepository, updateThanaRepository, deleteThanaRepository, geThanaByNameRepository } from "../repositories/thanaRepository.js"; // by Rayyan 2.0
 import bcrypt from 'bcryptjs';
 
 export const addThanaService = async (thanaData, admin_id) => {
@@ -56,7 +56,6 @@ export const getThanasByDistrictService = async (district) => {
     }
 }
 
-// by Rayyan 2.0
 
 export const getAllThanasService = async () => {
     try {
@@ -97,6 +96,16 @@ export const deleteThanaService = async (thanaId) => {
         return deletedThana;
     } catch (error) {
         console.log('Error deleting thana at deleteThanaService:', error);
+        throw error;
+    }
+}
+
+export const getThanaByNameService = async (name) => {
+    try {
+        const thana = await geThanaByNameRepository(name);
+        return thana;
+    } catch (error) {
+        console.log('Error fetching thana by name at getThanaByNameService:', error);
         throw error;
     }
 }

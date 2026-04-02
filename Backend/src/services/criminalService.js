@@ -1,7 +1,31 @@
-import { addCriminalRepository, getCriminalByIdRepository, getCriminalsByThanaIdRepository, getCriminalFullProfileRepository, getCriminalTimelineRepository, recalculateCriminalRiskRepository, getAllCriminalsRepository, updateCriminalRepository, deleteCriminalRepository, getCriminalsByStatusRepository, searchCriminalsRepository, getWantedCriminalsRepository, getCriminalsByAreaRepository } from "../repositories/criminalRepository.js"; 
+import { addCriminalRepository, getCriminalByIdRepository, getCriminalsByThanaIdRepository, getCriminalFullProfileRepository, getCriminalTimelineRepository, getCriminalCaseHistoryRepository, recalculateCriminalRiskRepository, getAllCriminalsRepository, updateCriminalRepository, deleteCriminalRepository, getCriminalsByStatusRepository, searchCriminalsRepository, getWantedCriminalsRepository, getCriminalsByAreaRepository, getCriminalByNameRepository } from "../repositories/criminalRepository.js"; 
+
+const VALID_GENDERS = ["male", "female", "other"];
+
+const validateCriminalProfile = (criminalData, { requireImage = false } = {}) => {
+    if (requireImage && (!criminalData?.image_url || String(criminalData.image_url).trim() === "")) {
+        throw new Error("image_url is required");
+    }
+
+    if (criminalData?.birth_date) {
+        const parsedBirthDate = new Date(criminalData.birth_date);
+        if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > new Date()) {
+            throw new Error("Invalid birth_date");
+        }
+    }
+
+    if (criminalData?.gender) {
+        const normalizedGender = String(criminalData.gender).trim().toLowerCase();
+        if (!VALID_GENDERS.includes(normalizedGender)) {
+            throw new Error("Invalid gender");
+        }
+        criminalData.gender = normalizedGender;
+    }
+};
 
 export const addCriminalService = async (criminalData) => {
     try {
+        validateCriminalProfile(criminalData, { requireImage: true });
         const newCriminal = await addCriminalRepository(criminalData);
         return newCriminal;
     } catch (error) {
@@ -50,6 +74,15 @@ export const getCriminalTimelineService = async (criminalId) => {
     }
 };
 
+export const getCriminalCaseHistoryService = async (criminalId) => {
+    try {
+        return await getCriminalCaseHistoryRepository(criminalId);
+    } catch (error) {
+        console.log("Error at getCriminalCaseHistoryService:", error);
+        throw error;
+    }
+};
+
 export const recalculateCriminalRiskService = async (criminalId) => {
     try {
         return await recalculateCriminalRiskRepository(criminalId);
@@ -68,9 +101,10 @@ export const getAllCriminalsService = async () => {
         throw error;
     }
 };
-0
+
 export const updateCriminalService = async (criminalId, data) => {
     try {
+        validateCriminalProfile(data);
         return await updateCriminalRepository(criminalId, data);
     } catch (error) {
         console.log('Error at updateCriminalService:', error);
@@ -124,6 +158,16 @@ export const getCriminalsByAreaService = async (district) => {
         return await getCriminalsByAreaRepository(district);
     } catch (error) {
         console.log('Error at getCriminalsByAreaService:', error);
+        throw error;
+    }
+};
+
+export const getCriminalByNameService = async (name) => {
+    try {        
+        const criminals = await getCriminalByNameRepository(name);
+        return criminals.length > 0 ? criminals : null;
+    } catch (error) {
+        console.log('Error at getCriminalByNameService:', error);
         throw error;
     }
 };

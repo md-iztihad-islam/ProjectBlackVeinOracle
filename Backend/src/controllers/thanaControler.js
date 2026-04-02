@@ -1,10 +1,18 @@
-import { addHeadOfficerToThanaService, addThanaService, getAllThanasService, getThanasByDistrictService, signinThanaService, getThanaByIdService, updateThanaService, deleteThanaService } from "../services/thanaService.js"; 
+import { addHeadOfficerToThanaService, addThanaService, getAllThanasService, getThanasByDistrictService, signinThanaService, getThanaByIdService, updateThanaService, deleteThanaService, getThanaByNameService } from "../services/thanaService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addThanaContoller = async (req, res) => {
     try {
-        const thanaData = req.body;
         const admin_id = req.id;
+        if (!admin_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized access'
+            });
+        }
+
+        // Never trust client-provided creator ID; resolve from authenticated admin token.
+        const { created_by_admin_id, ...thanaData } = req.body || {};
         const newThana = await addThanaService(thanaData, admin_id);
 
         if(!newThana) {
@@ -276,6 +284,39 @@ export const deleteThanaController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error deleting thana at deleteThanaController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const getThanaByNameController = async (req, res) => {
+    try {
+        const { name } = req.params;
+        console.log('Received request to get thana by name with query:', req.query);
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thana name is required'
+            });
+        }
+
+        const thana = await getThanaByNameService(name);
+
+        if (!thana) {
+            return res.status(404).json({
+                success: false,
+                message: 'Thana not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: thana
+        });
+    } catch (error) {
+        console.log('Error fetching thana by name at getThanaByNameController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

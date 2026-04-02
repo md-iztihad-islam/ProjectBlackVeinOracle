@@ -19,6 +19,9 @@ export const addUserController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding user at addUserController:', error);
+        if (error.message === 'birth_date and gender are required') return res.status(400).json({ success: false, message: 'birth_date and gender are required' });
+        if (error.message === 'Invalid birth_date') return res.status(400).json({ success: false, message: 'birth_date must be a valid past date' });
+        if (error.message === 'Invalid gender') return res.status(400).json({ success: false, message: 'gender must be one of: male, female, other' });
         if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
         if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
@@ -171,6 +174,8 @@ export const updateUserController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error updating user at updateUserController:', error);
+        if (error.message === 'Invalid birth_date') return res.status(400).json({ success: false, message: 'birth_date must be a valid past date' });
+        if (error.message === 'Invalid gender') return res.status(400).json({ success: false, message: 'gender must be one of: male, female, other' });
         if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
         if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({

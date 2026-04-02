@@ -1,7 +1,7 @@
 import addRankApi from "@/services/Rank/addRankApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2";
 const inputClass =
@@ -9,7 +9,14 @@ const inputClass =
 
 export default function AddRank() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();    // fixed: was missing cache invalidation on success
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const [rankCode, setRankCode] = useState("");
   const [rankName, setRankName] = useState("");
@@ -24,7 +31,7 @@ export default function AddRank() {
       setLevel("");
       setFormError("");
       queryClient.invalidateQueries(["ranks"]);
-      navigate("/admin/dashboard/rankdashboard/rank-list");
+      navigateWithModal("/admin/dashboard/rankdashboard/rank-list");
     },
     onError: () => setFormError("Failed to add rank. Please try again."),
   });
@@ -154,7 +161,7 @@ export default function AddRank() {
             {addRankLoading ? "SAVING..." : "+ ADD RANK"}
           </button>
           <button
-            onClick={() => navigate("/admin/dashboard/rankdashboard/rank-list")}
+            onClick={() => navigateWithModal("/admin/dashboard/rankdashboard/rank-list")}
             className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
           >
             CANCEL

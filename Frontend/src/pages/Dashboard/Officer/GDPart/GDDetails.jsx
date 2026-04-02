@@ -3,194 +3,194 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 
 const statusConfig = {
-  submitted: { label: "Submitted", bg: "#0e1a2e", color: "#4da6e8", dot: "#4da6e8" },
-  assigned:  { label: "Assigned",  bg: "#1f1a0d", color: "#d4932a", dot: "#d4932a" },
-  approved:  { label: "Approved",  bg: "#0c2218", color: "#3dba78", dot: "#3dba78" },
-  rejected:  { label: "Rejected",  bg: "#2a0e0e", color: "#e05252", dot: "#e05252" },
+    submitted: { label: "Submitted", classes: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
+    assigned:  { label: "Assigned",  classes: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500" },
+    approved:  { label: "Approved",  classes: "bg-green-50 text-green-700 border-green-200", dot: "bg-green-500" },
+    rejected:  { label: "Rejected",  classes: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-500" },
 };
 
 const gdTypeLabels = {
-  theft: "Theft", lost_document: "Lost Document", missing_person: "Missing Person",
-  accident: "Accident", assault: "Assault", robbery: "Robbery",
-  fraud: "Fraud", domestic_violence: "Domestic Violence", property_dispute: "Property Dispute",
-  suspicious_activity: "Suspicious Activity", threat: "Threat",
-  noise_disturbance: "Noise Disturbance", other: "Other",
+    theft: "Theft", lost_document: "Lost Document", missing_person: "Missing Person",
+    accident: "Accident", assault: "Assault", robbery: "Robbery",
+    fraud: "Fraud", domestic_violence: "Domestic Violence", property_dispute: "Property Dispute",
+    suspicious_activity: "Suspicious Activity", threat: "Threat",
+    noise_disturbance: "Noise Disturbance", other: "Other",
 };
 
 function formatDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 function formatDateTime(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+    });
 }
 
-function DetailRow({ label, value, mono, accent, isLast }) {
-  return (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-      padding: "0.75rem 0", borderBottom: isLast ? "none" : "1px solid #111418", gap: "1rem",
-    }}>
-      <span style={{ fontSize: "0.8rem", color: "#5a6278", fontWeight: "500", flexShrink: 0 }}>{label}</span>
-      <span style={{
-        fontSize: "0.85rem",
-        color: accent || (mono ? "#9aa3b8" : "#e8eaf0"),
-        fontFamily: mono ? "monospace" : "inherit",
-        textAlign: "right", wordBreak: "break-word", maxWidth: "65%",
-      }}>{value || "—"}</span>
-    </div>
-  );
+function InfoBlock({ title, value, mono }) {
+    return (
+        <div>
+            <p className="text-xs text-gray-500 mb-1">{title}</p>
+            <p className={`text-sm text-gray-900 font-medium ${mono ? 'font-mono text-gray-700' : ''}`}>
+                {value || "—"}
+            </p>
+        </div>
+    );
 }
 
 function SkeletonCard() {
-  return (
-    <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem", marginBottom: "1rem" }}>
-      <div style={{ height: "26px", width: "40%", borderRadius: "5px", background: "#1a1f2a", marginBottom: "2rem" }} />
-      {[...Array(6)].map((_, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: "1px solid #111418" }}>
-          <div style={{ height: "13px", width: "28%", borderRadius: "4px", background: "#1a1f2a" }} />
-          <div style={{ height: "13px", width: "40%", borderRadius: "4px", background: "#1a1f2a" }} />
+    return (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 mb-4 shadow-sm animate-pulse">
+            <div className="h-6 w-2/5 bg-gray-200 rounded mb-8" />
+            <div className="space-y-4">
+                <div className="h-4 w-full bg-gray-100 rounded" />
+                <div className="h-4 w-5/6 bg-gray-100 rounded" />
+                <div className="h-24 w-full bg-gray-50 rounded mt-6" />
+            </div>
         </div>
-      ))}
-    </div>
-  );
+    );
 }
 
 export default function GDDetails() {
-  const navigate = useNavigate();
-  const { dairyId } = useParams();
+    const navigate = useNavigate();
+    const { dairyId } = useParams();
 
-  const { data: gdReportData, isLoading, error } = useQuery({
-    queryKey: ["gdReportDetails", dairyId],
-    queryFn: () => getGDReportByGDIdApi(dairyId),
-    enabled: !!dairyId,
-  });
+    const { data: gdReportData, isLoading, error } = useQuery({
+        queryKey: ["gdReportDetails", dairyId],
+        queryFn: () => getGDReportByGDIdApi(dairyId),
+        enabled: !!dairyId,
+    });
 
-  const r = gdReportData?.data || null;
-  const cfg = statusConfig[r?.status] || statusConfig.submitted;
+    const r = gdReportData?.data || null;
+    const cfg = statusConfig[r?.status] || statusConfig.submitted;
 
-  return (
-    <div style={{
-      minHeight: "100vh", background: "#0a0c0f",
-      color: "#e8eaf0", fontFamily: "'DM Sans','Segoe UI',sans-serif",
-      padding: "2rem", display: "flex", alignItems: "flex-start", justifyContent: "center",
-    }}>
-      <div style={{ width: "100%", maxWidth: "640px" }}>
+    return (
+        <div className="min-h-screen bg-gray-50 p-6 font-sans flex justify-center">
+            <div className="w-full max-w-4xl">
+                
+                {/* Breadcrumbs */}
+                <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+                    <button onClick={() => navigate("/officer/dashboard")} className="hover:text-gray-900 transition-colors">Dashboard</button>
+                    <span className="text-gray-300">/</span>
+                    <button onClick={() => navigate("/officer/dashboard/gd-list")} className="hover:text-gray-900 transition-colors">GD List</button>
+                    <span className="text-gray-300">/</span>
+                    <span className="text-gray-900 font-mono">#{dairyId}</span>
+                </nav>
 
-        {/* Breadcrumb */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "1.5rem" }}>
-          <button onClick={() => navigate("/officer/dashboard")} style={{ background: "none", border: "none", color: "#5a6278", fontSize: "0.82rem", cursor: "pointer", padding: 0 }}>
-            Dashboard
-          </button>
-          <span style={{ color: "#3a4055" }}>/</span>
-          <button onClick={() => navigate("/officer/dashboard/gd-list")} style={{ background: "none", border: "none", color: "#5a6278", fontSize: "0.82rem", cursor: "pointer", padding: 0 }}>
-            GD List
-          </button>
-          <span style={{ color: "#3a4055" }}>/</span>
-          <span style={{ color: "#9aa3b8", fontSize: "0.82rem", fontFamily: "monospace" }}>#{dairyId}</span>
+                {isLoading ? <SkeletonCard /> : error ? (
+                    <div className="bg-red-50 text-red-600 p-8 text-center rounded-xl border border-red-100">
+                        Failed to load GD report. Please try again.
+                    </div>
+                ) : r && (
+                    <>
+                        {/* Main Layout Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                            
+                            {/* Left Column: Core Incident Details */}
+                            <div className="lg:col-span-2 space-y-6">
+                                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                                    <div className="p-6 md:p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">General Diary</p>
+                                            <h1 className="text-2xl font-bold text-gray-900 font-mono">#{r.gd_id}</h1>
+                                        </div>
+                                        <div className="flex flex-col items-start md:items-end gap-2">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${cfg.classes}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                {cfg.label}
+                                            </span>
+                                            <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-xs font-semibold">
+                                                {gdTypeLabels[r.gd_type] || r.gd_type}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 md:p-8">
+                                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-50 pb-2">Incident Overview</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            <InfoBlock title="Incident Date" value={formatDate(r.incident_date)} />
+                                            <InfoBlock title="Location" value={r.incident_location} />
+                                            <InfoBlock title="Submitted At" value={formatDateTime(r.submitted_at)} />
+                                        </div>
+
+                                        {r.description && (
+                                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-5">
+                                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Description provided by Complainant</p>
+                                                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{r.description}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column: Entities (Complainant, Thana, Officer) */}
+                            <div className="space-y-6">
+                                {/* Complainant Card */}
+                                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-50 pb-2">Complainant Details</h3>
+                                    {r.complainant ? (
+                                        <div className="space-y-4">
+                                            <InfoBlock title="Full Name" value={r.complainant.full_name} />
+                                            <InfoBlock title="Phone" value={r.complainant.phone} mono />
+                                            <InfoBlock title="NID Number" value={r.complainant.nid_number} mono />
+                                            <InfoBlock title="Address" value={r.complainant.address} />
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 italic">No complainant data available.</p>
+                                    )}
+                                </div>
+
+                                {/* Jurisdiction / Thana Card */}
+                                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-50 pb-2">Jurisdiction</h3>
+                                    {r.thana ? (
+                                        <div className="space-y-4">
+                                            <InfoBlock title="Thana Name" value={r.thana.thana_name} />
+                                            <InfoBlock title="District / Zone" value={`${r.thana.district} — ${r.thana.zone}`} />
+                                            <InfoBlock title="Contact" value={r.thana.phone} mono />
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 italic">No jurisdiction data available.</p>
+                                    )}
+                                </div>
+
+                                {/* Assigned Officer Card */}
+                                {r.assigned_officer && (
+                                    <div className="bg-blue-50 border border-blue-100 rounded-xl shadow-sm p-6">
+                                        <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-4 border-b border-blue-200 pb-2">Assigned Officer</h3>
+                                        <div className="space-y-4">
+                                            <InfoBlock title="Officer Name" value={r.assigned_officer.full_name} />
+                                            <InfoBlock title="Badge / Rank" value={`${r.assigned_officer.badge_no} (${r.assigned_officer.rank_code?.toUpperCase()})`} mono />
+                                            <InfoBlock title="Contact" value={r.assigned_officer.phone} mono />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => navigate("/officer/dashboard/gd-list")}
+                                className="py-2.5 px-6 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Back to List
+                            </button>
+                            {(r.status === "submitted" || r.status === "assigned") && (
+                                <button
+                                    onClick={() => navigate(`/officer/respond-gd/${r.gd_id}`)}
+                                    className="py-2.5 px-8 bg-blue-600 border border-transparent text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                                >
+                                    Respond to GD
+                                </button>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
-
-        {isLoading ? <SkeletonCard /> : error ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#e05252", fontSize: "0.9rem", background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px" }}>
-            Failed to load GD report.
-          </div>
-        ) : r && (
-          <>
-            {/* Main card */}
-            <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem", marginBottom: "1rem" }}>
-
-              {/* Header */}
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
-                <div>
-                  <p style={{ fontSize: "0.72rem", color: "#5a6278", fontWeight: "600", letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 4px" }}>
-                    General Diary
-                  </p>
-                  <h1 style={{ fontSize: "1.3rem", fontWeight: "700", color: "#e8eaf0", margin: 0, fontFamily: "monospace" }}>
-                    #{r.gd_id}
-                  </h1>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: "6px",
-                    background: cfg.bg, color: cfg.color,
-                    padding: "5px 12px", borderRadius: "6px",
-                    fontSize: "0.75rem", fontWeight: "600",
-                    letterSpacing: "0.05em", textTransform: "uppercase",
-                  }}>
-                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: cfg.dot }} />
-                    {cfg.label}
-                  </span>
-                  <span style={{
-                    background: "#1a1f2a", color: "#c0c6d6",
-                    padding: "3px 10px", borderRadius: "4px",
-                    fontSize: "0.72rem", fontWeight: "500",
-                  }}>
-                    {gdTypeLabels[r.gd_type] || r.gd_type}
-                  </span>
-                </div>
-              </div>
-
-              {/* Description block */}
-              {r.description && (
-                <div style={{
-                  background: "#0d1017", border: "1px solid #1e2330",
-                  borderRadius: "10px", padding: "1rem 1.25rem", marginBottom: "1.5rem",
-                }}>
-                  <p style={{ fontSize: "0.72rem", color: "#5a6278", fontWeight: "600", letterSpacing: "0.07em", textTransform: "uppercase", margin: "0 0 0.5rem" }}>
-                    Description
-                  </p>
-                  <p style={{ fontSize: "0.88rem", color: "#c0c6d6", margin: 0, lineHeight: 1.7 }}>
-                    {r.description}
-                  </p>
-                </div>
-              )}
-
-              <DetailRow label="Incident Location" value={r.incident_location} />
-              <DetailRow label="Incident Date"     value={formatDate(r.incident_date)} />
-              <DetailRow label="Submitted At"      value={formatDateTime(r.submitted_at)} accent="#9aa3b8" />
-              <DetailRow label="Thana ID"          value={r.thana_id} mono />
-              <DetailRow label="User ID"           value={r.user_id} mono />
-              {r.assigned_officer_id && (
-                <DetailRow label="Assigned Officer" value={r.assigned_officer_id} mono accent="#4da6e8" />
-              )}
-              {r.approved_by_officer_id && (
-                <DetailRow label="Approved By" value={r.approved_by_officer_id} mono accent="#3dba78" isLast />
-              )}
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              {(r.status === "submitted" || r.status === "assigned") && (
-                <button
-                  onClick={() => navigate(`/officer/respond-gd/${r.gd_id}`)}
-                  style={{
-                    flex: 2, padding: "0.7rem", background: "#2c5fe6",
-                    border: "none", borderRadius: "8px", color: "#fff",
-                    fontSize: "0.85rem", fontWeight: "600", cursor: "pointer",
-                  }}
-                >
-                  Respond to GD
-                </button>
-              )}
-              <button
-                onClick={() => navigate("/officer/dashboard/gd-list")}
-                style={{
-                  flex: 1, padding: "0.7rem", background: "transparent",
-                  border: "1px solid #1e2330", borderRadius: "8px", color: "#9aa3b8",
-                  fontSize: "0.85rem", fontWeight: "500", cursor: "pointer",
-                }}
-              >
-                Back to List
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+    );
 }

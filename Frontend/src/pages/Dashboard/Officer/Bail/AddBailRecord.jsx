@@ -1,228 +1,185 @@
 import addBailRecordApi from "@/services/Bail/addBailRecordApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 
 const bailStatusOptions = [
-  { value: "pending",  label: "Pending" },
-  { value: "granted",  label: "Granted" },
-  { value: "rejected", label: "Rejected" },
+    { value: "pending",  label: "Pending" },
+    { value: "granted",  label: "Granted" },
+    { value: "rejected", label: "Rejected" },
 ];
 
 function Field({ label, hint, children }) {
-  return (
-    <div style={{ marginBottom: "1.25rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.4rem" }}>
-        <label style={{
-          fontSize: "0.72rem", fontWeight: "600",
-          letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a6278",
-        }}>{label}</label>
-        {hint && <span style={{ fontSize: "0.7rem", color: "#3a4055" }}>{hint}</span>}
-      </div>
-      {children}
-    </div>
-  );
+    return (
+        <div className="mb-4">
+            <div className="flex justify-between items-baseline mb-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    {label}
+                </label>
+                {hint && <span className="text-[11px] text-gray-400 font-medium">{hint}</span>}
+            </div>
+            {children}
+        </div>
+    );
 }
 
-const inputStyle = {
-  width: "100%", padding: "0.65rem 0.9rem",
-  background: "#0d1017", border: "1px solid #1e2330",
-  borderRadius: "8px", color: "#e8eaf0",
-  fontSize: "0.9rem", outline: "none",
-  boxSizing: "border-box",
-};
+export default function AddBailRecord({ isOpen, onClose, arrestId }) {
+    const queryClient = useQueryClient();
 
-export default function AddBailRecord() {
-  const navigate = useNavigate();
-  // arrestId from URL so bail is automatically linked to the correct arrest
-  const { arrestId } = useParams();
-  const queryClient = useQueryClient();
+    const [courtName, setCourtName]   = useState("");
+    const [bailAmount, setBailAmount] = useState("");
+    const [grantedAt, setGrantedAt]   = useState("");
+    const [suretyName, setSuretyName] = useState("");
+    const [status, setStatus]         = useState("pending");
 
-  const [courtName, setCourtName]   = useState("");
-  const [bailAmount, setBailAmount] = useState("");
-  const [grantedAt, setGrantedAt]   = useState("");
-  const [suretyName, setSuretyName] = useState("");
-  const [status, setStatus]         = useState("pending");
-
-  const { mutate: addBailRecord, isPending, isSuccess, isError } = useMutation({
-    mutationFn: (bailData) => addBailRecordApi(bailData),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["bailRecord", arrestId]);
-      setCourtName("");
-      setBailAmount("");
-      setGrantedAt("");
-      setSuretyName("");
-      setStatus("pending");
-    },
-  });
-
-  const isValid = courtName.trim();
-
-  const handleSubmit = () => {
-    if (!isValid) return;
-    addBailRecord({
-      arrest_id:   arrestId,
-      court_name:  courtName.trim(),
-      bail_amount: bailAmount ? parseFloat(bailAmount) : null,
-      granted_at:  grantedAt || null,
-      surety_name: suretyName.trim() || null,
-      status,
+    const { mutate: addBailRecord, isPending, isSuccess, isError } = useMutation({
+        mutationFn: (bailData) => addBailRecordApi(bailData),
+        onSuccess: () => {
+            queryClient.invalidateQueries(["bailRecord", arrestId]);
+            // Reset form and close modal after a brief delay for the success message
+            setTimeout(() => {
+                setCourtName("");
+                setBailAmount("");
+                setGrantedAt("");
+                setSuretyName("");
+                setStatus("pending");
+                onClose();
+            }, 1000);
+        },
     });
-  };
 
-  return (
-    <div style={{
-      minHeight: "100vh", background: "#0a0c0f",
-      color: "#e8eaf0", fontFamily: "'DM Sans','Segoe UI',sans-serif",
-      padding: "2rem", display: "flex", alignItems: "flex-start", justifyContent: "center",
-    }}>
-      <div style={{ width: "100%", maxWidth: "580px" }}>
+    const isValid = courtName.trim();
 
-        {/* Breadcrumb */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "1.5rem" }}>
-          <button
-            onClick={() => navigate("/arrest-records")}
-            style={{ background: "none", border: "none", color: "#5a6278", fontSize: "0.82rem", cursor: "pointer", padding: 0 }}
-          >
-            Arrest Records
-          </button>
-          <span style={{ color: "#3a4055" }}>/</span>
-          <button
-            onClick={() => navigate(`/arrest-records/${arrestId}`)}
-            style={{ background: "none", border: "none", color: "#5a6278", fontSize: "0.82rem", cursor: "pointer", padding: 0, fontFamily: "monospace" }}
-          >
-            {arrestId}
-          </button>
-          <span style={{ color: "#3a4055" }}>/</span>
-          <span style={{ color: "#9aa3b8", fontSize: "0.82rem" }}>New Bail</span>
+    const handleSubmit = () => {
+        if (!isValid) return;
+        addBailRecord({
+            arrest_id:   arrestId,
+            court_name:  courtName.trim(),
+            bail_amount: bailAmount ? parseFloat(bailAmount) : null,
+            granted_at:  grantedAt || null,
+            surety_name: suretyName.trim() || null,
+            status,
+        });
+    };
+
+    if (!isOpen) return null;
+
+    const inputClasses = "w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow";
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 font-sans animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
+                
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900">Add Bail Record</h2>
+                        <p className="text-xs text-gray-500 mt-0.5 font-mono">Arrest ID: {arrestId}</p>
+                    </div>
+                    <button 
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="px-6 py-6 overflow-y-auto">
+                    {isSuccess && (
+                        <div className="mb-6 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium flex items-center gap-2">
+                            <span>✓</span> Bail record added successfully.
+                        </div>
+                    )}
+                    {isError && (
+                        <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium flex items-center gap-2">
+                            <span>✕</span> Failed to add bail record. Please try again.
+                        </div>
+                    )}
+
+                    <Field label="Court Name" hint="Required">
+                        <input
+                            className={inputClasses}
+                            value={courtName}
+                            onChange={e => setCourtName(e.target.value)}
+                            placeholder="e.g. Dhaka Sessions Court"
+                            disabled={isPending || isSuccess}
+                        />
+                    </Field>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Bail Amount" hint="Optional">
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-medium">৳</span>
+                                <input
+                                    className={`${inputClasses} pl-8`}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={bailAmount}
+                                    onChange={e => setBailAmount(e.target.value)}
+                                    placeholder="0.00"
+                                    disabled={isPending || isSuccess}
+                                />
+                            </div>
+                        </Field>
+                        <Field label="Decision Date" hint="Optional">
+                            <input
+                                className={inputClasses}
+                                type="date"
+                                value={grantedAt}
+                                onChange={e => setGrantedAt(e.target.value)}
+                                disabled={isPending || isSuccess}
+                            />
+                        </Field>
+                    </div>
+
+                    <Field label="Surety Name" hint="Optional">
+                        <input
+                            className={inputClasses}
+                            value={suretyName}
+                            onChange={e => setSuretyName(e.target.value)}
+                            placeholder="Full name of surety"
+                            disabled={isPending || isSuccess}
+                        />
+                    </Field>
+
+                    <Field label="Status" hint="Required">
+                        <select
+                            className={inputClasses}
+                            value={status}
+                            onChange={e => setStatus(e.target.value)}
+                            disabled={isPending || isSuccess}
+                        >
+                            {bailStatusOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </Field>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3 justify-end">
+                    <button
+                        onClick={onClose}
+                        disabled={isPending || isSuccess}
+                        className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isPending || !isValid || isSuccess}
+                        className={`px-6 py-2 border border-transparent text-white rounded-lg text-sm font-medium shadow-sm transition-all ${
+                            isPending || !isValid || isSuccess ? "opacity-60 cursor-not-allowed bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
+                        }`}
+                    >
+                        {isPending ? "Saving..." : "Add Record"}
+                    </button>
+                </div>
+
+            </div>
         </div>
-
-        <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem" }}>
-
-          {/* Title */}
-          <div style={{ marginBottom: "2rem" }}>
-            <h1 style={{ fontSize: "1.4rem", fontWeight: "700", color: "#e8eaf0", margin: 0 }}>New Bail Record</h1>
-            <p style={{ color: "#5a6278", margin: "4px 0 0", fontSize: "0.83rem" }}>
-              Arrest: <span style={{ fontFamily: "monospace", color: "#4da6e8" }}>{arrestId}</span>
-            </p>
-          </div>
-
-          {/* Banners */}
-          {isSuccess && (
-            <div style={{
-              background: "#0c2218", border: "1px solid #1b4530", borderRadius: "8px",
-              padding: "0.7rem 1rem", color: "#3dba78", fontSize: "0.83rem",
-              marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "8px",
-            }}>
-              <span>✓</span> Bail record added successfully.
-            </div>
-          )}
-          {isError && (
-            <div style={{
-              background: "#2a0e0e", border: "1px solid #4a1a1a", borderRadius: "8px",
-              padding: "0.7rem 1rem", color: "#e05252", fontSize: "0.83rem",
-              marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "8px",
-            }}>
-              <span>✕</span> Failed to add bail record. Please try again.
-            </div>
-          )}
-
-          <Field label="Court Name" hint="required">
-            <input
-              style={inputStyle}
-              value={courtName}
-              onChange={e => setCourtName(e.target.value)}
-              placeholder="e.g. Dhaka Sessions Court"
-            />
-          </Field>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <Field label="Bail Amount" hint="optional">
-              <div style={{ position: "relative" }}>
-                <span style={{
-                  position: "absolute", left: "10px", top: "50%",
-                  transform: "translateY(-50%)", color: "#5a6278", fontSize: "0.8rem", pointerEvents: "none",
-                }}>৳</span>
-                <input
-                  style={{ ...inputStyle, paddingLeft: "1.6rem" }}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={bailAmount}
-                  onChange={e => setBailAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-            </Field>
-            <Field label="Granted On" hint="optional">
-              <input
-                style={inputStyle}
-                type="date"
-                value={grantedAt}
-                onChange={e => setGrantedAt(e.target.value)}
-              />
-            </Field>
-          </div>
-
-          <Field label="Surety Name" hint="optional">
-            <input
-              style={inputStyle}
-              value={suretyName}
-              onChange={e => setSuretyName(e.target.value)}
-              placeholder="Full name of surety"
-            />
-          </Field>
-
-          <Field label="Status">
-            <div style={{ position: "relative" }}>
-              <select
-                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
-                value={status}
-                onChange={e => setStatus(e.target.value)}
-              >
-                {bailStatusOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <span style={{
-                position: "absolute", right: "10px", top: "50%",
-                transform: "translateY(-50%)", pointerEvents: "none",
-                color: "#5a6278", fontSize: "0.65rem",
-              }}>▼</span>
-            </div>
-          </Field>
-
-          <div style={{ borderTop: "1px solid #1e2330", margin: "1.5rem 0" }} />
-
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button
-              onClick={() => navigate(-1)}
-              style={{
-                flex: 1, padding: "0.7rem", background: "transparent",
-                border: "1px solid #1e2330", borderRadius: "8px",
-                color: "#9aa3b8", fontSize: "0.88rem", fontWeight: "500", cursor: "pointer",
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isPending || !isValid}
-              style={{
-                flex: 2, padding: "0.7rem", background: "#2c5fe6",
-                border: "none", borderRadius: "8px",
-                color: "#fff", fontSize: "0.88rem", fontWeight: "600",
-                cursor: isPending || !isValid ? "not-allowed" : "pointer",
-                opacity: isPending || !isValid ? 0.55 : 1,
-                transition: "opacity 0.15s",
-              }}
-            >
-              {isPending ? "Saving…" : "Add Bail Record"}
-            </button>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

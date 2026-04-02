@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { adminSignoutApi } from "@/services/authServices/signoutApi";
 import {
   getAllThanas,
   getAllOfficers,
   getAllCriminals,
+  getCriminalFullProfile,
+  getCriminalTimeline,
+  getCriminalCaseHistory,
   getAllRanks,
   getAllJails,
   getAllUsers,
   getAllGDReports,
+  getAllCaseFiles,
   getDashboardOverview,
   addThana,
   addJail,
@@ -35,15 +39,38 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 function AdminDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { clearUser, user } = userStore();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddThana, setShowAddThana] = useState(false);
   const [showAddJail, setShowAddJail] = useState(false);
   const [showAddRank, setShowAddRank] = useState(false);
+  const [selectedCaseFile, setSelectedCaseFile] = useState(null);
+  const [selectedCaseDistrict, setSelectedCaseDistrict] = useState("");
+  const [selectedCaseThanaId, setSelectedCaseThanaId] = useState("");
+  const [selectedOfficerDistrict, setSelectedOfficerDistrict] = useState("");
+  const [selectedOfficerThanaId, setSelectedOfficerThanaId] = useState("");
+  const [selectedCriminalDistrict, setSelectedCriminalDistrict] = useState("");
+  const [selectedCriminalThanaId, setSelectedCriminalThanaId] = useState("");
+  const [selectedThanaDistrict, setSelectedThanaDistrict] = useState("");
+  const [selectedJailDistrict, setSelectedJailDistrict] = useState("");
+  const [selectedGdDistrict, setSelectedGdDistrict] = useState("");
+  const [selectedGdThanaId, setSelectedGdThanaId] = useState("");
+  const [selectedGDReport, setSelectedGDReport] = useState(null);
+  const [selectedOfficerProfile, setSelectedOfficerProfile] = useState(null);
+  const [selectedCriminalProfile, setSelectedCriminalProfile] = useState(null);
 
   // Form states
-  
+  const [thanaForm, setThanaForm] = useState({
+    thana_name: "",
+    district: "",
+    zone: "",
+    address: "",
+    phone: "",
+    email: "",
+    password: "",
+  });
   const [rankForm, setRankForm] = useState({
     rank_code: "",
     rank_name: "",
@@ -65,11 +92,16 @@ function AdminDashboard() {
     navigate("/");
   };
 
-  const id = user?.admin_id || user?.thana_id || user?.officer_id || user?.jail_id || user?.user_id;
+  const openAdminModal = (path) => {
+    navigate(path, {
+      state: {
+        backgroundLocation: location,
+      },
+    });
+  };
 
   useEffect(() => {
-    const id = user?.admin_id || user?.thana_id || user?.officer_id || user?.jail_id || user?.user_id;
-    if (!id) return;
+    const id = users?.admin_id || users?.thana_id || users?.officer_id || users?.jail_id || users?.user_id;
 
     if (String(id).startsWith("ADM")) return;
     if (String(id).startsWith("JAL")) {
@@ -88,17 +120,6 @@ function AdminDashboard() {
       navigate("/user/dashboard", { replace: true });
     }
   }, [navigate, user]);
-
-  const [thanaForm, setThanaForm] = useState({
-    thana_name: "",
-    district: "",
-    zone: "",
-    address: "",
-    phone: "",
-    email: "",
-    password: "",
-    created_by_admin_id: id,
-  });
 
   // Queries — live data from backend
   const { data: thanasData } = useQuery({
@@ -128,6 +149,10 @@ function AdminDashboard() {
   const { data: gdData } = useQuery({
     queryKey: ["allGDReports"],
     queryFn: getAllGDReports,
+  });
+  const { data: allCaseFilesData } = useQuery({
+    queryKey: ["adminAllCaseFiles"],
+    queryFn: getAllCaseFiles,
   });
   const { data: organizationsData } = useQuery({
     queryKey: ["allOrganizations"],
@@ -173,6 +198,22 @@ function AdminDashboard() {
     queryKey: ["admin-unread-notification-count"],
     queryFn: getUnreadNotificationCount,
   });
+  const selectedCriminalId = selectedCriminalProfile?.criminal_id || "";
+  const { data: selectedCriminalFullProfileData, isLoading: isLoadingCriminalProfile } = useQuery({
+    queryKey: ["admin-criminal-profile", selectedCriminalId],
+    queryFn: () => getCriminalFullProfile(selectedCriminalId),
+    enabled: Boolean(selectedCriminalId),
+  });
+  const { data: selectedCriminalTimelineData, isLoading: isLoadingCriminalTimeline } = useQuery({
+    queryKey: ["admin-criminal-timeline", selectedCriminalId],
+    queryFn: () => getCriminalTimeline(selectedCriminalId),
+    enabled: Boolean(selectedCriminalId),
+  });
+  const { data: selectedCriminalCaseHistoryData, isLoading: isLoadingCriminalCaseHistory } = useQuery({
+    queryKey: ["admin-criminal-case-history", selectedCriminalId],
+    queryFn: () => getCriminalCaseHistory(selectedCriminalId),
+    enabled: Boolean(selectedCriminalId),
+  });
 
   const thanas = thanasData?.data || [];
   const officers = officersData?.data || [];
@@ -181,6 +222,7 @@ function AdminDashboard() {
   const jails = jailsData?.data || [];
   const users = usersData?.data || [];
   const gdReports = gdData?.data || [];
+  const allCaseFiles = allCaseFilesData?.data || [];
   const organizations = organizationsData?.data || [];
   const locations = locationsData?.data || [];
   const criminalOrgLinks = criminalOrgLinksData?.data || [];
@@ -193,6 +235,9 @@ function AdminDashboard() {
   const unreadNotificationCount = Number(
     unreadNotificationData?.data?.unread_count || 0,
   );
+  const selectedCriminalFullProfile = selectedCriminalFullProfileData?.data || null;
+  const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
+  const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
 
   // Mutations
   const addThanaMut = useMutation({
@@ -209,7 +254,6 @@ function AdminDashboard() {
           phone: "",
           email: "",
           password: "",
-          created_by_admin_id: "",
         });
       } else {
         alert(r.message);
@@ -324,8 +368,73 @@ function AdminDashboard() {
     { id: "ranks", label: `Ranks (${ranks.length})` },
     { id: "users", label: `Users (${users.length})` },
     { id: "gd-reports", label: `GD Reports (${gdReports.length})` },
+    { id: "case-files-by-thana", label: "Case Files By Thana" },
     { id: "analytics", label: "Analytics" },
   ];
+
+  const districtOptions = [...new Set(thanas.map((t) => t?.district).filter(Boolean))].sort((a, b) =>
+    String(a).localeCompare(String(b))
+  );
+
+  const thanaById = thanas.reduce((acc, t) => {
+    if (t?.thana_id) {
+      acc[t.thana_id] = t;
+    }
+    return acc;
+  }, {});
+
+  const thanaOptionsByDistrict = thanas.filter(
+    (t) => t?.thana_id && (!selectedCaseDistrict || t.district === selectedCaseDistrict)
+  );
+
+  const thanaOptionsByOfficerDistrict = thanas.filter(
+    (t) => t?.thana_id && (!selectedOfficerDistrict || t.district === selectedOfficerDistrict)
+  );
+
+  const thanaOptionsByCriminalDistrict = thanas.filter(
+    (t) => t?.thana_id && (!selectedCriminalDistrict || t.district === selectedCriminalDistrict)
+  );
+
+  const criminalsForSelectedThana = criminals
+    .filter((c) => selectedCriminalThanaId && c?.registered_thana_id === selectedCriminalThanaId)
+    .map((c) => ({
+      ...c,
+      registered_thana_name: thanaById[c.registered_thana_id]?.thana_name || c.thana_name || "—",
+      district: thanaById[c.registered_thana_id]?.district || "—",
+    }));
+
+  const jailsByDistrict = jails.filter(
+    (j) => !selectedJailDistrict || j?.district === selectedJailDistrict
+  );
+
+  const thanasBySelectedDistrict = thanas
+    .filter((t) => !selectedThanaDistrict || t?.district === selectedThanaDistrict)
+    .sort((a, b) => String(a?.thana_name || "").localeCompare(String(b?.thana_name || "")));
+
+  const thanaOptionsByGdDistrict = thanas.filter(
+    (t) => t?.thana_id && (!selectedGdDistrict || t.district === selectedGdDistrict)
+  );
+
+  const gdReportsForSelectedThana = gdReports
+    .filter((g) => selectedGdThanaId && g?.thana_id === selectedGdThanaId)
+    .map((g) => ({
+      ...g,
+      thana_name: thanaById[g.thana_id]?.thana_name || g.thana_name || g.thana_id,
+      district: thanaById[g.thana_id]?.district || "—",
+    }));
+
+  const officersForSelectedThana = officers
+    .filter((o) => selectedOfficerThanaId && o?.thana_id === selectedOfficerThanaId)
+    .map((o) => ({
+      ...o,
+      thana_name: thanaById[o.thana_id]?.thana_name || "—",
+      district: thanaById[o.thana_id]?.district || "—",
+      zone: thanaById[o.thana_id]?.zone || "—",
+    }));
+
+  const caseFilesForSelectedThana = allCaseFiles.filter(
+    (c) => c?.thana_id && c.thana_id === selectedCaseThanaId
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200">
@@ -345,7 +454,7 @@ function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate("/admin/dashboard/notifications")}
+              onClick={() => openAdminModal("/admin/dashboard/notifications")}
               className="relative w-10 h-10 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-300 rounded-lg transition-all flex items-center justify-center"
               aria-label="Notifications"
             >
@@ -375,7 +484,13 @@ function AdminDashboard() {
           {tabs.map((t) => (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id)}
+              onClick={() => {
+                if (t.id === "analytics") {
+                  openAdminModal("/admin/dashboard/analytics");
+                  return;
+                }
+                setActiveTab(t.id);
+              }}
               className={`px-4 py-2 text-sm rounded-lg transition-all ${activeTab === t.id ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}`}
             >
               {t.label}
@@ -521,18 +636,6 @@ function AdminDashboard() {
                   className={inputCls}
                   required
                 />
-                <input
-                  placeholder="Admin ID (e.g. ADM-0000001)"
-                  value={thanaForm.created_by_admin_id}
-                  onChange={(e) =>
-                    setThanaForm({
-                      ...thanaForm,
-                      created_by_admin_id: e.target.value,
-                    })
-                  }
-                  className={inputCls}
-                  required
-                />
                 <div className="col-span-2 flex gap-2">
                   <button
                     type="submit"
@@ -552,6 +655,22 @@ function AdminDashboard() {
               </form>
             )}
 
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">District</label>
+              <select
+                value={selectedThanaDistrict}
+                onChange={(e) => setSelectedThanaDistrict(e.target.value)}
+                className={`${inputCls} max-w-md`}
+              >
+                <option value="">All districts</option>
+                {districtOptions.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
@@ -565,7 +684,7 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {thanas.map((t) => (
+                  {thanasBySelectedDistrict.map((t) => (
                     <tr
                       key={t.thana_id}
                       className="border-b border-white/5 hover:bg-white/[0.02]"
@@ -588,12 +707,9 @@ function AdminDashboard() {
                       </td>
                     </tr>
                   ))}
-                  {thanas.length === 0 && (
+                  {thanasBySelectedDistrict.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={6}
-                        className="p-6 text-center text-slate-500"
-                      >
+                      <td colSpan={6} className="p-6 text-center text-slate-500">
                         No thanas found
                       </td>
                     </tr>
@@ -606,91 +722,217 @@ function AdminDashboard() {
 
         {/* Officers */}
         {activeTab === "officers" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">ID</th>
-                  <th className="text-left p-3">Name</th>
-                  <th className="text-left p-3">Badge</th>
-                  <th className="text-left p-3">Rank</th>
-                  <th className="text-left p-3">Thana</th>
-                </tr>
-              </thead>
-              <tbody>
-                {officers.map((o) => (
-                  <tr
-                    key={o.officer_id}
-                    className="border-b border-white/5 hover:bg-white/[0.02]"
-                  >
-                    <td className="p-3 font-mono text-xs">{o.officer_id}</td>
-                    <td className="p-3 font-medium">{o.full_name}</td>
-                    <td className="p-3 text-slate-400 font-mono text-xs">
-                      {o.badge_no}
-                    </td>
-                    <td className="p-3 text-slate-400">{o.rank_code}</td>
-                    <td className="p-3 text-slate-400">{o.thana_id}</td>
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">District</label>
+                <select
+                  value={selectedOfficerDistrict}
+                  onChange={(e) => {
+                    setSelectedOfficerDistrict(e.target.value);
+                    setSelectedOfficerThanaId("");
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">Select district</option>
+                  {districtOptions.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">Thana</label>
+                <select
+                  value={selectedOfficerThanaId}
+                  onChange={(e) => setSelectedOfficerThanaId(e.target.value)}
+                  className={inputCls}
+                  disabled={!selectedOfficerDistrict}
+                >
+                  <option value="">Select thana</option>
+                  {thanaOptionsByOfficerDistrict.map((t) => (
+                    <option key={t.thana_id} value={t.thana_id}>
+                      {t.thana_name} ({t.thana_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">Officer ID</th>
+                    <th className="text-left p-3">Photo</th>
+                    <th className="text-left p-3">Name</th>
+                    <th className="text-left p-3">Badge</th>
+                    <th className="text-left p-3">Rank</th>
+                    <th className="text-left p-3">Thana</th>
+                    <th className="text-left p-3">District</th>
                   </tr>
-                ))}
-                {officers.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
-                      No officers found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {!selectedOfficerThanaId ? (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-slate-500">
+                        Select district and thana to view officers.
+                      </td>
+                    </tr>
+                  ) : officersForSelectedThana.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-slate-500">
+                        No officers found under selected thana.
+                      </td>
+                    </tr>
+                  ) : (
+                    officersForSelectedThana.map((o) => (
+                      <tr
+                        key={o.officer_id}
+                        className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                        onClick={() => setSelectedOfficerProfile(o)}
+                      >
+                        <td className="p-3 font-mono text-xs">{o.officer_id}</td>
+                        <td className="p-3">
+                          {o.image_url ? (
+                            <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+                              <img
+                                src={o.image_url}
+                                alt={o.full_name}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
+                              N/A
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 font-medium">{o.full_name}</td>
+                        <td className="p-3 text-slate-400 font-mono text-xs">{o.badge_no}</td>
+                        <td className="p-3 text-slate-400">{o.rank_code}</td>
+                        <td className="p-3 text-slate-400">{o.thana_name}</td>
+                        <td className="p-3 text-slate-400">{o.district}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Criminals */}
         {activeTab === "criminals" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">ID</th>
-                  <th className="text-left p-3">Name</th>
-                  <th className="text-left p-3">NID</th>
-                  <th className="text-left p-3">Status</th>
-                  <th className="text-left p-3">Risk</th>
-                  <th className="text-left p-3">Thana</th>
-                </tr>
-              </thead>
-              <tbody>
-                {criminals.map((c) => (
-                  <tr
-                    key={c.criminal_id}
-                    className="border-b border-white/5 hover:bg-white/[0.02]"
-                  >
-                    <td className="p-3 font-mono text-xs">{c.criminal_id}</td>
-                    <td className="p-3 font-medium">{c.full_name}</td>
-                    <td className="p-3 text-slate-400 font-mono text-xs">
-                      {c.nid}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs ${statusColor(c.status)}`}
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">District</label>
+                <select
+                  value={selectedCriminalDistrict}
+                  onChange={(e) => {
+                    setSelectedCriminalDistrict(e.target.value);
+                    setSelectedCriminalThanaId("");
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">Select district</option>
+                  {districtOptions.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">Thana</label>
+                <select
+                  value={selectedCriminalThanaId}
+                  onChange={(e) => setSelectedCriminalThanaId(e.target.value)}
+                  className={inputCls}
+                  disabled={!selectedCriminalDistrict}
+                >
+                  <option value="">Select thana</option>
+                  {thanaOptionsByCriminalDistrict.map((t) => (
+                    <option key={t.thana_id} value={t.thana_id}>
+                      {t.thana_name} ({t.thana_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">ID</th>
+                    <th className="text-left p-3">Photo</th>
+                    <th className="text-left p-3">Name</th>
+                    <th className="text-left p-3">Gender</th>
+                    <th className="text-left p-3">Age</th>
+                    <th className="text-left p-3">NID</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Risk</th>
+                    <th className="text-left p-3">Thana</th>
+                    <th className="text-left p-3">District</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!selectedCriminalThanaId ? (
+                    <tr>
+                      <td colSpan={10} className="p-6 text-center text-slate-500">
+                        Select district and thana to view criminals.
+                      </td>
+                    </tr>
+                  ) : criminalsForSelectedThana.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="p-6 text-center text-slate-500">
+                        No criminals found under selected thana.
+                      </td>
+                    </tr>
+                  ) : (
+                    criminalsForSelectedThana.map((c) => (
+                      <tr
+                        key={c.criminal_id}
+                        className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                        onClick={() => setSelectedCriminalProfile(c)}
                       >
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="p-3 font-mono">{c.risk_level}/10</td>
-                    <td className="p-3 text-slate-400">
-                      {c.registered_thana_id}
-                    </td>
-                  </tr>
-                ))}
-                {criminals.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
-                      No criminals found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        <td className="p-3 font-mono text-xs">{c.criminal_id}</td>
+                        <td className="p-3">
+                          {c.image_url ? (
+                            <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                              <img
+                                src={c.image_url}
+                                alt={c.full_name}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
+                              N/A
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 font-medium">{c.full_name}</td>
+                        <td className="p-3 text-slate-400 text-xs capitalize">{c.gender || "—"}</td>
+                        <td className="p-3 text-slate-400">{c.age ?? "—"}</td>
+                        <td className="p-3 text-slate-400 font-mono text-xs">{c.nid}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${statusColor(c.status)}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono">{c.risk_level}/10</td>
+                        <td className="p-3 text-slate-400">{c.registered_thana_name}</td>
+                        <td className="p-3 text-slate-400">{c.district}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -804,6 +1046,22 @@ function AdminDashboard() {
               </form>
             )}
 
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">District</label>
+              <select
+                value={selectedJailDistrict}
+                onChange={(e) => setSelectedJailDistrict(e.target.value)}
+                className={`${inputCls} max-w-md`}
+              >
+                <option value="">All districts</option>
+                {districtOptions.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
@@ -816,7 +1074,7 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {jails.map((j) => (
+                  {jailsByDistrict.map((j) => (
                     <tr
                       key={j.jail_id}
                       className="border-b border-white/5 hover:bg-white/[0.02]"
@@ -828,7 +1086,7 @@ function AdminDashboard() {
                       <td className="p-3 font-mono">{j.capacity}</td>
                     </tr>
                   ))}
-                  {jails.length === 0 && (
+                  {jailsByDistrict.length === 0 && (
                     <tr>
                       <td colSpan={5} className="p-6 text-center text-slate-500">
                         No jails found
@@ -954,6 +1212,99 @@ function AdminDashboard() {
                 { key: "criminals_registered", label: "Criminals" },
                 { key: "performance_rank", label: "Performance Rank" },
               ])}
+            </div>
+          </div>
+        )}
+
+        {/* Case Files By Thana */}
+        {activeTab === "case-files-by-thana" && (
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">District</label>
+                <select
+                  value={selectedCaseDistrict}
+                  onChange={(e) => {
+                    setSelectedCaseDistrict(e.target.value);
+                    setSelectedCaseThanaId("");
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">Select district</option>
+                  {districtOptions.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">Thana</label>
+                <select
+                  value={selectedCaseThanaId}
+                  onChange={(e) => setSelectedCaseThanaId(e.target.value)}
+                  className={inputCls}
+                  disabled={!selectedCaseDistrict}
+                >
+                  <option value="">Select thana</option>
+                  {thanaOptionsByDistrict.map((t) => (
+                    <option key={t.thana_id} value={t.thana_id}>
+                      {t.thana_name} ({t.thana_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">Case ID</th>
+                    <th className="text-left p-3">Title</th>
+                    <th className="text-left p-3">Type</th>
+                    <th className="text-left p-3">Criminal</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Registered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!selectedCaseThanaId ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-500">
+                        Select district and thana to view case files.
+                      </td>
+                    </tr>
+                  ) : caseFilesForSelectedThana.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-500">
+                        No case files found under selected thana.
+                      </td>
+                    </tr>
+                  ) : (
+                    caseFilesForSelectedThana.map((c) => (
+                      <tr
+                        key={c.case_id}
+                        className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                        onClick={() => setSelectedCaseFile(c)}
+                      >
+                        <td className="p-3 font-mono text-xs">{c.case_id}</td>
+                        <td className="p-3">{c.case_title || "Untitled Case"}</td>
+                        <td className="p-3">{c.case_type}</td>
+                        <td className="p-3">{c.criminal_name || c.criminal_id}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${statusColor(c.status)}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-xs text-slate-400">
+                          {c.filed_at ? new Date(c.filed_at).toLocaleString() : "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -1094,55 +1445,426 @@ function AdminDashboard() {
 
         {/* GD Reports */}
         {activeTab === "gd-reports" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">ID</th>
-                  <th className="text-left p-3">Thana</th>
-                  <th className="text-left p-3">Type</th>
-                  <th className="text-left p-3">Description</th>
-                  <th className="text-left p-3">Status</th>
-                  <th className="text-left p-3">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gdReports.map((g) => (
-                  <tr key={g.gd_id} className="border-b border-white/5">
-                    <td className="p-3 font-mono text-xs">{g.gd_id}</td>
-                    <td className="p-3">{g.thana_id}</td>
-                    <td className="p-3 text-xs capitalize">
-                      {g.gd_type?.replace("_", " ") || "—"}
-                    </td>
-                    <td className="p-3 text-slate-400 truncate max-w-xs">
-                      {g.description}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs ${statusColor(g.status)}`}
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">District</label>
+                <select
+                  value={selectedGdDistrict}
+                  onChange={(e) => {
+                    setSelectedGdDistrict(e.target.value);
+                    setSelectedGdThanaId("");
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">Select district</option>
+                  {districtOptions.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 uppercase block mb-2">Thana</label>
+                <select
+                  value={selectedGdThanaId}
+                  onChange={(e) => setSelectedGdThanaId(e.target.value)}
+                  className={inputCls}
+                  disabled={!selectedGdDistrict}
+                >
+                  <option value="">Select thana</option>
+                  {thanaOptionsByGdDistrict.map((t) => (
+                    <option key={t.thana_id} value={t.thana_id}>
+                      {t.thana_name} ({t.thana_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">ID</th>
+                    <th className="text-left p-3">Thana</th>
+                    <th className="text-left p-3">Type</th>
+                    <th className="text-left p-3">Description</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!selectedGdThanaId ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-500">
+                        Select district and thana to view GD reports.
+                      </td>
+                    </tr>
+                  ) : gdReportsForSelectedThana.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-500">
+                        No GD reports found under selected thana.
+                      </td>
+                    </tr>
+                  ) : (
+                    gdReportsForSelectedThana.map((g) => (
+                      <tr
+                        key={g.gd_id}
+                        className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                        onClick={() => setSelectedGDReport(g)}
                       >
-                        {g.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-400 text-xs">
-                      {g.submitted_at
-                        ? new Date(g.submitted_at).toLocaleDateString()
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-                {gdReports.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
-                      No GD reports found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        <td className="p-3 font-mono text-xs">{g.gd_id}</td>
+                        <td className="p-3">{g.thana_name || g.thana_id}</td>
+                        <td className="p-3 text-xs capitalize">
+                          {g.gd_type?.replace("_", " ") || "—"}
+                        </td>
+                        <td className="p-3 text-slate-400 truncate max-w-xs">
+                          {g.description}
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${statusColor(g.status)}`}>
+                            {g.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-400 text-xs">
+                          {g.submitted_at
+                            ? new Date(g.submitted_at).toLocaleDateString()
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
+
+      {selectedCaseFile && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedCaseFile(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">Case Details</p>
+                <h3 className="text-xl font-bold text-slate-100 mt-1">
+                  {selectedCaseFile.case_title || "Untitled Case"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedCaseFile(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <Info label="Case ID" value={selectedCaseFile.case_id} mono />
+              <Info label="Case Type" value={selectedCaseFile.case_type} />
+              <Info label="Status" value={selectedCaseFile.status} />
+              <Info
+                label="Registered At"
+                value={selectedCaseFile.filed_at ? new Date(selectedCaseFile.filed_at).toLocaleString() : "—"}
+              />
+              <Info label="Criminal" value={selectedCaseFile.criminal_name || "—"} />
+              <Info label="Criminal ID" value={selectedCaseFile.criminal_id} mono />
+              <Info label="Thana" value={selectedCaseFile.thana_name || "—"} />
+              <Info label="Thana ID" value={selectedCaseFile.thana_id || "—"} mono />
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Description</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg p-3 text-sm text-slate-300 whitespace-pre-wrap">
+                {selectedCaseFile.description || "No description provided."}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedGDReport && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedGDReport(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">GD Details</p>
+                <h3 className="text-xl font-bold text-slate-100 mt-1">GD #{selectedGDReport.gd_id}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedGDReport(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <Info label="GD ID" value={selectedGDReport.gd_id} mono />
+              <Info label="Type" value={selectedGDReport.gd_type?.replace("_", " ")} />
+              <Info label="Status" value={selectedGDReport.status} />
+              <Info
+                label="Submitted At"
+                value={selectedGDReport.submitted_at ? new Date(selectedGDReport.submitted_at).toLocaleString() : "—"}
+              />
+              <Info label="Thana" value={selectedGDReport.thana_name || selectedGDReport.thana_id || "—"} />
+              <Info label="Thana ID" value={selectedGDReport.thana_id || "—"} mono />
+              <Info label="District" value={selectedGDReport.district || "—"} />
+              <Info label="Assigned Officer" value={selectedGDReport.assigned_officer_id || "—"} mono />
+              <Info label="Approved By" value={selectedGDReport.approved_by_officer_id || "—"} mono />
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Description</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg p-3 text-sm text-slate-300 whitespace-pre-wrap">
+                {selectedGDReport.description || "No description provided."}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedOfficerProfile && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedOfficerProfile(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+                  {selectedOfficerProfile.image_url ? (
+                    <img
+                      src={selectedOfficerProfile.image_url}
+                      alt={selectedOfficerProfile.full_name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
+                      N/A
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Officer Details</p>
+                  <h3 className="text-xl font-bold text-slate-100 mt-1">
+                    {selectedOfficerProfile.full_name || "Unknown Officer"}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedOfficerProfile(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <Info label="Officer ID" value={selectedOfficerProfile.officer_id} mono />
+              <Info label="Badge No" value={selectedOfficerProfile.badge_no} mono />
+              <Info label="Rank" value={selectedOfficerProfile.rank_code} />
+              <Info label="Thana" value={selectedOfficerProfile.thana_name || "—"} />
+              <Info label="Thana ID" value={selectedOfficerProfile.thana_id || "—"} mono />
+              <Info label="District" value={selectedOfficerProfile.district || "—"} />
+              <Info label="Zone" value={selectedOfficerProfile.zone || "—"} />
+              <Info label="Email" value={selectedOfficerProfile.email} />
+              <Info label="Phone" value={selectedOfficerProfile.phone} />
+              <Info label="NID" value={selectedOfficerProfile.nid_number} mono />
+              <Info label="Age" value={selectedOfficerProfile.age ?? "—"} />
+              <Info
+                label="Birth Date"
+                value={selectedOfficerProfile.birth_date ? new Date(selectedOfficerProfile.birth_date).toLocaleDateString() : "—"}
+              />
+              <Info label="Gender" value={selectedOfficerProfile.gender} />
+              <Info label="Father's Name" value={selectedOfficerProfile.father_name} />
+              <Info label="Mother's Name" value={selectedOfficerProfile.mother_name} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedCriminalProfile && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedCriminalProfile(null)}
+        >
+          <div
+            className="w-full max-w-4xl bg-gray-900 border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                  {selectedCriminalProfile.image_url ? (
+                    <img
+                      src={selectedCriminalProfile.image_url}
+                      alt={selectedCriminalProfile.full_name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
+                      N/A
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Criminal Profile</p>
+                  <h3 className="text-xl font-bold text-slate-100 mt-1">
+                    {selectedCriminalProfile.full_name || "Unknown Criminal"}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedCriminalProfile(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            {(isLoadingCriminalProfile || isLoadingCriminalTimeline || isLoadingCriminalCaseHistory) && (
+              <p className="text-sm text-slate-400 mb-4">Loading full legal history...</p>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <Info label="Criminal ID" value={selectedCriminalProfile.criminal_id} mono />
+              <Info label="NID" value={selectedCriminalProfile.nid} mono />
+              <Info label="Gender" value={selectedCriminalProfile.gender} />
+              <Info label="Age" value={selectedCriminalProfile.age ?? selectedCriminalFullProfile?.age ?? "—"} />
+              <Info
+                label="Birth Date"
+                value={selectedCriminalProfile.birth_date ? new Date(selectedCriminalProfile.birth_date).toLocaleDateString() : "—"}
+              />
+              <Info label="Father's Name" value={selectedCriminalProfile.father_name} />
+              <Info label="Mother's Name" value={selectedCriminalProfile.mother_name} />
+              <Info label="Aliases" value={selectedCriminalProfile.aliases} />
+              <Info label="Nationality" value={selectedCriminalProfile.nationality} />
+              <Info label="Status" value={selectedCriminalProfile.status} />
+              <Info
+                label="Risk Level"
+                value={selectedCriminalProfile.risk_level != null ? `${selectedCriminalProfile.risk_level}/10` : "—"}
+              />
+              <Info
+                label="Registered Thana"
+                value={selectedCriminalFullProfile?.registered_thana || selectedCriminalProfile.registered_thana_id || "—"}
+              />
+              <Info label="Open Cases" value={selectedCriminalFullProfile?.open_cases ?? "—"} />
+              <Info label="Closed Cases" value={selectedCriminalFullProfile?.closed_cases ?? "—"} />
+              <Info label="Total Arrests" value={selectedCriminalFullProfile?.total_arrests ?? "—"} />
+              <Info label="Organizations" value={selectedCriminalFullProfile?.organizations || "None"} />
+              <Info label="Current Address" value={selectedCriminalProfile.current_address} />
+              <Info label="Permanent Address" value={selectedCriminalProfile.permanent_address} />
+              <Info label="Identifying Marks" value={selectedCriminalProfile.identifying_marks} />
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Legal History Timeline</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg overflow-hidden">
+                {selectedCriminalTimeline.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No legal history found.</p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {selectedCriminalTimeline.map((item, index) => (
+                      <li key={`${item.event_type}-${item.event_date}-${index}`} className="p-3">
+                        <p className="text-xs text-slate-500">
+                          {item.event_date ? new Date(item.event_date).toLocaleString() : "—"}
+                        </p>
+                        <p className="text-sm font-semibold text-slate-200 mt-1">{item.event_type}</p>
+                        <p className="text-sm text-slate-300 mt-1 whitespace-pre-wrap">{item.description}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Case Files & Updates</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg overflow-hidden">
+                {selectedCriminalCaseHistory.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No case files found for this criminal.</p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {selectedCriminalCaseHistory.map((caseItem) => (
+                      <li
+                        key={caseItem.case_id}
+                        className="p-3 cursor-pointer hover:bg-white/[0.03]"
+                        onClick={() => {
+                          setSelectedCriminalProfile(null);
+                          setSelectedCaseFile({
+                            case_id: caseItem.case_id,
+                            case_title: caseItem.case_title,
+                            case_type: caseItem.case_type,
+                            status: caseItem.status,
+                            filed_at: caseItem.filed_at,
+                            description: caseItem.description,
+                            criminal_id: selectedCriminalProfile?.criminal_id,
+                            criminal_name: selectedCriminalProfile?.full_name,
+                            thana_id: caseItem.thana_id,
+                            thana_name: caseItem.thana_name,
+                          });
+                        }}
+                      >
+                        <p className="text-sm font-semibold text-blue-300 hover:text-blue-200">
+                          Case #{caseItem.case_id}: {caseItem.case_title || "Untitled Case"}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Type: {caseItem.case_type || "—"} | Status: {caseItem.status || "—"} | Registered: {caseItem.filed_at ? new Date(caseItem.filed_at).toLocaleString() : "—"}
+                        </p>
+                        {caseItem.last_status_change_at && (
+                          <p className="text-xs text-amber-300 mt-1">
+                            Last Status Update: {new Date(caseItem.last_status_change_at).toLocaleString()}
+                          </p>
+                        )}
+                        {Array.isArray(caseItem.status_history) && caseItem.status_history.length > 0 && (
+                          <ul className="mt-2 pl-4 list-disc text-xs text-slate-300 space-y-1">
+                            {caseItem.status_history.map((h, idx) => (
+                              <li key={`${caseItem.case_id}-status-${idx}`}>
+                                {h?.from_status || "unknown"} → {h?.to_status || "unknown"}
+                                {h?.changed_at ? ` (${new Date(h.changed_at).toLocaleString()})` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {caseItem.description && (
+                          <p className="text-sm text-slate-300 mt-2 whitespace-pre-wrap">{caseItem.description}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Info({ label, value, mono = false }) {
+  return (
+    <div className="bg-gray-800/70 border border-white/5 rounded-lg p-3">
+      <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">{label}</p>
+      <p className={`text-slate-200 ${mono ? "font-mono text-xs" : ""}`}>{value || "—"}</p>
     </div>
   );
 }

@@ -115,3 +115,19 @@ export const deleteThanaRepository = async (thanaId) => {
         throw error;
     }
 }
+
+export const geThanaByNameRepository = async (thanaName) => {
+    try {
+        const query = `
+            SELECT *
+            FROM thana
+            WHERE thana_name ILIKE $1;
+        `;
+        const sanitizedName = thanaName.replace(/[%_\\]/g, '\\$&');
+        const result = await pool.query(query, [`%${sanitizedName}%`]);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching thana by name at geThanaByNameRepository:', error);
+        throw error;
+    }
+}

@@ -4,10 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2";
+const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-2";
 const inputClass =
-  "w-full bg-slate-900/60 border border-slate-800 text-slate-300 placeholder-slate-700 px-4 py-3 text-sm outline-none focus:border-blue-400/30 hover:border-slate-700 transition-colors appearance-none";
-const hintClass = "text-[10px] text-slate-700 mt-1.5";
+  "w-full bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 px-4 py-3 text-sm outline-none focus:border-blue-400/40 hover:border-slate-500 transition-colors appearance-none rounded-xl";
+const hintClass = "text-[10px] text-slate-500 mt-1.5";
 
 export default function UpdateCellBlock() {
   const navigate = useNavigate();
@@ -72,6 +72,16 @@ export default function UpdateCellBlock() {
         fontFamily: "'IBM Plex Mono', monospace",
       }}
     >
+      <div className="max-w-5xl mx-auto">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="rounded-xl border border-slate-600 bg-slate-900/70 text-slate-100 px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:border-blue-400/50 hover:text-blue-300 hover:bg-slate-800/80 transition-all"
+        >
+          ← Back
+        </button>
+      </div>
+
       {/* ── Header ── */}
       <div className="mb-10">
         <span className="text-[10px] tracking-[0.22em] uppercase text-blue-400 bg-blue-400/10 border border-blue-400/20 px-3 py-1 inline-block mb-3">
@@ -83,7 +93,7 @@ export default function UpdateCellBlock() {
         >
           Update Cell <span className="text-blue-400">Block</span>
         </h1>
-        <p className="text-[11px] text-slate-700 mt-2 tracking-widest">
+        <p className="text-[11px] text-slate-500 mt-2 tracking-widest">
           // Modify an existing cell block record
         </p>
       </div>
@@ -92,7 +102,7 @@ export default function UpdateCellBlock() {
 
       {/* ── Loading ── */}
       {cellBlockDataLoading && (
-        <div className="flex items-center gap-3 py-16 text-slate-700 text-[11px] tracking-widest">
+        <div className="flex items-center gap-3 py-16 text-slate-500 text-[11px] tracking-widest">
           <div className="w-4 h-4 border border-slate-700 border-t-blue-400 rounded-full animate-spin" />
           LOADING BLOCK DATA...
         </div>
@@ -113,8 +123,8 @@ export default function UpdateCellBlock() {
       )}
 
       {!cellBlockDataLoading && !cellBlockDataError && (
-        <div className="max-w-xl flex flex-col gap-0">
-          <div className="text-[10px] tracking-[0.22em] uppercase text-slate-700 pb-3 mb-5 border-b border-slate-800/80">
+        <div className="max-w-2xl flex flex-col gap-0">
+          <div className="text-[10px] tracking-[0.22em] uppercase text-slate-500 pb-3 mb-5 border-b border-slate-700/80">
             // Block Details
           </div>
 
@@ -153,7 +163,7 @@ export default function UpdateCellBlock() {
                 {capacity || "—"}
               </div>
               <div>
-                <div className="text-[10px] text-slate-600 tracking-widest uppercase mb-1">Preview</div>
+                <div className="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Preview</div>
                 <div className="text-white font-bold text-lg" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
                   {cellBlockName || "Block Name"}
                 </div>
@@ -165,23 +175,24 @@ export default function UpdateCellBlock() {
           )}
 
           {/* ── Actions ── */}
-          <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-slate-800">
+          <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-slate-700">
             <button
               onClick={handleUpdate}
               disabled={updateCellBlockLoading}
-              className="bg-blue-400 text-[#080a0e] px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 disabled:bg-blue-900 disabled:text-blue-700 disabled:translate-y-0 transition-all duration-150"
+              className="rounded-xl bg-blue-400 text-[#080a0e] px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 disabled:bg-blue-900 disabled:text-blue-700 disabled:translate-y-0 transition-all duration-150"
             >
               {updateCellBlockLoading ? "SAVING..." : "SAVE CHANGES"}
             </button>
             <button
               onClick={() => navigate(-1)}
-              className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
+              className="rounded-xl border border-slate-600 bg-slate-900/70 text-slate-100 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-300 transition-all duration-150"
             >
               CANCEL
             </button>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

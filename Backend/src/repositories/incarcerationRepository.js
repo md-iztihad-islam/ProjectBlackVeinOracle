@@ -66,7 +66,7 @@ export const getIncarcerationByIdRepository = async (incId) => {
 export const getIncarcerationsByJailRepository = async (jailId) => {
   try {
     const query = `
-            SELECT i.*, cr.full_name AS criminal_name, c.cell_number, cb.block_name
+            SELECT i.*, ar.criminal_id, ar.custody_status, cr.full_name AS criminal_name, cr.status AS criminal_status, c.cell_number, cb.block_name
             FROM incarceration i
             JOIN arrest_record ar ON i.arrest_id = ar.arrest_id
             JOIN criminal cr ON ar.criminal_id = cr.criminal_id
@@ -84,18 +84,86 @@ export const getIncarcerationsByJailRepository = async (jailId) => {
 };
 
 export const releaseIncarcerationRepository = async (incId) => {
-    try{
-        const query = `
-            UPDATE incarceration SET released_at = NOW()
-            WHERE incarceration_id = $1 RETURNING *;
-        `;
-        const result = await pool.query(query, [incId]);
-        return result.rows[0];
+  const client = await pool.connect();
+  try{
+    await client.query('BEGIN');
+
+    const currentResult = await client.query(
+      `
+      SELECT i.incarceration_id, i.cell_id, i.arrest_id, ar.criminal_id
+      FROM incarceration i
+      JOIN arrest_record ar ON ar.arrest_id = i.arrest_id
+      WHERE i.incarceration_id = $1
+        AND i.released_at IS NULL
+      FOR UPDATE
+      `,
+      [incId]
+    );
+
+    const current = currentResult.rows[0];
+    if (!current) {
+      await client.query('ROLLBACK');
+      return null;
     }
-    catch (error) {
-        console.log('Error releasing incarceration at releaseIncarcerationRepository:', error);
-        throw error;
+
+    const result = await client.query(
+      `
+      UPDATE incarceration
+      SET released_at = NOW()
+      WHERE incarceration_id = $1
+      RETURNING *
+      `,
+      [incId]
+    );
+
+    if (current.cell_id) {
+      await client.query(
+        `
+        UPDATE cell
+        SET number_of_people = GREATEST(number_of_people - 1, 0),
+          status = CASE
+            WHEN status = 'maintenance' THEN status
+            WHEN GREATEST(number_of_people - 1, 0) <= 0 THEN 'available'
+            ELSE status
+          END
+        WHERE cell_id = $1
+        `,
+        [current.cell_id]
+      );
     }
+
+    await client.query(
+      `UPDATE arrest_record SET custody_status = 'released' WHERE arrest_id = $1`,
+      [current.arrest_id]
+    );
+
+    const activeCheck = await client.query(
+      `
+      SELECT 1
+      FROM incarceration i
+      JOIN arrest_record ar ON ar.arrest_id = i.arrest_id
+      WHERE ar.criminal_id = $1
+        AND i.released_at IS NULL
+      LIMIT 1
+      `,
+      [current.criminal_id]
+    );
+
+    await client.query(
+      `UPDATE criminal SET status = $1 WHERE criminal_id = $2`,
+      [activeCheck.rows[0] ? 'in_custody' : 'released', current.criminal_id]
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  }
+  catch (error) {
+    await client.query('ROLLBACK');
+    console.log('Error releasing incarceration at releaseIncarcerationRepository:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const updateIncarcerationRepository = async (incId, incData) => {
@@ -239,8 +307,43 @@ export const transferCriminalRepository = async (criminalId, fromJailId, toJailI
       }
     }
 
-        const query = `CALL proc_transfer_criminal($1, $2, $3, $4, $5, $6)`;
+    const query = `CALL proc_transfer_criminal($1, $2, $3, $4, $5, $6)`;
     await pool.query(query, [criminalId, fromJailId, toJailId, resolvedCellId, reason, authorizedBy]);
+
+    // Notify destination jail with transfer details
+    const transferDetailsQuery = `
+      SELECT
+        c.full_name AS criminal_name,
+        ct.criminal_id,
+        fj.jail_name AS from_jail_name,
+        tj.jail_name AS to_jail_name,
+        cfrom.cell_number AS from_cell_number,
+        cto.cell_number AS to_cell_number
+      FROM criminal_transfer ct
+      JOIN criminal c ON c.criminal_id = ct.criminal_id
+      LEFT JOIN jail fj ON fj.jail_id = ct.from_jail_id
+      LEFT JOIN jail tj ON tj.jail_id = ct.to_jail_id
+      LEFT JOIN cell cfrom ON cfrom.cell_id = ct.from_cell_id
+      LEFT JOIN cell cto ON cto.cell_id = ct.to_cell_id
+      WHERE ct.criminal_id = $1
+        AND ct.from_jail_id = $2
+        AND ct.to_jail_id = $3
+      ORDER BY ct.transferred_at DESC
+      LIMIT 1
+    `;
+    const transferDetailsResult = await pool.query(transferDetailsQuery, [criminalId, fromJailId, toJailId]);
+    const t = transferDetailsResult.rows[0];
+
+    const notificationTitle = "CRIMINAL TRANSFER RECEIVED";
+    const notificationMessage = t
+      ? `Criminal ${t.criminal_name || "Unknown"} (${t.criminal_id}) has been transferred.\nFrom: ${t.from_jail_name || fromJailId} | Cell: ${t.from_cell_number || "Unassigned"}\nTo: ${t.to_jail_name || toJailId} | Cell: ${t.to_cell_number || "Unassigned"}\nReason: ${reason}`
+      : `Criminal transfer received. Criminal ID: ${criminalId}. From jail: ${fromJailId}. To jail: ${toJailId}. To cell: ${resolvedCellId || "Unassigned"}. Reason: ${reason}`;
+
+    await pool.query(
+      `INSERT INTO notification (target_role, target_id, title, message) VALUES ($1, $2, $3, $4)`,
+      ["jail", toJailId, notificationTitle, notificationMessage]
+    );
+
     return { success: true, toCellId: resolvedCellId };
     } catch (error) {
         console.log("Error at transferCriminalRepository:", error);

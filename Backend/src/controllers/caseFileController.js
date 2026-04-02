@@ -18,6 +18,9 @@ export const addCaseFileController = async (req, res) => {
     return res.status(201).json({ success: true, data: result });
   } catch (error) {
     console.log("Error at addCaseFileController:", error);
+    if (error?.message?.includes("case_title") || error?.message?.includes("case_type") || error?.message?.includes("description")) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
     if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res
@@ -89,6 +92,9 @@ export const updateCaseFileController = async (req, res) => {
         .json({ success: false, message: "Case file not found" });
     return res.status(200).json({ success: true, data: result });
   } catch (error) {
+    if (error?.message?.includes("case_title") || error?.message?.includes("case_type") || error?.message?.includes("description")) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
     if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
     return res

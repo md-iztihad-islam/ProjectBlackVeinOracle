@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { thanaSignoutApi } from "@/services/authServices/signoutApi";
 import {
   getCriminalsByThana,
+  getCriminalFullProfile,
+  getCriminalTimeline,
+  getCriminalCaseHistory,
   getOfficersByThana,
   getCaseFilesByThana,
   getGDReportsByThana,
@@ -18,14 +21,27 @@ import { useQuery } from "@tanstack/react-query";
 
 function ThanaDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, clearUser } = userStore();
   const thanaId = user?.thana_id;
   const [activeTab, setActiveTab] = useState("criminals");
+  const [selectedCaseFile, setSelectedCaseFile] = useState(null);
+  const [selectedOfficer, setSelectedOfficer] = useState(null);
+  const [selectedCriminal, setSelectedCriminal] = useState(null);
 
   const handleSignout = async () => {
     await thanaSignoutApi();
     clearUser();
     navigate("/");
+  };
+
+  const openThanaModal = (path) => {
+    navigate(path, {
+      state: {
+        modal: true,
+        backgroundLocation: location,
+      },
+    });
   };
 
   const { data: crimData } = useQuery({
@@ -72,6 +88,22 @@ function ThanaDashboard() {
     queryKey: ["thanaUnreadNotificationCount"],
     queryFn: getUnreadNotificationCount,
   });
+  const selectedCriminalId = selectedCriminal?.criminal_id || "";
+  const { data: selectedCriminalProfileData, isLoading: isLoadingCriminalProfile } = useQuery({
+    queryKey: ["thana-criminal-profile", selectedCriminalId],
+    queryFn: () => getCriminalFullProfile(selectedCriminalId),
+    enabled: Boolean(selectedCriminalId),
+  });
+  const { data: selectedCriminalTimelineData, isLoading: isLoadingCriminalTimeline } = useQuery({
+    queryKey: ["thana-criminal-timeline", selectedCriminalId],
+    queryFn: () => getCriminalTimeline(selectedCriminalId),
+    enabled: Boolean(selectedCriminalId),
+  });
+  const { data: selectedCriminalCaseHistoryData, isLoading: isLoadingCriminalCaseHistory } = useQuery({
+    queryKey: ["thana-criminal-case-history", selectedCriminalId],
+    queryFn: () => getCriminalCaseHistory(selectedCriminalId),
+    enabled: Boolean(selectedCriminalId),
+  });
 
   const criminals = crimData?.data || [];
   const officers = offData?.data || [];
@@ -85,6 +117,9 @@ function ThanaDashboard() {
   const unreadNotificationCount = Number(
     unreadNotificationData?.data?.unread_count || 0,
   );
+  const selectedCriminalProfile = selectedCriminalProfileData?.data || null;
+  const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
+  const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
 
   const statusColor = (s) => {
     const c = {
@@ -114,6 +149,9 @@ function ThanaDashboard() {
     { id: "crimLocations", label: `Criminal Locations (${criminalLocations.length})` },
   ];
 
+  const quickActionClass =
+    "thana-quick-action-btn px-4 py-2 text-white text-sm rounded-lg";
+
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200">
       <header className="border-b border-white/5 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
@@ -124,12 +162,29 @@ function ThanaDashboard() {
               {user?.thana_name || thanaId}
             </p>
           </div>
-          <button
-            onClick={handleSignout}
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-sm rounded-lg"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => openThanaModal("/thana/notifications")}
+              className="thana-icon-btn relative w-10 h-10 rounded-lg transition-all flex items-center justify-center"
+              aria-label="Notifications"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadNotificationCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleSignout}
+              className="thana-danger-btn px-4 py-2 text-sm rounded-lg"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -155,103 +210,86 @@ function ThanaDashboard() {
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 mb-6">
           <button
-            onClick={() => navigate("/thana/add-criminal")}
-            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-criminal")}
+            className={quickActionClass}
           >
             + Add Criminal
           </button>
           <button
-            onClick={() => navigate("/thana/add-officer")}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-officer")}
+            className={quickActionClass}
           >
             + Add Officer
           </button>
           <button
-            onClick={() => navigate("/thana/add-case-file")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-case-file")}
+            className={quickActionClass}
           >
             + Add Case File
           </button>
           <button
-            onClick={() => navigate("/thana/add-location")}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-location")}
+            className={quickActionClass}
           >
             + Add Location
           </button>
           <button
-            onClick={() => navigate("/thana/add-organization")}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-organization")}
+            className={quickActionClass}
           >
             + Add Organization
           </button>
           <button
-            onClick={() => navigate("/thana/update-organization")}
-            className="px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/update-organization")}
+            className={quickActionClass}
           >
             + Update Organization
           </button>
           <button
-            onClick={() => navigate("/thana/add-criminal-relation")}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-criminal-relation")}
+            className={quickActionClass}
           >
             + Add Criminal Relation
           </button>
           <button
-            onClick={() => navigate("/thana/add-criminal-location")}
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-criminal-location")}
+            className={quickActionClass}
           >
             + Add Criminal Location
           </button>
           <button
-            onClick={() => navigate("/thana/add-criminal-organization")}
-            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/add-criminal-organization")}
+            className={quickActionClass}
           >
             + Add Criminal Organization
           </button>
           <button
-            onClick={() => navigate("/thana/update-criminal-organization")}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/update-criminal-organization")}
+            className={quickActionClass}
           >
             + Update Criminal Organization
           </button>
           <button
-            onClick={() => navigate("/thana/update-criminal-relation")}
-            className="px-4 py-2 bg-cyan-700 hover:bg-cyan-600 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/update-criminal-relation")}
+            className={quickActionClass}
           >
             + Update Criminal Relation
           </button>
           <button
-            onClick={() => navigate("/thana/update-location")}
-            className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/update-location")}
+            className={quickActionClass}
           >
             + Update/Remove Location
           </button>
           <button
-            onClick={() => navigate("/thana/notifications")}
-            className="relative px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm rounded-lg"
-          >
-            Notifications
-            {unreadNotificationCount > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {unreadNotificationCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => navigate("/thana/analytics-overview")}
-            className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/analytics-overview")}
+            className={quickActionClass}
           >
             Analytics Overview
           </button>
           <button
-            onClick={() => navigate("/thana/transfer-criminal")}
-            className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg"
-          >
-            Transfer Criminal
-          </button>
-          <button
-            onClick={() => navigate("/thana/transfer-history")}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg"
+            onClick={() => openThanaModal("/thana/transfer-history")}
+            className={quickActionClass}
           >
             Transfer History
           </button>
@@ -276,8 +314,11 @@ function ThanaDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">ID</th>
+                  <th className="text-left p-3">Criminal ID</th>
+                  <th className="text-left p-3">Photo</th>
                   <th className="text-left p-3">Name</th>
+                  <th className="text-left p-3">Gender</th>
+                  <th className="text-left p-3">Age</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Risk</th>
                   <th className="text-right p-3">Actions</th>
@@ -287,10 +328,28 @@ function ThanaDashboard() {
                 {criminals.map((c) => (
                   <tr
                     key={c.criminal_id}
-                    className="border-b border-white/5 hover:bg-white/[0.02]"
+                    className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                    onClick={() => setSelectedCriminal(c)}
                   >
                     <td className="p-3 font-mono text-xs">{c.criminal_id}</td>
+                    <td className="p-3">
+                      {c.image_url ? (
+                        <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                          <img
+                            src={c.image_url}
+                            alt={c.full_name}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
+                          N/A
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 font-medium">{c.full_name}</td>
+                    <td className="p-3 text-xs capitalize">{c.gender || "—"}</td>
+                    <td className="p-3 text-xs">{c.age ?? "—"}</td>
                     <td className="p-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs ${statusColor(c.status)}`}
@@ -301,9 +360,10 @@ function ThanaDashboard() {
                     <td className="p-3 font-mono">{c.risk_level}/10</td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() =>
-                          navigate(`/thana/update-criminal/${c.criminal_id}`)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openThanaModal(`/thana/update-criminal/${c.criminal_id}`);
+                        }}
                         className="text-blue-400 hover:text-blue-300 text-xs"
                       >
                         Edit
@@ -313,7 +373,7 @@ function ThanaDashboard() {
                 ))}
                 {criminals.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={8} className="p-6 text-center text-slate-500">
                       No criminals registered
                     </td>
                   </tr>
@@ -330,24 +390,49 @@ function ThanaDashboard() {
               <thead>
                 <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
                   <th className="text-left p-3">ID</th>
+                  <th className="text-left p-3">Photo</th>
                   <th className="text-left p-3">Name</th>
                   <th className="text-left p-3">Badge</th>
+                  <th className="text-left p-3">NID</th>
+                  <th className="text-left p-3">Age</th>
                   <th className="text-left p-3">Rank</th>
                   <th className="text-right p-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {officers.map((o) => (
-                  <tr key={o.officer_id} className="border-b border-white/5">
+                  <tr
+                    key={o.officer_id}
+                    className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                    onClick={() => setSelectedOfficer(o)}
+                  >
                     <td className="p-3 font-mono text-xs">{o.officer_id}</td>
+                    <td className="p-3">
+                      {o.image_url ? (
+                        <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+                          <img
+                            src={o.image_url}
+                            alt={o.full_name}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
+                          N/A
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3">{o.full_name}</td>
                     <td className="p-3 font-mono text-xs">{o.badge_no}</td>
+                    <td className="p-3 font-mono text-xs">{o.nid_number || "—"}</td>
+                    <td className="p-3 text-xs">{o.age ?? "—"}</td>
                     <td className="p-3">{o.rank_code}</td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() =>
-                          navigate(`/thana/update-officer/${o.officer_id}`)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openThanaModal(`/thana/update-officer/${o.officer_id}`);
+                        }}
                         className="text-blue-400 text-xs"
                       >
                         Edit
@@ -357,7 +442,7 @@ function ThanaDashboard() {
                 ))}
                 {officers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={8} className="p-6 text-center text-slate-500">
                       No officers found
                     </td>
                   </tr>
@@ -373,22 +458,26 @@ function ThanaDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">Case #</th>
+                  <th className="text-left p-3">Case ID</th>
+                  <th className="text-left p-3">Case Title</th>
                   <th className="text-left p-3">Type</th>
                   <th className="text-left p-3">Criminal</th>
                   <th className="text-left p-3">Status</th>
+                  <th className="text-left p-3">Registered</th>
                   <th className="text-right p-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {cases.map((c) => (
                   <tr
-                    key={c.case_id || c.case_number}
-                    className="border-b border-white/5"
+                    key={c.case_id}
+                    className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                    onClick={() => setSelectedCaseFile(c)}
                   >
-                    <td className="p-3 font-mono text-xs">{c.case_number}</td>
+                    <td className="p-3 font-mono text-xs">{c.case_id}</td>
+                    <td className="p-3">{c.case_title || "Untitled Case"}</td>
                     <td className="p-3">{c.case_type}</td>
-                    <td className="p-3">{c.criminal_id}</td>
+                    <td className="p-3">{c.criminal_name || c.criminal_id}</td>
                     <td className="p-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs ${statusColor(c.status)}`}
@@ -396,11 +485,15 @@ function ThanaDashboard() {
                         {c.status}
                       </span>
                     </td>
+                    <td className="p-3 text-xs text-slate-400">
+                      {c.filed_at ? new Date(c.filed_at).toLocaleString() : "—"}
+                    </td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() =>
-                          navigate(`/thana/update-case-file/${c.case_id}`)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openThanaModal(`/thana/update-case-file/${c.case_id}`);
+                        }}
                         className="text-blue-400 text-xs"
                       >
                         Edit
@@ -410,7 +503,7 @@ function ThanaDashboard() {
                 ))}
                 {cases.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
                       No case files found
                     </td>
                   </tr>
@@ -456,7 +549,7 @@ function ThanaDashboard() {
                     </td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => navigate(`/thana/gd/manage/${g.gd_id}`)}
+                        onClick={() => openThanaModal(`/thana/gd/manage/${g.gd_id}`)}
                         className="text-blue-400 hover:text-blue-300 text-xs"
                       >
                         Manage
@@ -498,7 +591,7 @@ function ThanaDashboard() {
                     <td className="p-3">{o.threat_level}</td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => navigate(`/thana/update-organization/${o.org_id}`)}
+                        onClick={() => openThanaModal(`/thana/update-organization/${o.org_id}`)}
                         className="text-blue-400 text-xs"
                       >
                         Edit
@@ -540,7 +633,7 @@ function ThanaDashboard() {
                     <td className="p-3">{l.address}</td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => navigate(`/thana/update-location/${l.location_id}`)}
+                        onClick={() => openThanaModal(`/thana/update-location/${l.location_id}`)}
                         className="text-blue-400 text-xs"
                       >
                         Edit
@@ -657,6 +750,266 @@ function ThanaDashboard() {
           </div>
         )}
       </main>
+
+      {selectedCaseFile && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedCaseFile(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">Case Details</p>
+                <h3 className="text-xl font-bold text-slate-100 mt-1">
+                  {selectedCaseFile.case_title || "Untitled Case"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedCaseFile(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <CaseInfo label="Case ID" value={selectedCaseFile.case_id} mono />
+              <CaseInfo label="Case Type" value={selectedCaseFile.case_type} />
+              <CaseInfo label="Status" value={selectedCaseFile.status} />
+              <CaseInfo
+                label="Registered At"
+                value={selectedCaseFile.filed_at ? new Date(selectedCaseFile.filed_at).toLocaleString() : "—"}
+              />
+              <CaseInfo label="Criminal" value={selectedCaseFile.criminal_name || "—"} />
+              <CaseInfo label="Criminal ID" value={selectedCaseFile.criminal_id} mono />
+              <CaseInfo label="Thana ID" value={selectedCaseFile.thana_id || thanaId} mono />
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Description</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg p-3 text-sm text-slate-300 whitespace-pre-wrap">
+                {selectedCaseFile.description || "No description provided."}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedOfficer && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedOfficer(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+                  {selectedOfficer.image_url ? (
+                    <img
+                      src={selectedOfficer.image_url}
+                      alt={selectedOfficer.full_name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
+                      N/A
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Officer Profile</p>
+                  <h3 className="text-xl font-bold text-slate-100 mt-1">
+                    {selectedOfficer.full_name || "Unknown Officer"}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedOfficer(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <CaseInfo label="Officer ID" value={selectedOfficer.officer_id} mono />
+              <CaseInfo label="Badge No" value={selectedOfficer.badge_no} mono />
+              <CaseInfo label="Rank" value={selectedOfficer.rank_code} />
+              <CaseInfo label="Thana ID" value={selectedOfficer.thana_id || thanaId} mono />
+              <CaseInfo label="Email" value={selectedOfficer.email} />
+              <CaseInfo label="Phone" value={selectedOfficer.phone} />
+              <CaseInfo label="NID" value={selectedOfficer.nid_number} mono />
+              <CaseInfo label="Age" value={selectedOfficer.age ?? "—"} />
+              <CaseInfo label="Birth Date" value={selectedOfficer.birth_date ? new Date(selectedOfficer.birth_date).toLocaleDateString() : "—"} />
+              <CaseInfo label="Gender" value={selectedOfficer.gender} />
+              <CaseInfo label="Father's Name" value={selectedOfficer.father_name} />
+              <CaseInfo label="Mother's Name" value={selectedOfficer.mother_name} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedCriminal && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedCriminal(null)}
+        >
+          <div
+            className="w-full max-w-4xl bg-gray-900 border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                  {selectedCriminal.image_url ? (
+                    <img
+                      src={selectedCriminal.image_url}
+                      alt={selectedCriminal.full_name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
+                      N/A
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Criminal Profile</p>
+                  <h3 className="text-xl font-bold text-slate-100 mt-1">
+                    {selectedCriminal.full_name || "Unknown Criminal"}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedCriminal(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            {(isLoadingCriminalProfile || isLoadingCriminalTimeline || isLoadingCriminalCaseHistory) && (
+              <p className="text-sm text-slate-400 mb-4">Loading full legal history...</p>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <CaseInfo label="Criminal ID" value={selectedCriminal.criminal_id} mono />
+              <CaseInfo label="NID" value={selectedCriminal.nid} mono />
+              <CaseInfo label="Gender" value={selectedCriminal.gender} />
+              <CaseInfo label="Age" value={selectedCriminal.age ?? selectedCriminalProfile?.age ?? "—"} />
+              <CaseInfo label="Birth Date" value={selectedCriminal.birth_date ? new Date(selectedCriminal.birth_date).toLocaleDateString() : "—"} />
+              <CaseInfo label="Father's Name" value={selectedCriminal.father_name} />
+              <CaseInfo label="Mother's Name" value={selectedCriminal.mother_name} />
+              <CaseInfo label="Aliases" value={selectedCriminal.aliases} />
+              <CaseInfo label="Nationality" value={selectedCriminal.nationality} />
+              <CaseInfo label="Status" value={selectedCriminal.status} />
+              <CaseInfo label="Risk Level" value={selectedCriminal.risk_level != null ? `${selectedCriminal.risk_level}/10` : "—"} />
+              <CaseInfo label="Registered Thana" value={selectedCriminalProfile?.registered_thana || selectedCriminal.registered_thana_id || thanaId} />
+              <CaseInfo label="Open Cases" value={selectedCriminalProfile?.open_cases ?? "—"} />
+              <CaseInfo label="Closed Cases" value={selectedCriminalProfile?.closed_cases ?? "—"} />
+              <CaseInfo label="Total Arrests" value={selectedCriminalProfile?.total_arrests ?? "—"} />
+              <CaseInfo label="Organizations" value={selectedCriminalProfile?.organizations || "None"} />
+              <CaseInfo label="Current Address" value={selectedCriminal.current_address} />
+              <CaseInfo label="Permanent Address" value={selectedCriminal.permanent_address} />
+              <CaseInfo label="Identifying Marks" value={selectedCriminal.identifying_marks} />
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Legal History Timeline</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg overflow-hidden">
+                {selectedCriminalTimeline.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No legal history found.</p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {selectedCriminalTimeline.map((item, index) => (
+                      <li key={`${item.event_type}-${item.event_date}-${index}`} className="p-3">
+                        <p className="text-xs text-slate-500">
+                          {item.event_date ? new Date(item.event_date).toLocaleString() : "—"}
+                        </p>
+                        <p className="text-sm font-semibold text-slate-200 mt-1">{item.event_type}</p>
+                        <p className="text-sm text-slate-300 mt-1 whitespace-pre-wrap">{item.description}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Case Files & Updates</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg overflow-hidden">
+                {selectedCriminalCaseHistory.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No case files found for this criminal.</p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {selectedCriminalCaseHistory.map((caseItem) => (
+                      <li
+                        key={caseItem.case_id}
+                        className="p-3 cursor-pointer hover:bg-white/[0.03]"
+                        onClick={() => {
+                          setSelectedCriminal(null);
+                          setSelectedCaseFile({
+                            case_id: caseItem.case_id,
+                            case_title: caseItem.case_title,
+                            case_type: caseItem.case_type,
+                            status: caseItem.status,
+                            filed_at: caseItem.filed_at,
+                            description: caseItem.description,
+                            criminal_id: selectedCriminal?.criminal_id,
+                            criminal_name: selectedCriminal?.full_name,
+                            thana_id: caseItem.thana_id,
+                            thana_name: caseItem.thana_name,
+                          });
+                        }}
+                      >
+                        <p className="text-sm font-semibold text-blue-300 hover:text-blue-200">
+                          Case #{caseItem.case_id}: {caseItem.case_title || "Untitled Case"}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Type: {caseItem.case_type || "—"} | Status: {caseItem.status || "—"} | Registered: {caseItem.filed_at ? new Date(caseItem.filed_at).toLocaleString() : "—"}
+                        </p>
+                        {caseItem.last_status_change_at && (
+                          <p className="text-xs text-amber-300 mt-1">
+                            Last Status Update: {new Date(caseItem.last_status_change_at).toLocaleString()}
+                          </p>
+                        )}
+                        {Array.isArray(caseItem.status_history) && caseItem.status_history.length > 0 && (
+                          <ul className="mt-2 pl-4 list-disc text-xs text-slate-300 space-y-1">
+                            {caseItem.status_history.map((h, idx) => (
+                              <li key={`${caseItem.case_id}-status-${idx}`}>
+                                {h?.from_status || "unknown"} → {h?.to_status || "unknown"}
+                                {h?.changed_at ? ` (${new Date(h.changed_at).toLocaleString()})` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {caseItem.description && (
+                          <p className="text-sm text-slate-300 mt-2 whitespace-pre-wrap">{caseItem.description}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CaseInfo({ label, value, mono = false }) {
+  return (
+    <div className="bg-gray-800/70 border border-white/5 rounded-lg p-3">
+      <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">{label}</p>
+      <p className={`text-slate-200 ${mono ? "font-mono text-xs" : ""}`}>{value || "—"}</p>
     </div>
   );
 }

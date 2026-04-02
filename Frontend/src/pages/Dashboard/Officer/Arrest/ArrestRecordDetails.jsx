@@ -1,293 +1,290 @@
-import getArrestRecordByIdApi from "@/services/ArrestRecord/getArrestRecordByIdApi";
-import getBailRecordByArrestIdApi from "@/services/Bail/getBailRecordByArrestIdApi";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
+import getArrestRecordByIdApi from "@/services/ArrestRecord/getArrestRecordByIdApi";
+import getBailRecordByArrestIdApi from "@/services/Bail/getBailRecordByArrestIdApi";
+import AddBailRecord from "../Bail/AddBailRecord";
 
+// --- Configurations ---
 const arrestStatusConfig = {
-  in_custody:  { label: "In Custody",  bg: "#1a0e2e", color: "#b87eea", dot: "#b87eea" },
-  on_bail:     { label: "On Bail",     bg: "#1f1a0d", color: "#d4932a", dot: "#d4932a" },
-  released:    { label: "Released",    bg: "#0c2218", color: "#3dba78", dot: "#3dba78" },
-  transferred: { label: "Transferred", bg: "#0e1a2e", color: "#4da6e8", dot: "#4da6e8" },
+    in_custody:  { label: "In Custody",  classes: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
+    on_bail:     { label: "On Bail",     classes: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500" },
+    released:    { label: "Released",    classes: "bg-green-50 text-green-700 border-green-200", dot: "bg-green-500" },
+    transferred: { label: "Transferred", classes: "bg-purple-50 text-purple-700 border-purple-200", dot: "bg-purple-500" },
 };
 
 const bailStatusConfig = {
-  pending:  { label: "Pending",  bg: "#1f1a0d", color: "#d4932a", dot: "#d4932a" },
-  granted:  { label: "Granted",  bg: "#0c2218", color: "#3dba78", dot: "#3dba78" },
-  rejected: { label: "Rejected", bg: "#2a0e0e", color: "#e05252", dot: "#e05252" },
+    pending:  { label: "Pending",  classes: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500" },
+    granted:  { label: "Granted",  classes: "bg-green-50 text-green-700 border-green-200", dot: "bg-green-500" },
+    rejected: { label: "Rejected", classes: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-500" },
 };
 
+// --- Helper Functions ---
 function formatDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 function formatDateShort(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function formatCurrency(amount) {
-  if (amount == null || amount === "") return null;
-  return new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", minimumFractionDigits: 2 }).format(amount);
+    if (amount == null || amount === "") return null;
+    return new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", minimumFractionDigits: 2 }).format(amount);
 }
 
+// --- Sub-components ---
 function StatusBadge({ status, config }) {
-  const cfg = config[status] || Object.values(config)[0];
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: "5px",
-      background: cfg.bg, color: cfg.color,
-      padding: "4px 10px", borderRadius: "5px",
-      fontSize: "0.72rem", fontWeight: "600",
-      letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap",
-    }}>
-      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
-      {cfg.label}
-    </span>
-  );
+    const cfg = config[status] || Object.values(config)[0];
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border ${cfg.classes}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+        </span>
+    );
 }
 
-function DetailRow({ label, value, mono, accent, isLast }) {
-  return (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-      padding: "0.75rem 0", borderBottom: isLast ? "none" : "1px solid #111418", gap: "1rem",
-    }}>
-      <span style={{ fontSize: "0.8rem", color: "#5a6278", fontWeight: "500", flexShrink: 0 }}>{label}</span>
-      <span style={{
-        fontSize: "0.85rem",
-        color: accent || (mono ? "#9aa3b8" : "#e8eaf0"),
-        fontFamily: mono ? "monospace" : "inherit",
-        textAlign: "right", wordBreak: "break-all",
-      }}>{value || "—"}</span>
-    </div>
-  );
+function InfoBlock({ title, value, mono, highlight }) {
+    return (
+        <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
+            <p className={`text-sm ${highlight ? 'text-blue-700 font-semibold' : 'text-gray-900'} ${mono ? 'font-mono' : ''}`}>
+                {value || "—"}
+            </p>
+        </div>
+    );
 }
 
 function SkeletonCard() {
-  return (
-    <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem", marginBottom: "1rem" }}>
-      <div style={{ height: "26px", width: "45%", borderRadius: "5px", background: "#1a1f2a", marginBottom: "2rem" }} />
-      {[...Array(5)].map((_, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: "1px solid #111418" }}>
-          <div style={{ height: "13px", width: "28%", borderRadius: "4px", background: "#1a1f2a" }} />
-          <div style={{ height: "13px", width: "38%", borderRadius: "4px", background: "#1a1f2a" }} />
+    return (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 mb-4 shadow-sm animate-pulse">
+            <div className="h-6 w-1/3 bg-gray-200 rounded mb-8" />
+            <div className="grid grid-cols-2 gap-6">
+                <div className="h-4 bg-gray-100 rounded" />
+                <div className="h-4 bg-gray-100 rounded" />
+                <div className="h-4 bg-gray-100 rounded" />
+                <div className="h-4 bg-gray-100 rounded" />
+            </div>
         </div>
-      ))}
-    </div>
-  );
+    );
 }
 
+// --- Main Component ---
 export default function ArrestRecordDetails() {
-  const navigate = useNavigate();
-  const { arrestId } = useParams();
+    const navigate = useNavigate();
+    const { arrestId } = useParams();
+    
+    // State to manage the Add Bail Modal visibility
+    const [isAddBailModalOpen, setIsAddBailModalOpen] = useState(false);
 
-  const { data: arrestRecordData, isLoading: arrestLoading, error: arrestError } = useQuery({
-    queryKey: ["arrestRecord", arrestId],
-    queryFn: () => getArrestRecordByIdApi(arrestId),
-    cacheTime: 2 * 60 * 1000,
-    staleTime: 5 * 60 * 1000,
-  });
+    // Fetch Arrest Data
+    const { data: arrestRecordData, isLoading: arrestLoading, error: arrestError } = useQuery({
+        queryKey: ["arrestRecord", arrestId],
+        queryFn: () => getArrestRecordByIdApi(arrestId),
+        cacheTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
+    });
 
-  const { data: bailData, isLoading: bailLoading } = useQuery({
-    queryKey: ["bailRecord", arrestId],
-    queryFn: () => getBailRecordByArrestIdApi(arrestId),
-    cacheTime: 2 * 60 * 1000,
-    staleTime: 5 * 60 * 1000,
-    enabled: !!arrestId,
-  });
+    // Fetch Bail Data linked to this Arrest
+    const { data: bailData, isLoading: bailLoading } = useQuery({
+        queryKey: ["bailRecord", arrestId],
+        queryFn: () => getBailRecordByArrestIdApi(arrestId),
+        cacheTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
+        enabled: !!arrestId,
+    });
 
-  const r = arrestRecordData?.data || {};
+    const r = arrestRecordData?.data || {};
 
-  const bailRecords = Array.isArray(bailData?.data)
-    ? bailData.data
-    : bailData?.data
-    ? [bailData.data]
-    : [];
+    const bailRecords = Array.isArray(bailData?.data)
+        ? bailData.data
+        : bailData?.data
+        ? [bailData.data]
+        : [];
 
-  return (
-    <div style={{
-      minHeight: "100vh", background: "#0a0c0f",
-      color: "#e8eaf0", fontFamily: "'DM Sans','Segoe UI',sans-serif",
-      padding: "2rem", display: "flex", alignItems: "flex-start", justifyContent: "center",
-    }}>
-      <div style={{ width: "100%", maxWidth: "640px" }}>
+    return (
+        <div className="min-h-screen bg-gray-50 p-6 font-sans flex justify-center">
+            <div className="w-full max-w-5xl">
 
-        <button
-          onClick={() => navigate('/officer/dashboard/arrest-records')}
-          style={{ background: "none", border: "none", color: "#5a6278", fontSize: "0.82rem", cursor: "pointer", padding: 0, marginBottom: "1.5rem" }}
-        >
-          ← Back to records
-        </button>
-
-        {arrestLoading ? <SkeletonCard /> : arrestError ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#e05252", fontSize: "0.9rem", background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px" }}>
-            Failed to load record.
-          </div>
-        ) : (
-          <>
-            {/* ── Arrest Record Card ── */}
-            <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem", marginBottom: "1rem" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
-                <div>
-                  <p style={{ fontSize: "0.72rem", color: "#5a6278", fontWeight: "600", letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 4px" }}>Arrest Record</p>
-                  <h1 style={{ fontSize: "1.3rem", fontWeight: "700", color: "#e8eaf0", margin: 0, fontFamily: "monospace" }}>{r.arrest_id}</h1>
-                </div>
-                <StatusBadge status={r.custody_status} config={arrestStatusConfig} />
-              </div>
-
-              {/* Criminal highlight */}
-              <div style={{
-                background: "#0d1017", border: "1px solid #1e2330",
-                borderRadius: "10px", padding: "1rem 1.25rem", marginBottom: "1.5rem",
-                display: "flex", alignItems: "center", gap: "12px",
-              }}>
-                <div style={{
-                  width: "40px", height: "40px", borderRadius: "50%", flexShrink: 0,
-                  background: "#1a0e2e", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.85rem", fontWeight: "700", color: "#b87eea",
-                }}>
-                  {r.criminal_name?.split(" ").map(n => n[0]).slice(0, 2).join("") || "??"}
-                </div>
-                <div>
-                  <p style={{ margin: 0, fontWeight: "600", color: "#e8eaf0", fontSize: "0.95rem" }}>{r.criminal_name || "—"}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#5a6278", fontFamily: "monospace" }}>{r.criminal_id}</p>
-                </div>
-              </div>
-
-              <DetailRow label="Arrest Date"    value={formatDate(r.arrest_date)} />
-              <DetailRow label="Bail Due Date"  value={formatDate(r.bail_due_date)} accent={r.bail_due_date ? "#d4932a" : undefined} />
-              <DetailRow label="Case Reference" value={r.case_reference} mono />
-              <DetailRow label="Thana"          value={r.thana_name} />
-              <DetailRow label="Thana ID"       value={r.thana_id} mono isLast />
-            </div>
-
-            {/* Arrest actions */}
-            <div style={{ display: "flex", gap: "0.75rem", marginBottom: "2.5rem" }}>
-              <button
-                onClick={() => navigate(`/officer/dashboard/update-arrest-record/${arrestId}`)}
-                style={{
-                  flex: 1, padding: "0.65rem", background: "#2c5fe6",
-                  border: "none", borderRadius: "8px", color: "#fff",
-                  fontSize: "0.85rem", fontWeight: "600", cursor: "pointer",
-                }}
-              >
-                Edit Arrest Record
-              </button>
-              <button
-                onClick={() => navigate("/officer/dashboard/arrest-records")}
-                style={{
-                  flex: 1, padding: "0.65rem", background: "transparent",
-                  border: "1px solid #1e2330", borderRadius: "8px", color: "#9aa3b8",
-                  fontSize: "0.85rem", fontWeight: "500", cursor: "pointer",
-                }}
-              >
-                All Records
-              </button>
-            </div>
-
-            {/* ── Bail Records ── */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-                <div>
-                  <h2 style={{ fontSize: "1rem", fontWeight: "600", color: "#e8eaf0", margin: 0 }}>Bail Records</h2>
-                  <p style={{ fontSize: "0.78rem", color: "#5a6278", margin: "2px 0 0" }}>
-                    {bailLoading ? "Loading…" : `${bailRecords.length} record${bailRecords.length !== 1 ? "s" : ""}`}
-                  </p>
-                </div>
+                {/* Back Navigation */}
                 <button
-                  onClick={() => navigate(`/officer/dashboard/arrest-record-details/${arrestId}/add-bail`)}
-                  style={{
-                    padding: "0.5rem 1rem", background: "transparent",
-                    border: "1px solid #2c5fe6", borderRadius: "7px",
-                    color: "#4da6e8", fontSize: "0.82rem", fontWeight: "600", cursor: "pointer",
-                  }}
+                    onClick={() => navigate('/officer/dashboard/arrest-records')}
+                    className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-6 group"
                 >
-                  + Add Bail
+                    <svg className="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to Arrest Records
                 </button>
-              </div>
 
-              {bailLoading ? (
-                <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "12px" }}>
-                  {[...Array(2)].map((_, i) => (
-                    <div key={i} style={{ padding: "1rem 1.25rem", borderBottom: i < 1 ? "1px solid #111418" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ height: "13px", width: "40%", borderRadius: "4px", background: "#1a1f2a" }} />
-                      <div style={{ height: "13px", width: "20%", borderRadius: "4px", background: "#1a1f2a" }} />
+                {arrestLoading ? (
+                    <SkeletonCard />
+                ) : arrestError ? (
+                    <div className="bg-red-50 border border-red-100 text-red-600 p-8 text-center rounded-xl">
+                        Failed to load arrest record details. Please try again.
                     </div>
-                  ))}
-                </div>
-              ) : bailRecords.length === 0 ? (
-                <div style={{
-                  background: "#12151a", border: "1px dashed #1e2330",
-                  borderRadius: "12px", padding: "2rem",
-                  textAlign: "center", color: "#5a6278", fontSize: "0.85rem",
-                }}>
-                  No bail records for this arrest.{" "}
-                  <span
-                    onClick={() => navigate(`/officer/dashboard/arrest-record-details/${arrestId}/add-bail`)}
-                    style={{ color: "#4da6e8", cursor: "pointer", textDecoration: "underline" }}
-                  >
-                    Add one
-                  </span>
-                </div>
-              ) : (
-                <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "12px", overflow: "hidden" }}>
-                  {bailRecords.map((bail, idx) => (
-                    <div
-                      key={bail.bail_id}
-                      onClick={() => navigate(`/officer/dashboard/arrest-records/${arrestId}/bail-record-details/${bail.bail_id}`)}
-                      style={{
-                        padding: "1rem 1.25rem",
-                        borderBottom: idx < bailRecords.length - 1 ? "1px solid #111418" : "none",
-                        cursor: "pointer", transition: "background 0.1s",
-                        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem",
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#0f1219"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                          <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#4da6e8" }}>#{bail.bail_id}</span>
-                          <StatusBadge status={bail.status} config={bailStatusConfig} />
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        {/* ── Left Column: Arrest Core & Bail Records ── */}
+                        <div className="lg:col-span-2 space-y-6">
+                            
+                            {/* Arrest Core Details Card */}
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 flex justify-between items-start gap-4 flex-wrap">
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Arrest Record</p>
+                                        <h1 className="text-2xl font-bold text-gray-900 font-mono">{r.arrest_id}</h1>
+                                    </div>
+                                    <StatusBadge status={r.custody_status} config={arrestStatusConfig} />
+                                </div>
+
+                                <div className="p-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                                        <InfoBlock title="Arrest Date" value={formatDate(r.arrest_date)} />
+                                        <InfoBlock title="Case Reference" value={r.case_reference} mono />
+                                        <InfoBlock title="Bail Due Date" value={formatDate(r.bail_due_date)} highlight={!!r.bail_due_date} />
+                                    </div>
+
+                                    {/* Active Incarceration Block */}
+                                    {r.active_incarceration && (
+                                        <div className="mt-6 bg-blue-50 border border-blue-100 rounded-lg p-5">
+                                            <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-4 border-b border-blue-200 pb-2">Current Placement</h3>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <InfoBlock title="Facility" value={r.active_incarceration.jail_name} />
+                                                <InfoBlock title="Location" value={`${r.active_incarceration.block_name} — Cell ${r.active_incarceration.cell_number}`} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Bail Records Card */}
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-900">Bail Applications</h2>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {bailLoading ? "Loading..." : `${bailRecords.length} record${bailRecords.length !== 1 ? "s" : ""} found`}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsAddBailModalOpen(true)}
+                                        className="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors"
+                                    >
+                                        + Add Bail
+                                    </button>
+                                </div>
+
+                                {bailLoading ? (
+                                    <div className="p-6 flex justify-center">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+                                    </div>
+                                ) : bailRecords.length === 0 ? (
+                                    <div className="p-8 text-center bg-gray-50">
+                                        <p className="text-sm text-gray-500">No bail records attached to this arrest.</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-gray-100">
+                                        {bailRecords.map((bail) => (
+                                            <div
+                                                key={bail.bail_id}
+                                                onClick={() => navigate(`/officer/dashboard/arrest-records/${arrestId}/bail-record-details/${bail.bail_id}`)}
+                                                className="p-5 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center gap-4 group"
+                                            >
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <span className="font-mono text-sm text-gray-500">#{bail.bail_id}</span>
+                                                        <StatusBadge status={bail.status} config={bailStatusConfig} />
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-gray-900">{bail.court_name}</p>
+                                                    {bail.surety_name && <p className="text-xs text-gray-500 mt-1">Surety: {bail.surety_name}</p>}
+                                                </div>
+                                                <div className="text-right">
+                                                    {bail.bail_amount && (
+                                                        <p className="font-mono text-sm font-bold text-green-600 mb-1">
+                                                            {formatCurrency(bail.bail_amount)}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-xs text-gray-500">{bail.granted_at ? formatDateShort(bail.granted_at) : "Pending Review"}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                         </div>
-                        <p style={{ margin: 0, fontSize: "0.85rem", color: "#e8eaf0", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {bail.court_name}
-                        </p>
-                        {bail.surety_name && (
-                          <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#5a6278" }}>Surety: {bail.surety_name}</p>
-                        )}
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        {formatCurrency(bail.bail_amount) && (
-                          <p style={{ margin: 0, fontFamily: "monospace", fontSize: "0.88rem", fontWeight: "700", color: "#3dba78" }}>
-                            {formatCurrency(bail.bail_amount)}
-                          </p>
-                        )}
-                        <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#5a6278" }}>
-                          {bail.granted_at ? formatDateShort(bail.granted_at) : "Date pending"}
-                        </p>
-                        <span style={{ fontSize: "0.75rem", color: "#3a4055" }}>→</span>
-                      </div>
+
+                        {/* ── Right Column: Entities (Subject & Thana) ── */}
+                        <div className="space-y-6">
+                            
+                            {/* Subject Profile Card */}
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-50 pb-2">Subject Profile</h3>
+                                
+                                <div className="flex items-center gap-4 mb-5">
+                                    {r.criminal?.image_url ? (
+                                        <img src={r.criminal.image_url} alt="Profile" className="w-12 h-12 rounded-full border border-gray-200" />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg flex-shrink-0">
+                                            {r.criminal?.full_name ? r.criminal.full_name.split(" ").map(n => n[0]).slice(0, 2).join("") : "??"}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <p className="font-bold text-gray-900">{r.criminal?.full_name || r.criminal_name || "Unknown"}</p>
+                                        <p className="text-xs font-mono text-gray-500 mt-0.5">{r.criminal?.criminal_id || r.criminal_id}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <InfoBlock title="NID Number" value={r.criminal?.nid} mono />
+                                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <span className="text-xs font-semibold text-gray-500 uppercase">Risk Level</span>
+                                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                            r.criminal?.risk_level >= 4 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                        }`}>
+                                            Level {r.criminal?.risk_level || "N/A"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Jurisdiction Card */}
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-50 pb-2">Jurisdiction</h3>
+                                <div className="space-y-4">
+                                    <InfoBlock title="Processing Thana" value={r.thana?.thana_name || r.thana_name} />
+                                    <InfoBlock title="Thana ID" value={r.thana?.thana_id || r.thana_id} mono />
+                                    {r.thana?.district && (
+                                        <InfoBlock title="District / Zone" value={`${r.thana.district} — ${r.thana.zone}`} />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Actions List */}
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+                                <button
+                                    onClick={() => navigate(`/officer/dashboard/update-arrest-record/${arrestId}`)}
+                                    className="w-full py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    Edit Arrest Details
+                                </button>
+                            </div>
+
+                        </div>
                     </div>
-                  ))}
-                  <div
-                    onClick={() => navigate(`/arrest-records/${arrestId}/bail`)}
-                    style={{
-                      padding: "0.75rem 1.25rem", borderTop: "1px solid #1e2330",
-                      textAlign: "center", cursor: "pointer",
-                      color: "#4da6e8", fontSize: "0.8rem", fontWeight: "500",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#0f1219"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    View all bail records →
-                  </div>
-                </div>
-              )}
+                )}
             </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+
+            {/* Modal Overlay */}
+            <AddBailRecord 
+                isOpen={isAddBailModalOpen} 
+                onClose={() => setIsAddBailModalOpen(false)} 
+                arrestId={arrestId} 
+            />
+        </div>
+    );
 }

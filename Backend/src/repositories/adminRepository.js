@@ -57,7 +57,11 @@ export const updateAdminRepository = async (adminId, data) => {
     try {
         const { full_name, username, email } = data;
         const query = `
-            UPDATE admin SET full_name = $1, username = $2, email = $3
+            UPDATE admin
+            SET
+                full_name = COALESCE(NULLIF($1, ''), full_name),
+                username = COALESCE(NULLIF($2, ''), username),
+                email = COALESCE(NULLIF($3, ''), email)
             WHERE admin_id = $4
             RETURNING *;
         `;

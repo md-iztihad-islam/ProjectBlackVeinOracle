@@ -169,7 +169,7 @@ export const LoginPage = () => {
   const accentClasses = getAccentClasses(config.accentColor);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-100 via-base-200 to-base-100 p-4 relative overflow-hidden">
+    <div className="login-page min-h-screen flex items-center justify-center bg-gradient-to-br from-base-100 via-base-200 to-base-100 p-4 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
@@ -189,7 +189,7 @@ export const LoginPage = () => {
 
       {/* Back Button */}
       <Link
-        to="/"
+        to="/access"
         className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 glass-panel rounded-lg hover:bg-base-200/70 transition-all group"
       >
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
@@ -217,13 +217,14 @@ export const LoginPage = () => {
           </div>
 
           {/* Black Vein Oracle Branding */}
-          <div className="text-center mb-6 pb-6 border-b border-base-content/10">
-            <h2 className="text-lg font-display font-bold gradient-text">
-              BLACK VEIN ORACLE
+          <div className="text-center mb-6">
+            <h2 className="text-lg font-display font-bold text-base-content tracking-wide">
+              BLACK VEIN <span className="text-blue-500">ORACLE</span>
             </h2>
             <p className="text-xs font-mono text-base-content/50 mt-1">
               When Database Learns To Bleed
             </p>
+            <div className="mt-4 border-t border-base-content/10" />
           </div>
 
           {/* Error Alert */}

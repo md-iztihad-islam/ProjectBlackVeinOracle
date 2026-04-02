@@ -3,14 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2";
+const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-2";
 const inputClass =
-  "w-full bg-slate-900/60 border border-slate-800 text-slate-300 placeholder-slate-700 px-4 py-3 text-sm outline-none focus:border-blue-400/30 hover:border-slate-700 transition-colors appearance-none";
-const hintClass = "text-[10px] text-slate-700 mt-1.5";
+  "w-full bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 px-4 py-3 text-sm outline-none focus:border-blue-400/40 hover:border-slate-500 transition-colors appearance-none rounded-xl";
+const hintClass = "text-[10px] text-slate-500 mt-1.5";
 
 const statusOptions = [
   { value: "available", label: "Available", color: "text-emerald-400" },
-  { value: "occupied",  label: "Occupied",  color: "text-amber-400"   },
   { value: "maintenance", label: "Maintenance", color: "text-red-400" },
 ];
 
@@ -23,7 +22,6 @@ export default function AddCell() {
   const [cellNumber,     setCellNumber]     = useState("");
   const [capacity,       setCapacity]       = useState("");
   const [status,         setStatus]         = useState("available");
-  const [numberOfPeople, setNumberOfPeople] = useState("");
   const [formError,      setFormError]      = useState("");
 
   const { mutate: addCell, isLoading: addCellLoading } = useMutation({
@@ -33,7 +31,6 @@ export default function AddCell() {
       setCellNumber("");
       setCapacity("");
       setStatus("available");
-      setNumberOfPeople("");
       setFormError("");
       navigate(-1);
     },
@@ -50,25 +47,15 @@ export default function AddCell() {
       setFormError("Capacity must be a positive integer (≥ 1).");
       return;
     }
-    const people = parseInt(numberOfPeople) || 0;
-    if (people < 0 || people > parseInt(capacity)) {
-      setFormError("Number of people cannot exceed capacity or be negative.");
-      return;
-    }
     addCell({
       block_id: cellBlockId,
       cell_number: cellNumber.trim(),
       capacity: parseInt(capacity),
       status,
-      number_of_people: people,
     });
   };
 
   const selectedStatus = statusOptions.find((s) => s.value === status);
-  const occupancyPct = capacity && numberOfPeople
-    ? Math.min(100, Math.round((parseInt(numberOfPeople) / parseInt(capacity)) * 100))
-    : 0;
-
   return (
     <div
       className="min-h-screen bg-[#080a0e] text-slate-300 px-6 py-10 md:px-10"
@@ -79,6 +66,16 @@ export default function AddCell() {
         fontFamily: "'IBM Plex Mono', monospace",
       }}
     >
+      <div className="max-w-5xl mx-auto">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="rounded-xl border border-slate-600 bg-slate-900/70 text-slate-100 px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:border-blue-400/50 hover:text-blue-300 hover:bg-slate-800/80 transition-all"
+        >
+          ← Back
+        </button>
+      </div>
+
       {/* ── Header ── */}
       <div className="mb-10">
         <span className="text-[10px] tracking-[0.22em] uppercase text-blue-400 bg-blue-400/10 border border-blue-400/20 px-3 py-1 inline-block mb-3">
@@ -90,7 +87,7 @@ export default function AddCell() {
         >
           Add <span className="text-blue-400">Cell</span>
         </h1>
-        <p className="text-[11px] text-slate-700 mt-2 tracking-widest">
+        <p className="text-[11px] text-slate-500 mt-2 tracking-widest">
           // Register a new cell in the block
         </p>
       </div>
@@ -104,8 +101,8 @@ export default function AddCell() {
         </div>
       )}
 
-      <div className="max-w-xl flex flex-col gap-0">
-        <div className="text-[10px] tracking-[0.22em] uppercase text-slate-700 pb-3 mb-5 border-b border-slate-800/80">
+      <div className="max-w-2xl flex flex-col gap-0">
+        <div className="text-[10px] tracking-[0.22em] uppercase text-slate-500 pb-3 mb-5 border-b border-slate-700/80">
           // Cell Details
         </div>
 
@@ -134,35 +131,9 @@ export default function AddCell() {
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className={labelClass}>Number of People</label>
-          <input
-            className={inputClass}
-            type="number"
-            min={0}
-            value={numberOfPeople}
-            onChange={(e) => setNumberOfPeople(e.target.value)}
-            placeholder="e.g. 2"
-          />
-          {capacity && numberOfPeople !== "" && (
-            <div className="mt-2">
-              <div className="flex justify-between text-[10px] text-slate-700 mb-1">
-                <span>Occupancy</span>
-                <span className="text-blue-400">{occupancyPct}%</span>
-              </div>
-              <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-400 rounded-full transition-all duration-300"
-                  style={{ width: `${occupancyPct}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
         <div className="mb-8">
           <label className={labelClass}>Status *</label>
-          <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
             {statusOptions.map((opt) => (
               <button
                 key={opt.value}
@@ -171,7 +142,7 @@ export default function AddCell() {
                 className={`py-3 text-[11px] font-bold tracking-widest uppercase border transition-all duration-150 ${
                   status === opt.value
                     ? `border-blue-400/40 bg-blue-400/10 ${opt.color}`
-                    : "border-slate-800 text-slate-600 hover:border-slate-700 hover:text-slate-500"
+                    : "rounded-xl border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100"
                 }`}
               >
                 {opt.label}
@@ -190,33 +161,34 @@ export default function AddCell() {
               {cellNumber}
             </div>
             <div>
-              <div className="text-[10px] text-slate-600 tracking-widest uppercase mb-1">Preview</div>
+              <div className="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Preview</div>
               <div className="text-white font-bold text-lg" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
                 Cell {cellNumber}
               </div>
               <div className={`text-[11px] mt-0.5 ${selectedStatus?.color}`}>
-                {selectedStatus?.label} · Cap: {capacity || "—"} · People: {numberOfPeople || 0}
+                {selectedStatus?.label} · Cap: {capacity || "—"} · People: System controlled
               </div>
             </div>
           </div>
         )}
 
         {/* ── Actions ── */}
-        <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-slate-800">
+        <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-slate-700">
           <button
             onClick={handleAddCell}
             disabled={addCellLoading}
-            className="bg-blue-400 text-[#080a0e] px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 disabled:bg-blue-900 disabled:text-blue-700 disabled:translate-y-0 transition-all duration-150"
+            className="rounded-xl bg-blue-400 text-[#080a0e] px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 disabled:bg-blue-900 disabled:text-blue-700 disabled:translate-y-0 transition-all duration-150"
           >
             {addCellLoading ? "SAVING..." : "+ ADD CELL"}
           </button>
           <button
             onClick={() => navigate(-1)}
-            className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
+            className="rounded-xl border border-slate-600 bg-slate-900/70 text-slate-100 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-300 transition-all duration-150"
           >
             CANCEL
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -64,7 +64,7 @@ function AccessRedirectionPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-100 via-base-200 to-base-100 p-4 relative overflow-hidden">
+        <div className="access-page min-h-screen flex items-center justify-center bg-gradient-to-br from-base-100 via-base-200 to-base-100 p-4 relative overflow-hidden">
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse"></div>
@@ -80,8 +80,8 @@ function AccessRedirectionPage() {
                         <Shield className="w-10 h-10 text-white" />
                     </div>
                     
-                    <h1 className="text-5xl md:text-6xl font-display font-bold gradient-text mb-4">
-                        BLACK VEIN ORACLE
+                    <h1 className="text-5xl md:text-6xl font-display font-bold text-base-content mb-4 tracking-tight">
+                        BLACK VEIN <span className="text-blue-500">ORACLE</span>
                     </h1>
                     
                     <p className="text-sm font-mono text-base-content/50 mb-6">
@@ -93,7 +93,7 @@ function AccessRedirectionPage() {
                             Select Your Access Category
                         </p>
                         <p className="text-base-content/60">
-                            Choose your role to access the criminal database management system
+                            Choose your role to access role-based modules for case, custody, jail, and analytics operations.
                         </p>
                     </div>
                 </div>
@@ -179,7 +179,7 @@ function AccessRedirectionPage() {
                     </div>
                     
                     <p className="text-sm text-base-content/50">
-                        Need help? Contact your system administrator
+                        Modules: 4 role portals, 20+ secured APIs, and 30+ managed entities in this project.
                     </p>
                 </div>
             </div>

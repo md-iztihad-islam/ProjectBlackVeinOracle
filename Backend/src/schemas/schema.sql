@@ -87,8 +87,38 @@ CREATE TABLE IF NOT EXISTS officer(
     phone VARCHAR(15) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     image_url TEXT,
+    nid_number VARCHAR(20) UNIQUE,
+    father_name VARCHAR(100),
+    mother_name VARCHAR(100),
+    birth_date DATE,
+    gender VARCHAR(16) CHECK (gender IN ('male','female','other')),
     password VARCHAR(255) NOT NULL
 );
+
+ALTER TABLE officer ADD COLUMN IF NOT EXISTS gender VARCHAR(16);
+
+DO $$
+BEGIN
+    UPDATE officer
+    SET gender = LOWER(TRIM(gender))
+    WHERE gender IS NOT NULL;
+
+    UPDATE officer
+    SET gender = CASE
+        WHEN gender IN ('1', 'm', 'man') THEN 'male'
+        WHEN gender IN ('2', 'f', 'woman') THEN 'female'
+        WHEN gender IN ('0', '3', 'o', 'unknown', 'n/a', 'na') THEN 'other'
+        ELSE gender
+    END
+    WHERE gender IS NOT NULL;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'officer_gender_check'
+    ) THEN
+        ALTER TABLE officer
+            ADD CONSTRAINT officer_gender_check CHECK (gender IN ('male','female','other') OR gender IS NULL);
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS location(
     location_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('LOC'),
@@ -104,8 +134,36 @@ CREATE TABLE IF NOT EXISTS "user"(
     phone VARCHAR(15) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     address TEXT NOT NULL,
+    birth_date DATE,
+    gender VARCHAR(16) CHECK (gender IN ('male','female','other')),
     password VARCHAR(255) NOT NULL
 );
+
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS gender VARCHAR(16);
+
+DO $$
+BEGIN
+    UPDATE "user"
+    SET gender = LOWER(TRIM(gender))
+    WHERE gender IS NOT NULL;
+
+    UPDATE "user"
+    SET gender = CASE
+        WHEN gender IN ('1', 'm', 'man') THEN 'male'
+        WHEN gender IN ('2', 'f', 'woman') THEN 'female'
+        WHEN gender IN ('0', '3', 'o', 'unknown', 'n/a', 'na') THEN 'other'
+        ELSE gender
+    END
+    WHERE gender IS NOT NULL;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'user_gender_check'
+    ) THEN
+        ALTER TABLE "user"
+            ADD CONSTRAINT user_gender_check CHECK (gender IN ('male','female','other') OR gender IS NULL);
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS gd_report(
     gd_id BIGSERIAL PRIMARY KEY,
@@ -127,8 +185,41 @@ CREATE TABLE IF NOT EXISTS criminal(
     nid VARCHAR(20) UNIQUE NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('in_custody','on_bail','released','escaped','unknown','wanted')) DEFAULT 'unknown',
     risk_level INT NOT NULL CHECK (risk_level BETWEEN 1 AND 10) DEFAULT 1,
-    registered_thana_id TEXT REFERENCES thana(thana_id)
+    registered_thana_id TEXT REFERENCES thana(thana_id),
+    image_url TEXT,
+    father_name VARCHAR(100),
+    mother_name VARCHAR(100),
+    birth_date DATE,
+    gender VARCHAR(16) CHECK (gender IN ('male','female','other')),
+    aliases TEXT,
+    nationality VARCHAR(60),
+    permanent_address TEXT,
+    current_address TEXT,
+    identifying_marks TEXT
 );
+
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS father_name VARCHAR(100);
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS mother_name VARCHAR(100);
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS gender VARCHAR(16);
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS aliases TEXT;
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS nationality VARCHAR(60);
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS permanent_address TEXT;
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS current_address TEXT;
+ALTER TABLE criminal ADD COLUMN IF NOT EXISTS identifying_marks TEXT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'criminal_gender_check'
+    ) THEN
+        ALTER TABLE criminal
+            ADD CONSTRAINT criminal_gender_check CHECK (gender IN ('male','female','other') OR gender IS NULL);
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS organization(
     org_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('ORG'),
@@ -156,14 +247,35 @@ CREATE TABLE IF NOT EXISTS criminal_relation (
 
 CREATE TABLE IF NOT EXISTS case_file(
     case_id BIGSERIAL PRIMARY KEY,
-    case_number TEXT UNIQUE NOT NULL,
+    case_title TEXT NOT NULL,
     criminal_id TEXT NOT NULL REFERENCES criminal(criminal_id) ON DELETE CASCADE,
     thana_id TEXT NOT NULL REFERENCES thana(thana_id) ON DELETE CASCADE,
-    case_type VARCHAR(50) NOT NULL,
+    case_type VARCHAR(50) NOT NULL CHECK (case_type IN (
+        'theft', 'robbery', 'murder', 'assault', 'kidnapping',
+        'fraud', 'cyber_crime', 'drug_offense', 'domestic_violence',
+        'extortion', 'illegal_firearms', 'human_trafficking', 'other'
+    )),
     status VARCHAR(20) NOT NULL CHECK (status IN ('open', 'closed', 'under_investigation')) DEFAULT 'open',
     filed_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     description TEXT
 );
+
+-- Legacy compatibility for existing databases that still have case_number and no case_title
+ALTER TABLE case_file ADD COLUMN IF NOT EXISTS case_title TEXT;
+UPDATE case_file
+SET case_title = COALESCE(NULLIF(TRIM(case_title), ''), 'Untitled Case')
+WHERE case_title IS NULL OR TRIM(case_title) = '';
+ALTER TABLE case_file ALTER COLUMN case_title SET NOT NULL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'case_file' AND column_name = 'case_number'
+    ) THEN
+        ALTER TABLE case_file ALTER COLUMN case_number DROP NOT NULL;
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS jail(
     jail_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('JAL'),
@@ -397,7 +509,18 @@ SELECT
     COALESCE(ars.total_arrests, 0) AS total_arrests,
     ars.last_arrest_date,
     COALESCE(ol.organizations, 'None') AS organizations,
-    COALESCE(ol.max_org_threat, 0) AS max_org_threat_level
+    COALESCE(ol.max_org_threat, 0) AS max_org_threat_level,
+    c.image_url,
+    c.father_name,
+    c.mother_name,
+    c.birth_date,
+    DATE_PART('year', AGE(CURRENT_DATE, c.birth_date))::INT AS age,
+    c.gender,
+    c.aliases,
+    c.nationality,
+    c.permanent_address,
+    c.current_address,
+    c.identifying_marks
 FROM criminal c
 LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
 LEFT JOIN case_stats cs ON c.criminal_id = cs.criminal_id
@@ -608,20 +731,43 @@ BEGIN
 
     UNION ALL
 
-    -- oi criminal er case filings
-    SELECT cf.filed_at, 'CASE FILED'::TEXT,
-           ('Case #' || cf.case_number || ' — ' || cf.case_type || ' (' || cf.status || ')')::TEXT
+        -- oi criminal er case filings
+        SELECT cf.filed_at, 'CASE FILED'::TEXT,
+            ('Case #' || cf.case_id::TEXT || ': ' || COALESCE(cf.case_title, 'Untitled Case') ||
+             ' — ' || cf.case_type || ' (' || cf.status || ')' ||
+             ' at ' || COALESCE(t2.thana_name, 'Unknown thana'))::TEXT
     FROM case_file cf
+        LEFT JOIN thana t2 ON t2.thana_id = cf.thana_id
     WHERE cf.criminal_id = p_criminal_id
 
     UNION ALL
 
+        -- case status changes and updates with timestamps
+        SELECT al.changed_at,
+            'CASE STATUS UPDATE'::TEXT,
+            ('Case #' || cf.case_id::TEXT || ': ' ||
+             COALESCE(al.old_data->>'status', 'unknown') || ' → ' || COALESCE(al.new_data->>'status', 'unknown'))::TEXT
+        FROM audit_log al
+        JOIN case_file cf ON cf.case_id::TEXT = al.record_id
+        WHERE al.table_name = 'case_file'
+          AND cf.criminal_id = p_criminal_id
+          AND al.changed_at IS NOT NULL
+          AND (
+         (al.old_data IS NOT NULL AND al.old_data ? 'status')
+         OR
+         (al.new_data IS NOT NULL AND al.new_data ? 'status')
+          )
+
+        UNION ALL
+
    -- oi crim er incarcerations
     SELECT i.admitted_at, 'INCARCERATED'::TEXT,
-           ('Admitted to ' || COALESCE(j.jail_name, 'Unknown jail'))::TEXT
+            ('Admitted to ' || COALESCE(j.jail_name, 'Unknown jail') ||
+             CASE WHEN ce.cell_number IS NOT NULL THEN ' / Cell ' || ce.cell_number ELSE '' END)::TEXT
     FROM incarceration i
     JOIN arrest_record ar ON i.arrest_id = ar.arrest_id
     LEFT JOIN jail j ON i.jail_id = j.jail_id
+        LEFT JOIN cell ce ON ce.cell_id = i.cell_id
     WHERE ar.criminal_id = p_criminal_id
 
     UNION ALL
@@ -633,6 +779,23 @@ BEGIN
     JOIN arrest_record ar ON i.arrest_id = ar.arrest_id
     LEFT JOIN jail j ON i.jail_id = j.jail_id
     WHERE ar.criminal_id = p_criminal_id AND i.released_at IS NOT NULL
+
+    UNION ALL
+
+    -- jail transfer history
+    SELECT ct.transferred_at,
+           'JAIL TRANSFER'::TEXT,
+           ('Transferred from ' || COALESCE(jf.jail_name, 'Unknown jail') ||
+            CASE WHEN cfrom.cell_number IS NOT NULL THEN ' / Cell ' || cfrom.cell_number ELSE '' END ||
+            ' to ' || COALESCE(jt.jail_name, 'Unknown jail') ||
+            CASE WHEN cto.cell_number IS NOT NULL THEN ' / Cell ' || cto.cell_number ELSE '' END ||
+            CASE WHEN ct.transfer_reason IS NOT NULL THEN ' | Reason: ' || ct.transfer_reason ELSE '' END)::TEXT
+    FROM criminal_transfer ct
+    LEFT JOIN jail jf ON jf.jail_id = ct.from_jail_id
+    LEFT JOIN jail jt ON jt.jail_id = ct.to_jail_id
+    LEFT JOIN cell cfrom ON cfrom.cell_id = ct.from_cell_id
+    LEFT JOIN cell cto ON cto.cell_id = ct.to_cell_id
+    WHERE ct.criminal_id = p_criminal_id
 
     UNION ALL
 
@@ -948,6 +1111,42 @@ CREATE TRIGGER trg_audit_criminal
     AFTER INSERT OR UPDATE OR DELETE ON criminal  
     FOR EACH ROW                                   
     EXECUTE FUNCTION fn_audit_criminal_changes();
+
+
+CREATE OR REPLACE FUNCTION fn_audit_case_file_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, new_data)
+        VALUES ('case_file', 'INSERT', NEW.case_id::TEXT, ROW_TO_JSON(NEW)::JSONB);
+        RETURN NEW;
+
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, old_data, new_data)
+        VALUES (
+            'case_file',
+            CASE WHEN NEW.status IS DISTINCT FROM OLD.status THEN 'STATUS_CHANGE' ELSE 'UPDATE' END,
+            NEW.case_id::TEXT,
+            ROW_TO_JSON(OLD)::JSONB,
+            ROW_TO_JSON(NEW)::JSONB
+        );
+        RETURN NEW;
+
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, old_data)
+        VALUES ('case_file', 'DELETE', OLD.case_id::TEXT, ROW_TO_JSON(OLD)::JSONB);
+        RETURN OLD;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_audit_case_file ON case_file;
+CREATE TRIGGER trg_audit_case_file
+    AFTER INSERT OR UPDATE OR DELETE ON case_file
+    FOR EACH ROW
+    EXECUTE FUNCTION fn_audit_case_file_changes();
 
 
 --status auto update korar jonno

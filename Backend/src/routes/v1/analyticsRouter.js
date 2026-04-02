@@ -27,7 +27,7 @@ import requireRole from '../../utils/requireRole.js';
 const router = express.Router();
 
 
-router.get('/criminal-full-profile/:criminalId', isAuthenticated, requireRole("admin", "thana", "officer"), getCriminalFullProfileController);
+router.get('/criminal-full-profile/:criminalId', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getCriminalFullProfileController);
 router.get('/high-risk-network', isAuthenticated, requireRole("admin", "thana"), getHighRiskNetworkController);
 router.get('/gd-report-analytics', isAuthenticated, requireRole("admin", "thana"), getGdReportAnalyticsController);
 router.get('/bail-statistics', isAuthenticated, requireRole("admin", "thana"), getBailStatisticsController);

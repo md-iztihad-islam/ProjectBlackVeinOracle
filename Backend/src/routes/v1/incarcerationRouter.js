@@ -1,5 +1,6 @@
 import express from "express";
 import isAuthenticated from "../../utils/isAuthenticated.js";
+import requireRole from "../../utils/requireRole.js";
 import {
   addIncarcerationController,
   getAllIncarcerationsController,
@@ -51,8 +52,18 @@ router.delete(
 );
 
 router.get("/find-cell/:jailId", isAuthenticated, findAvailableCellController);
-router.post("/transfer", isAuthenticated, transferCriminalController);
-router.get("/transfers/:criminalId", isAuthenticated, getTransferHistoryController);
+router.post(
+  "/transfer",
+  isAuthenticated,
+  requireRole("jail"),
+  transferCriminalController,
+);
+router.get(
+  "/transfers/:criminalId",
+  isAuthenticated,
+  requireRole("admin", "jail", "thana", "officer"),
+  getTransferHistoryController,
+);
 
 
 

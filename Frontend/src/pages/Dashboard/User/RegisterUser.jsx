@@ -10,6 +10,8 @@ function RegisterUser() {
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [address, setAddress] = useState("");
+    const [birthDate, setBirthDate] = useState("");
+    const [gender, setGender] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
@@ -32,6 +34,8 @@ function RegisterUser() {
             phone,
             email,
             address,
+            birth_date: birthDate,
+            gender,
             password,
         };
         registerUser(userData);
@@ -134,6 +138,33 @@ function RegisterUser() {
                                 required
                                 className={inputClass}
                             />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label className={labelClass}>Birth Date</label>
+                                <input
+                                    type="date"
+                                    value={birthDate}
+                                    onChange={(e) => setBirthDate(e.target.value)}
+                                    required
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className={labelClass}>Gender</label>
+                                <select
+                                    value={gender}
+                                    onChange={(e) => setGender(e.target.value)}
+                                    required
+                                    className={inputClass}
+                                >
+                                    <option value="">Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
                         </div>
 
                         {/* Password */}

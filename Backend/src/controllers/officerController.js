@@ -1,9 +1,33 @@
-import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService, getOfficerByIdService } from "../services/officerService.js"; 
+import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService, getOfficerByIdService, resetPasswordService, getOfficerAnalyticsService } from "../services/officerService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addOfficerController = async (req, res) => {
     try {
         const officerData = req.body;
+        const requiredFields = [
+            "badge_no",
+            "full_name",
+            "rank_code",
+            "phone",
+            "email",
+            "password",
+            "image_url",
+            "nid_number",
+            "father_name",
+            "mother_name",
+            "birth_date",
+            "gender"
+        ];
+
+        for (const field of requiredFields) {
+            if (!officerData?.[field] || String(officerData[field]).trim() === "") {
+                return res.status(400).json({
+                    success: false,
+                    message: `${field} is required`
+                });
+            }
+        }
+
         // If requester is thana, force their own thana_id.
         // If requester is admin, allow explicit thana_id from payload.
         if (req.role === "thana") {
@@ -32,6 +56,9 @@ export const addOfficerController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error adding officer at addOfficerController:', error);
+        if (error.message === 'birth_date and gender are required') return res.status(400).json({ success: false, message: 'birth_date and gender are required' });
+        if (error.message === 'Invalid birth_date') return res.status(400).json({ success: false, message: 'birth_date must be a valid past date' });
+        if (error.message === 'Invalid gender') return res.status(400).json({ success: false, message: 'gender must be one of: male, female, other' });
         if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
         if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
@@ -199,6 +226,8 @@ export const updateOfficerController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error updating officer at updateOfficerController:', error);
+        if (error.message === 'Invalid birth_date') return res.status(400).json({ success: false, message: 'birth_date must be a valid past date' });
+        if (error.message === 'Invalid gender') return res.status(400).json({ success: false, message: 'gender must be one of: male, female, other' });
         if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
         if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
         return res.status(500).json({
@@ -294,6 +323,73 @@ export const getOfficerByIdController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error fetching officer by ID at getOfficerByIdController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const resetPasswordController = async (req, res) => {
+    try {
+        const { officerId } = req.params;
+        const { current_password, new_password } = req.body;
+
+        console.log('Reset Password Request Body:', req.body);
+        console.log('Authenticated Officer ID:', officerId);
+
+
+        if (!new_password) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password is required'
+            });
+        }
+
+        const updatedOfficer = await resetPasswordService(officerId, current_password, new_password);
+
+        if (!updatedOfficer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Officer not found or password reset failed'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Password reset successful'
+        });
+    } catch (error) {
+        console.log('Error resetting password at resetPasswordController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const getOfficerAnalyticsController = async (req, res) => {
+    try {
+        const thanaId = req.query.thanaId ?? req.query.thana_id ?? req.query.thanaID ?? null;
+        const district = req.query.district ?? null;
+        const gender = req.query.gender ?? null;
+        const rank = req.query.rank ?? null;
+
+        const normalizedThanaId = typeof thanaId === 'string' ? thanaId.trim() : thanaId;
+        const normalizedDistrict = typeof district === 'string' ? district.trim() : district;
+        const normalizedGender = typeof gender === 'string' ? gender.trim() : gender;
+        const normalizedRank = typeof rank === 'string' ? rank.trim() : rank;
+
+        console.log('Get Officer Analytics Query Params:', req.query);
+
+        const data = await getOfficerAnalyticsService(normalizedThanaId, normalizedDistrict, normalizedGender, normalizedRank);
+
+        return res.status(200).json({
+            success: true,
+            data: data
+        });
+    } catch (error) {
+        console.log('Error fetching officer analytics at getOfficerAnalyticsController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

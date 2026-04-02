@@ -11,11 +11,11 @@ export const getCriminalFullProfileRepository = async (criminalId) => {
                 (SELECT COUNT(*) FROM case_file cf WHERE cf.criminal_id = c.criminal_id) AS total_cases,
                 (SELECT COUNT(*) FROM arrest_record ar WHERE ar.criminal_id = c.criminal_id) AS total_arrests,
                 (SELECT COUNT(*) FROM criminal_organization co WHERE co.criminal_id = c.criminal_id) AS total_organizations,
-                (SELECT json_agg(json_build_object('org_name', o.name, 'role', co.role, 'threat_level', o.threat_level))
+                (SELECT json_agg(json_build_object('org_name', o.name, 'role', co.role, 'threat_level', o.threat_level, 'org_id', o.org_id))
                  FROM criminal_organization co 
                  JOIN organization o ON co.org_id = o.org_id 
                  WHERE co.criminal_id = c.criminal_id) AS organizations,
-                (SELECT json_agg(json_build_object('case_number', cf.case_number, 'case_type', cf.case_type, 'status', cf.status, 'filed_at', cf.filed_at))
+                (SELECT json_agg(json_build_object('case_id', cf.case_id, 'case_title', cf.case_title, 'case_type', cf.case_type, 'status', cf.status, 'filed_at', cf.filed_at))
                  FROM case_file cf 
                  WHERE cf.criminal_id = c.criminal_id) AS cases,
                 (SELECT json_agg(json_build_object('arrest_id', ar.arrest_id, 'arrest_date', ar.arrest_date, 'custody_status', ar.custody_status))
@@ -440,8 +440,6 @@ export const getDistrictCrimeStatsRepository = async (district = null) => {
     }
 };
 
-
-// by Rayyan 2.0
 
 export const getAuditLogsRepository = async (tableName = null, page = 1, limit = 50) => {
     try {

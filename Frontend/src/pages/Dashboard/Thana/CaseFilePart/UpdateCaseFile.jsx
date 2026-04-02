@@ -3,11 +3,28 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getCaseFileById, updateCaseFile } from "@/services/Thana/thanaApi";
 
+const CASE_TYPE_OPTIONS = [
+  { value: "theft", label: "Theft" },
+  { value: "robbery", label: "Robbery" },
+  { value: "murder", label: "Murder" },
+  { value: "assault", label: "Assault" },
+  { value: "kidnapping", label: "Kidnapping" },
+  { value: "fraud", label: "Fraud" },
+  { value: "cyber_crime", label: "Cyber Crime" },
+  { value: "drug_offense", label: "Drug Offense" },
+  { value: "domestic_violence", label: "Domestic Violence" },
+  { value: "extortion", label: "Extortion" },
+  { value: "illegal_firearms", label: "Illegal Firearms" },
+  { value: "human_trafficking", label: "Human Trafficking" },
+  { value: "other", label: "Other" },
+];
+
 function UpdateCaseFile() {
   const navigate = useNavigate();
   const { caseId } = useParams();
 
   const [form, setForm] = useState({
+    case_title: "",
     case_type: "",
     status: "",
     description: "",
@@ -29,6 +46,7 @@ function UpdateCaseFile() {
   const { mutate, isPending } = useMutation({
     mutationFn: () => {
       const payload = {
+        case_title: form.case_title || currentCaseFile.case_title || "",
         case_type: form.case_type || currentCaseFile.case_type || "",
         status: form.status || currentCaseFile.status || "open",
         description: form.description || currentCaseFile.description || "",
@@ -57,6 +75,9 @@ function UpdateCaseFile() {
 
         <h1 className="text-2xl font-bold text-slate-100 mb-2">Update Case File</h1>
         <p className="text-sm text-slate-500 mb-6 font-mono">{caseId}</p>
+        <p className="text-xs text-slate-400 mb-4">
+          Registered At: {currentCaseFile?.filed_at ? new Date(currentCaseFile.filed_at).toLocaleString() : "—"}
+        </p>
         {isLoadingCaseFile && (
           <p className="text-sm text-slate-400 mb-4">Loading current data...</p>
         )}
@@ -69,13 +90,31 @@ function UpdateCaseFile() {
           className="flex flex-col gap-4"
         >
           <div>
-            <label className="text-xs text-slate-400 uppercase">Case Type</label>
+            <label className="text-xs text-slate-400 uppercase">Case Title</label>
             <input
+              value={form.case_title || currentCaseFile.case_title || ""}
+              onChange={(e) => set("case_title", e.target.value)}
+              className={inputCls}
+              placeholder="e.g. Sonargaon Bank Robbery"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Case Type</label>
+            <select
               value={form.case_type || currentCaseFile.case_type || ""}
               onChange={(e) => set("case_type", e.target.value)}
               className={inputCls}
-              placeholder="e.g. robbery"
-            />
+              required
+            >
+              <option value="">Select case type</option>
+              {CASE_TYPE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -99,6 +138,11 @@ function UpdateCaseFile() {
               className={inputCls}
               rows={4}
             />
+            {(form.case_type || currentCaseFile.case_type) === "other" && (
+              <p className="text-xs text-amber-300 mt-1">
+                For "Other" type, provide detailed context in description.
+              </p>
+            )}
           </div>
 
           <button

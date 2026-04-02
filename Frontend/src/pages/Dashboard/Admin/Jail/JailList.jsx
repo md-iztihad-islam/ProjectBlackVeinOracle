@@ -2,10 +2,11 @@ import deleteJailApi from "@/services/Jail/deleteJailApi";
 import getAllJailApi from "@/services/Jail/getAllJailApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function JailList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState(null); // jail_id pending confirm
   const [search, setSearch] = useState("");
@@ -27,6 +28,12 @@ export default function JailList() {
     },
     onError: () => alert("Failed to delete jail. Please try again."),
   });
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const filtered = jailList.filter(
     (j) =>
@@ -74,7 +81,7 @@ export default function JailList() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <button
-          onClick={() => navigate("/admin/dashboard/jaillist/add")}
+          onClick={() => navigateWithModal("/admin/dashboard/jaildashboard/add-jail")}
           className="bg-blue-400 text-[#080a0e] px-6 py-2.5 text-[12px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 transition-all duration-150 whitespace-nowrap"
         >
           + Add Jail
@@ -158,7 +165,7 @@ export default function JailList() {
                   <td className="py-4">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => navigate(`update-jail/${jail.jail_id}`)}
+                        onClick={() => navigateWithModal(`/admin/dashboard/jaildashboard/jail-list/update-jail/${jail.jail_id}`)}
                         className="border border-slate-800 text-slate-600 px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150 whitespace-nowrap"
                       >
                         EDIT
