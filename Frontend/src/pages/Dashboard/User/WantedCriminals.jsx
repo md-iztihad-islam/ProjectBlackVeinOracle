@@ -48,8 +48,8 @@ function WantedCriminals() {
                     <td className="px-4 py-3">{r.full_name}</td>
                     <td className="px-4 py-3 capitalize">{r.status}</td>
                     <td className="px-4 py-3">{r.risk_level}</td>
-                    <td className="px-4 py-3">{r.registered_thana || "N/A"}</td>
-                    <td className="px-4 py-3">{r.last_seen_district || "Unknown"}</td>
+                    <td className="px-4 py-3">{r.registered_thana || r.thana_name || r.registered_thana_id || "N/A"}</td>
+                    <td className="px-4 py-3">{r.last_seen_district || r.district || "Unknown"}</td>
                   </tr>
                 ))}
               </tbody>

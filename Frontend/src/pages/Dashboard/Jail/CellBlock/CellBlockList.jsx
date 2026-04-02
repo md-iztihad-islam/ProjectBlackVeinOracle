@@ -68,7 +68,7 @@ export default function CellBlockList() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <input className="bg-slate-900/60 border border-slate-800 text-slate-300 placeholder-slate-700 px-4 py-2.5 text-sm outline-none focus:border-blue-400/30 hover:border-slate-700 transition-colors w-full sm:w-64"
           placeholder="Search by block name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <button onClick={() => navigate("/jail/cellblocks/add")}
+        <button onClick={() => navigate("/jail/dashboard/add-cell-block")}
           className="bg-blue-400 text-[#080a0e] px-6 py-2.5 text-[12px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 transition-all duration-150 whitespace-nowrap">
           + Add Block
         </button>

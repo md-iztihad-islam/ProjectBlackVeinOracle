@@ -1,5 +1,6 @@
 import getGDReportByUserApi from "@/services/GDReport/getGDReportByUserApi";
 import { userSignoutApi } from "@/services/authServices/signoutApi";
+import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -61,9 +62,15 @@ function UserDashboard() {
         queryFn: () => getGDReportByUserApi(userId),
         enabled: !!userId,
     });
+    const { data: unreadNotificationData } = useQuery({
+        queryKey: ["userDashboardUnreadNotificationCount"],
+        queryFn: getUnreadNotificationCount,
+        enabled: !!userId,
+    });
 
     const gdReports = gdReportsData?.data || [];
     const recentReports = gdReports.slice(0, 5);
+    const unreadNotificationCount = Number(unreadNotificationData?.data?.unread_count || 0);
 
     const initials = user?.full_name
         ? user.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
@@ -130,6 +137,13 @@ function UserDashboard() {
             onClick: () => navigate("/user/dashboard/profile"),
         },
         {
+            label: "Notifications",
+            description: "See updates on your submitted GD reports",
+            icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+            unreadCount: unreadNotificationCount,
+            onClick: () => navigate("/user/dashboard/notifications"),
+        },
+        {
             label: "Wanted Criminals",
             description: "Browse active wanted / escaped alerts",
             icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="1"/></svg>,
@@ -178,6 +192,22 @@ function UserDashboard() {
 
                     {/* Right controls */}
                     <div className="flex items-center gap-2.5">
+                        <button
+                            onClick={() => navigate("/user/dashboard/notifications")}
+                            className="relative flex items-center justify-center w-10 h-10 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] rounded-xl transition-all"
+                            aria-label="Notifications"
+                        >
+                            <svg className="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            {unreadNotificationCount > 0 && (
+                                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                    {unreadNotificationCount}
+                                </span>
+                            )}
+                        </button>
+
                         <button
                             onClick={() => navigate("/user/dashboard/profile")}
                             className="hidden sm:flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] rounded-xl px-3 py-2 transition-all duration-200"
@@ -249,8 +279,13 @@ function UserDashboard() {
                                             : "bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] text-slate-200"
                                     }`}
                                 >
-                                    <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${action.primary ? "bg-white/15" : "bg-white/[0.05]"}`}>
+                                    <div className={`relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${action.primary ? "bg-white/15" : "bg-white/[0.05]"}`}>
                                         {action.icon}
+                                        {action.unreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                                {action.unreadCount}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold truncate">{action.label}</p>

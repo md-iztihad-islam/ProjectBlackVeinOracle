@@ -1,5 +1,7 @@
 import deleteCellApi from "@/services/Cell/deleteCellApi";
 import getCellsByBlockApi from "@/services/Cell/getCellsByBlockApi";
+import { addIncarceration } from "@/services/Incarceration/incarcerationApi";
+import userStore from "@/state/userStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -12,10 +14,15 @@ const statusStyle = {
 
 export default function CellList() {
   const navigate = useNavigate();
-  const { cellBlockId } = useParams();
+  const { blockId } = useParams();
+  const cellBlockId = blockId;
+  const { user } = userStore();
+  const jailId = user?.jail_id;
   const queryClient = useQueryClient();
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [arrestIdInput, setArrestIdInput] = useState("");
   const [search, setSearch]             = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -34,6 +41,28 @@ export default function CellList() {
       setDeleteTarget(null);
     },
     onError: () => alert("Failed to delete cell. Please try again."),
+  });
+
+  const { mutate: addIncarcerationMut, isLoading: addIncarcerationLoading } = useMutation({
+    mutationFn: ({ arrestId, cellId }) =>
+      addIncarceration({
+        jail_id: jailId,
+        arrest_id: arrestId,
+        cell_id: cellId,
+      }),
+    onSuccess: (res) => {
+      if (!res?.success) {
+        alert(res?.message || "Failed to add criminal to cell.");
+        return;
+      }
+      alert("Criminal added to cell successfully.");
+      setAssignTarget(null);
+      setArrestIdInput("");
+      queryClient.invalidateQueries(["cellData", cellBlockId]);
+      queryClient.invalidateQueries(["jailIncarcerations", jailId]);
+      queryClient.invalidateQueries(["jailOccupancyData", jailId]);
+    },
+    onError: () => alert("Failed to add criminal to cell. Please try again."),
   });
 
   const filtered = cells.filter((c) => {
@@ -205,10 +234,23 @@ export default function CellList() {
                     <td className="py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/admin/dashboard/cell/update/${cell.cell_id}`)}
+                          onClick={() => navigate(`/jail/dashboard/cell/update/${cell.cell_id}`)}
                           className="border border-slate-800 text-slate-600 px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150 whitespace-nowrap"
                         >
                           EDIT
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAssignTarget(cell);
+                            setArrestIdInput("");
+                          }}
+                          disabled={
+                            cell.status === "maintenance" ||
+                            Number(cell.number_of_people || 0) >= Number(cell.capacity || 0)
+                          }
+                          className="border border-slate-800 text-slate-600 px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase hover:border-emerald-400/40 hover:text-emerald-400 transition-all duration-150 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          ADD INMATE
                         </button>
                         <button
                           onClick={() => setDeleteTarget(cell.cell_id)}
@@ -252,6 +294,63 @@ export default function CellList() {
               </button>
               <button
                 onClick={() => setDeleteTarget(null)}
+                className="border border-slate-800 text-slate-600 px-6 py-3 text-[12px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Assign Criminal to Cell Modal ── */}
+      {assignTarget && (
+        <div className="fixed inset-0 bg-[#080a0e]/90 flex items-center justify-center z-50 px-6">
+          <div className="bg-[#0c1017] border border-slate-800 p-8 max-w-md w-full">
+            <div className="text-[10px] tracking-[0.22em] uppercase text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 inline-block mb-4">
+              Add Inmate
+            </div>
+            <h2 className="text-2xl font-black tracking-widest uppercase text-white mb-2" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
+              Assign to Cell
+            </h2>
+            <p className="text-[11px] text-slate-600 tracking-wider mb-4">
+              Enter the arrest ID from court order to admit into this cell.
+            </p>
+
+            <div className="text-[11px] text-slate-500 bg-slate-900/60 border border-slate-800 px-4 py-3 mb-4 tracking-wider">
+              Cell: <span className="text-blue-400">{assignTarget.cell_number}</span> ({assignTarget.cell_id})
+              <br />
+              Jail: <span className="text-blue-400">{jailId || "—"}</span>
+            </div>
+
+            <label className="text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2 block">Arrest ID *</label>
+            <input
+              className="w-full bg-slate-900/60 border border-slate-800 text-slate-300 placeholder-slate-700 px-4 py-3 text-sm outline-none focus:border-blue-400/30"
+              placeholder="e.g. ARR-0000001"
+              value={arrestIdInput}
+              onChange={(e) => setArrestIdInput(e.target.value)}
+            />
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  const trimmed = arrestIdInput.trim();
+                  if (!trimmed) {
+                    alert("Arrest ID is required.");
+                    return;
+                  }
+                  addIncarcerationMut({ arrestId: trimmed, cellId: assignTarget.cell_id });
+                }}
+                disabled={addIncarcerationLoading || !jailId}
+                className="bg-emerald-500 text-white px-6 py-3 text-[12px] font-black tracking-widest uppercase hover:bg-emerald-400 disabled:opacity-50 transition-all duration-150"
+              >
+                {addIncarcerationLoading ? "ADDING..." : "CONFIRM"}
+              </button>
+              <button
+                onClick={() => {
+                  setAssignTarget(null);
+                  setArrestIdInput("");
+                }}
                 className="border border-slate-800 text-slate-600 px-6 py-3 text-[12px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
               >
                 CANCEL

@@ -70,7 +70,13 @@ export const updateOfficerRepository = async (officerId, data) => {
     try {
         const { full_name, phone, badge_no, rank_code, thana_id } = data;
         const query = `
-            UPDATE officer SET full_name=$1, phone=$2, badge_no=$3, rank_code=$4, thana_id=$5
+            UPDATE officer
+            SET
+                full_name = COALESCE(NULLIF($1, ''), full_name),
+                phone = COALESCE(NULLIF($2, ''), phone),
+                badge_no = COALESCE(NULLIF($3, ''), badge_no),
+                rank_code = COALESCE(NULLIF($4, ''), rank_code),
+                thana_id = COALESCE(NULLIF($5, ''), thana_id)
             WHERE officer_id=$6
             RETURNING *;
         `;

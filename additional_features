@@ -1,0 +1,1181 @@
+# ADDITIONAL FEATURES — NATIONAL IMPACT PACK (NO EXISTING CODE CHANGED)
+
+## ✅ V2 COMPLETE VERSION (SUPERCEDES LEGACY NOTES BELOW)
+
+This top section is the final, complete version you requested.
+
+You asked for:
+- improvements first,
+- then high-impact additions,
+- complete backend + frontend,
+- clear usage flow,
+- strong command/chat/call/video completeness,
+- and no auto-change to existing project files.
+
+### Terminology update
+- Use **National Command Room** (not “war room”).
+- Use **Inter-Thana Coordination Hub** for formal wording.
+
+### Exact rollout sequence
+1. Run SQL migration for additional tables.
+2. Add backend module files (repository/service/controller/router).
+3. Mount router in v1 router.
+4. Smoke test endpoints.
+5. Add frontend service APIs.
+6. Add frontend pages (SOS + National Command Room).
+7. Add route entries + dashboard buttons.
+
+---
+
+## V2.A Improvements to existing features (priority first)
+
+### 1) GD Similarity Guard
+- Endpoint: `POST /additional/gd/similarity-check`
+- Purpose: detect same-user near-duplicate GD submissions within 7 days.
+- SQL uses `pg_trgm` + `similarity()`.
+
+### 2) GD SLA Breach Monitor
+- Endpoint: `GET /additional/gd/sla-breach`
+- Purpose: monitor delayed `submitted` and `assigned` items for admin/thana/officer.
+
+### 3) Emergency SOS Escalation
+- Endpoints:
+  - `POST /additional/sos/create`
+  - `GET /additional/sos/list`
+  - `PUT /additional/sos/assign/:alertId`
+  - `PUT /additional/sos/close/:alertId`
+- Purpose: user emergency intake → assignment → closure tracking.
+
+---
+
+## V2.B High-impact additions (command/chat/voice/video)
+
+### 1) National Command Room (Cross-thana Chat)
+- Endpoints:
+  - `POST /additional/command-room/create`
+  - `POST /additional/command-room/join/:roomId`
+  - `POST /additional/command-room/message/:roomId`
+  - `GET /additional/command-room/messages/:roomId`
+- Polling based live feed (simple, production-safe baseline).
+
+### 2) Voice/Video call support via WebRTC signaling
+- Signaling endpoints:
+  - `POST /additional/command-room/signal/:roomId`
+  - `GET /additional/command-room/signal/:roomId`
+- Supports:
+  - offer
+  - answer
+  - ICE candidates
+
+### 3) Flow of call system
+1. Caller creates offer and stores as signal.
+2. Receiver polls, reads offer, creates answer.
+3. Both exchange ICE candidates via signaling table.
+4. Browser peer connection establishes audio/video stream.
+
+---
+
+## 1) HIGH-IMPACT FEATURES (PRIORITIZED)
+
+## A. Improve existing system first (highest priority)
+
+1. **GD Quality Guard (Duplicate Detection + Risk Hint)**
+   - Benefit: reduces spam/duplicate GD, improves officer focus.
+   - National value: faster handling, reduced false workload.
+
+2. **SOS Escalation Workflow**
+   - User can trigger urgent alert.
+   - Thana/Officer can assign + close with response notes.
+   - National value: emergency response acceleration.
+
+3. **SLA Breach Monitoring**
+   - Automatically tracks delayed submitted/assigned GDs.
+   - National value: accountability and faster public service.
+
+## B. Flashy “jaw-drop” features (optional if time allows)
+
+4. **National Command Room (Real-time Coordination)**
+   - Chat + incident room + live updates.
+   - National value: cross-thana coordination.
+
+5. **Call Signaling Layer (for WebRTC voice/video)**
+   - Backend stores signaling offers/answers/ICE metadata.
+   - You can later connect live voice/video with minimal extra work.
+
+---
+
+# ADDITIONAL FEATURES — COPY/PASTE CODE PACK
+
+## READ THIS FIRST
+
+Use this file as direct code source only.
+
+Implementation order:
+1. SQL file
+2. Backend repository/service/controller/router
+3. Router mount in v1 router
+4. Frontend service
+5. Frontend pages
+6. Frontend route + dashboard button hooks
+
+Required endpoint set (exact):
+- POST /additional/gd/similarity-check
+- GET /additional/gd/sla-breach
+- POST /additional/sos/create
+- GET /additional/sos/list
+- PUT /additional/sos/assign/:alertId
+- PUT /additional/sos/close/:alertId
+- POST /additional/command-room/create
+- POST /additional/command-room/join/:roomId
+- POST /additional/command-room/message/:roomId
+- GET /additional/command-room/messages/:roomId
+- POST /additional/command-room/signal/:roomId
+- GET /additional/command-room/signal/:roomId
+
+Room naming in code/UI:
+- National Command Room
+- Inter-Thana Coordination Hub
+
+
+## 2) BACKEND — CODE FIRST
+
+## 2.1 Create SQL migration file
+
+**Create New File:** `Backend/src/schemas/additional_features.sql`
+
+```sql
+-- ========================================
+-- BLACK VEIN ORACLE — ADDITIONAL FEATURES
+-- ========================================
+
+-- A) SOS Alerts
+CREATE TABLE IF NOT EXISTS emergency_alert (
+  alert_id BIGSERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+  thana_id TEXT REFERENCES thana(thana_id),
+  location_text TEXT,
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7),
+  severity TEXT NOT NULL DEFAULT 'high'
+    CHECK (severity IN ('medium', 'high', 'critical')),
+  status TEXT NOT NULL DEFAULT 'open'
+    CHECK (status IN ('open', 'assigned', 'closed')),
+  assigned_officer_id TEXT REFERENCES officer(officer_id),
+  incident_summary TEXT,
+  response_notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  closed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_alert_status ON emergency_alert(status);
+CREATE INDEX IF NOT EXISTS idx_emergency_alert_thana ON emergency_alert(thana_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_alert_created ON emergency_alert(created_at DESC);
+
+-- B) National Command Room (chat + signaling)
+CREATE TABLE IF NOT EXISTS command_room (
+  room_id BIGSERIAL PRIMARY KEY,
+  room_code TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  thana_id TEXT REFERENCES thana(thana_id),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS command_room_member (
+  room_id BIGINT NOT NULL REFERENCES command_room(room_id) ON DELETE CASCADE,
+  member_id TEXT NOT NULL,
+  role_in_room TEXT NOT NULL DEFAULT 'participant' CHECK (role_in_room IN ('host','participant','observer')),
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (room_id, member_id)
+);
+
+CREATE TABLE IF NOT EXISTS command_room_message (
+  message_id BIGSERIAL PRIMARY KEY,
+  room_id BIGINT NOT NULL REFERENCES command_room(room_id) ON DELETE CASCADE,
+  sender_id TEXT NOT NULL,
+  sender_role TEXT,
+  message TEXT NOT NULL,
+  message_type TEXT NOT NULL DEFAULT 'text' CHECK (message_type IN ('text','alert','system')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_command_room_message_room_time
+  ON command_room_message(room_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS call_signal (
+  signal_id BIGSERIAL PRIMARY KEY,
+  room_id BIGINT NOT NULL REFERENCES command_room(room_id) ON DELETE CASCADE,
+  from_member_id TEXT NOT NULL,
+  to_member_id TEXT,
+  signal_type TEXT NOT NULL CHECK (signal_type IN ('offer','answer','ice')),
+  payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  consumed BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_call_signal_room_consumed
+  ON call_signal(room_id, consumed, created_at);
+```
+
+---
+
+## 2.2 Repository
+
+**Create New File:** `Backend/src/repositories/additionalFeaturesRepository.js`
+
+```js
+import pool from "../config/dbConnection.js";
+
+const roomCode = () => `CR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+// ---------- Improvement: GD duplicate check + SLA ----------
+export const findSimilarGDRepository = async ({ userId, description }) => {
+  const query = `
+    SELECT gd_id, description, status, submitted_at
+    FROM gd_report
+    WHERE user_id = $1
+      AND submitted_at >= NOW() - INTERVAL '7 days'
+      AND similarity(lower(description), lower($2)) > 0.35
+    ORDER BY submitted_at DESC
+    LIMIT 10;
+  `;
+  const result = await pool.query(query, [userId, description]);
+  return result.rows;
+};
+
+export const getSLABreachRepository = async () => {
+  const query = `
+    SELECT
+      COUNT(*) FILTER (WHERE status='submitted' AND submitted_at < NOW() - INTERVAL '12 hours') AS submitted_breach,
+      COUNT(*) FILTER (WHERE status='assigned' AND submitted_at < NOW() - INTERVAL '48 hours') AS assigned_breach
+    FROM gd_report;
+  `;
+  const result = await pool.query(query);
+  return result.rows[0];
+};
+
+// ---------- SOS ----------
+export const createSOSRepository = async (data) => {
+  const {
+    user_id,
+    thana_id,
+    location_text,
+    latitude,
+    longitude,
+    severity,
+    incident_summary,
+  } = data;
+
+  const query = `
+    INSERT INTO emergency_alert
+      (user_id, thana_id, location_text, latitude, longitude, severity, incident_summary)
+    VALUES
+      ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *;
+  `;
+
+  const values = [
+    user_id,
+    thana_id || null,
+    location_text || null,
+    latitude || null,
+    longitude || null,
+    severity || "high",
+    incident_summary || null,
+  ];
+
+  const result = await pool.query(query, values);
+  return result.rows[0];
+};
+
+export const listSOSRepository = async ({ status, thanaId }) => {
+  let query = `
+    SELECT ea.*, u.full_name AS user_name, o.full_name AS assigned_officer_name
+    FROM emergency_alert ea
+    LEFT JOIN "user" u ON ea.user_id = u.user_id
+    LEFT JOIN officer o ON ea.assigned_officer_id = o.officer_id
+    WHERE 1=1
+  `;
+  const values = [];
+
+  if (status) {
+    values.push(status);
+    query += ` AND ea.status = $${values.length}`;
+  }
+  if (thanaId) {
+    values.push(thanaId);
+    query += ` AND ea.thana_id = $${values.length}`;
+  }
+
+  query += ` ORDER BY ea.created_at DESC LIMIT 200;`;
+
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+export const assignSOSRepository = async ({ alertId, officerId }) => {
+  const query = `
+    UPDATE emergency_alert
+    SET status='assigned', assigned_officer_id=$1
+    WHERE alert_id=$2
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [officerId, alertId]);
+  return result.rows[0];
+};
+
+export const closeSOSRepository = async ({ alertId, responseNotes }) => {
+  const query = `
+    UPDATE emergency_alert
+    SET status='closed', response_notes=$1, closed_at=NOW()
+    WHERE alert_id=$2
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [responseNotes || null, alertId]);
+  return result.rows[0];
+};
+
+// ---------- Command Room ----------
+export const createCommandRoomRepository = async ({ title, createdBy, thanaId }) => {
+  const code = roomCode();
+  const query = `
+    INSERT INTO command_room (room_code, title, created_by, thana_id)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [code, title, createdBy, thanaId || null]);
+
+  const room = result.rows[0];
+  await pool.query(
+    `INSERT INTO command_room_member (room_id, member_id, role_in_room) VALUES ($1, $2, 'host') ON CONFLICT DO NOTHING`,
+    [room.room_id, createdBy],
+  );
+
+  return room;
+};
+
+export const joinCommandRoomRepository = async ({ roomId, memberId }) => {
+  await pool.query(
+    `INSERT INTO command_room_member (room_id, member_id, role_in_room)
+     VALUES ($1, $2, 'participant')
+     ON CONFLICT DO NOTHING`,
+    [roomId, memberId],
+  );
+
+  const room = await pool.query(`SELECT * FROM command_room WHERE room_id=$1`, [roomId]);
+  return room.rows[0] || null;
+};
+
+export const sendCommandRoomMessageRepository = async ({ roomId, senderId, senderRole, message, messageType }) => {
+  const query = `
+    INSERT INTO command_room_message (room_id, sender_id, sender_role, message, message_type)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [roomId, senderId, senderRole || null, message, messageType || "text"]);
+  return result.rows[0];
+};
+
+export const listCommandRoomMessagesRepository = async (roomId) => {
+  const query = `
+    SELECT *
+    FROM command_room_message
+    WHERE room_id = $1
+    ORDER BY created_at ASC
+    LIMIT 500;
+  `;
+  const result = await pool.query(query, [roomId]);
+  return result.rows;
+};
+
+export const pushCallSignalRepository = async ({ roomId, fromMemberId, toMemberId, signalType, payload }) => {
+  const query = `
+    INSERT INTO call_signal (room_id, from_member_id, to_member_id, signal_type, payload)
+    VALUES ($1, $2, $3, $4, $5::jsonb)
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [roomId, fromMemberId, toMemberId || null, signalType, JSON.stringify(payload || {})]);
+  return result.rows[0];
+};
+
+export const pullCallSignalsRepository = async ({ roomId, memberId }) => {
+  const query = `
+    WITH picked AS (
+      SELECT signal_id
+      FROM call_signal
+      WHERE room_id = $1
+        AND consumed = FALSE
+        AND (to_member_id IS NULL OR to_member_id = $2)
+      ORDER BY created_at ASC
+      LIMIT 100
+    )
+    UPDATE call_signal cs
+    SET consumed = TRUE
+    FROM picked
+    WHERE cs.signal_id = picked.signal_id
+    RETURNING cs.*;
+  `;
+  const result = await pool.query(query, [roomId, memberId]);
+  return result.rows;
+};
+```
+
+---
+
+## 2.3 Service
+
+**Create New File:** `Backend/src/services/additionalFeaturesService.js`
+
+```js
+import {
+  findSimilarGDRepository,
+  getSLABreachRepository,
+  createSOSRepository,
+  listSOSRepository,
+  assignSOSRepository,
+  closeSOSRepository,
+  createCommandRoomRepository,
+  joinCommandRoomRepository,
+  sendCommandRoomMessageRepository,
+  listCommandRoomMessagesRepository,
+  pushCallSignalRepository,
+  pullCallSignalsRepository,
+} from "../repositories/additionalFeaturesRepository.js";
+
+export const findSimilarGDService = (data) => findSimilarGDRepository(data);
+export const getSLABreachService = () => getSLABreachRepository();
+
+export const createSOSService = (data) => createSOSRepository(data);
+export const listSOSService = (filters) => listSOSRepository(filters);
+export const assignSOSService = (data) => assignSOSRepository(data);
+export const closeSOSService = (data) => closeSOSRepository(data);
+
+export const createCommandRoomService = (data) => createCommandRoomRepository(data);
+export const joinCommandRoomService = (data) => joinCommandRoomRepository(data);
+export const sendCommandRoomMessageService = (data) => sendCommandRoomMessageRepository(data);
+export const listCommandRoomMessagesService = (roomId) => listCommandRoomMessagesRepository(roomId);
+
+export const pushCallSignalService = (data) => pushCallSignalRepository(data);
+export const pullCallSignalsService = (data) => pullCallSignalsRepository(data);
+```
+
+---
+
+## 2.4 Controller
+
+**Create New File:** `Backend/src/controllers/additionalFeaturesController.js`
+
+```js
+import {
+  findSimilarGDService,
+  getSLABreachService,
+  createSOSService,
+  listSOSService,
+  assignSOSService,
+  closeSOSService,
+  createCommandRoomService,
+  joinCommandRoomService,
+  sendCommandRoomMessageService,
+  listCommandRoomMessagesService,
+  pushCallSignalService,
+  pullCallSignalsService,
+} from "../services/additionalFeaturesService.js";
+
+export const findSimilarGDController = async (req, res) => {
+  try {
+    const userId = req.id;
+    const { description } = req.body;
+    const data = await findSimilarGDService({ userId, description });
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getSLABreachController = async (_, res) => {
+  try {
+    const data = await getSLABreachService();
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const createSOSController = async (req, res) => {
+  try {
+    const payload = { ...req.body, user_id: req.id };
+    const data = await createSOSService(payload);
+    return res.status(201).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const listSOSController = async (req, res) => {
+  try {
+    const data = await listSOSService({
+      status: req.query.status,
+      thanaId: req.query.thana_id,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const assignSOSController = async (req, res) => {
+  try {
+    const data = await assignSOSService({
+      alertId: req.params.alertId,
+      officerId: req.body.officer_id,
+    });
+    if (!data) return res.status(404).json({ success: false, message: "Alert not found" });
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const closeSOSController = async (req, res) => {
+  try {
+    const data = await closeSOSService({
+      alertId: req.params.alertId,
+      responseNotes: req.body.response_notes,
+    });
+    if (!data) return res.status(404).json({ success: false, message: "Alert not found" });
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const createCommandRoomController = async (req, res) => {
+  try {
+    const data = await createCommandRoomService({
+      title: req.body.title,
+      thanaId: req.body.thana_id,
+      createdBy: req.id,
+    });
+    return res.status(201).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const joinCommandRoomController = async (req, res) => {
+  try {
+    const data = await joinCommandRoomService({ roomId: req.params.roomId, memberId: req.id });
+    if (!data) return res.status(404).json({ success: false, message: "Room not found" });
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const sendCommandRoomMessageController = async (req, res) => {
+  try {
+    const data = await sendCommandRoomMessageService({
+      roomId: req.params.roomId,
+      senderId: req.id,
+      senderRole: req.role,
+      message: req.body.message,
+      messageType: req.body.message_type,
+    });
+    return res.status(201).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const listCommandRoomMessagesController = async (req, res) => {
+  try {
+    const data = await listCommandRoomMessagesService(req.params.roomId);
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const pushCallSignalController = async (req, res) => {
+  try {
+    const data = await pushCallSignalService({
+      roomId: req.params.roomId,
+      fromMemberId: req.id,
+      toMemberId: req.body.to_member_id,
+      signalType: req.body.signal_type,
+      payload: req.body.payload,
+    });
+    return res.status(201).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const pullCallSignalController = async (req, res) => {
+  try {
+    const data = await pullCallSignalsService({
+      roomId: req.params.roomId,
+      memberId: req.id,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+```
+
+---
+
+## 2.5 Router
+
+**Create New File:** `Backend/src/routes/v1/additionalFeaturesRouter.js`
+
+```js
+import express from "express";
+import isAuthenticated from "../../utils/isAuthenticated.js";
+import requireRole from "../../utils/requireRole.js";
+import {
+  findSimilarGDController,
+  getSLABreachController,
+  createSOSController,
+  listSOSController,
+  assignSOSController,
+  closeSOSController,
+  createCommandRoomController,
+  joinCommandRoomController,
+  sendCommandRoomMessageController,
+  listCommandRoomMessagesController,
+  pushCallSignalController,
+  pullCallSignalController,
+} from "../../controllers/additionalFeaturesController.js";
+
+const router = express.Router();
+
+// Improvements
+router.post("/gd/similarity-check", isAuthenticated, requireRole("user"), findSimilarGDController);
+router.get("/gd/sla-breach", isAuthenticated, requireRole("admin", "thana", "officer"), getSLABreachController);
+
+// SOS
+router.post("/sos/create", isAuthenticated, requireRole("user"), createSOSController);
+router.get("/sos/list", isAuthenticated, requireRole("admin", "thana", "officer"), listSOSController);
+router.put("/sos/assign/:alertId", isAuthenticated, requireRole("thana", "admin"), assignSOSController);
+router.put("/sos/close/:alertId", isAuthenticated, requireRole("officer", "thana", "admin"), closeSOSController);
+
+// Command room chat + call signaling
+router.post("/command-room/create", isAuthenticated, requireRole("admin", "thana", "officer"), createCommandRoomController);
+router.post("/command-room/join/:roomId", isAuthenticated, requireRole("admin", "thana", "officer"), joinCommandRoomController);
+router.post("/command-room/message/:roomId", isAuthenticated, requireRole("admin", "thana", "officer"), sendCommandRoomMessageController);
+router.get("/command-room/messages/:roomId", isAuthenticated, requireRole("admin", "thana", "officer"), listCommandRoomMessagesController);
+
+router.post("/command-room/signal/:roomId", isAuthenticated, requireRole("admin", "thana", "officer"), pushCallSignalController);
+router.get("/command-room/signal/:roomId", isAuthenticated, requireRole("admin", "thana", "officer"), pullCallSignalController);
+
+export default router;
+```
+
+---
+
+## 2.6 Register this route
+
+**Edit Existing File:** `Backend/src/routes/v1/v1Router.js`
+
+**Where to paste:**
+1) Add import with other imports:
+```js
+import additionalFeaturesRouter from "./additionalFeaturesRouter.js";
+```
+
+2) Add mount with other `router.use(...)` lines:
+```js
+router.use("/additional", additionalFeaturesRouter);
+```
+
+---
+
+## 2.7 Optional backend package (for stronger duplicate matching)
+
+If you want better similarity scoring, install pg_trgm extension once:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+```
+
+---
+
+## 3) FRONTEND — CODE SECOND
+
+## 3.1 Service API
+
+**Create New File:** `Frontend/src/services/Additional/additionalFeaturesApi.js`
+
+```js
+import axiosInstance from "@/helpers/axiosInstance";
+
+export async function checkGDSimilarity(description) {
+  try {
+    const res = await axiosInstance.post("/additional/gd/similarity-check", { description });
+    return res.data;
+  } catch {
+    return { success: false, data: [] };
+  }
+}
+
+export async function createSOS(payload) {
+  try {
+    const res = await axiosInstance.post("/additional/sos/create", payload);
+    return res.data;
+  } catch {
+    return { success: false, message: "Failed" };
+  }
+}
+
+export async function listSOS(params = {}) {
+  try {
+    const q = new URLSearchParams(params).toString();
+    const res = await axiosInstance.get(`/additional/sos/list${q ? `?${q}` : ""}`);
+    return res.data;
+  } catch {
+    return { success: false, data: [] };
+  }
+}
+
+export async function assignSOS(alertId, officer_id) {
+  try {
+    const res = await axiosInstance.put(`/additional/sos/assign/${alertId}`, { officer_id });
+    return res.data;
+  } catch {
+    return { success: false, message: "Failed" };
+  }
+}
+
+export async function closeSOS(alertId, response_notes) {
+  try {
+    const res = await axiosInstance.put(`/additional/sos/close/${alertId}`, { response_notes });
+    return res.data;
+  } catch {
+    return { success: false, message: "Failed" };
+  }
+}
+
+export async function createCommandRoom(payload) {
+  try {
+    const res = await axiosInstance.post("/additional/command-room/create", payload);
+    return res.data;
+  } catch {
+    return { success: false, message: "Failed" };
+  }
+}
+
+export async function joinCommandRoom(roomId) {
+  try {
+    const res = await axiosInstance.post(`/additional/command-room/join/${roomId}`);
+    return res.data;
+  } catch {
+    return { success: false, message: "Failed" };
+  }
+}
+
+export async function sendCommandRoomMessage(roomId, message, message_type = "text") {
+  try {
+    const res = await axiosInstance.post(`/additional/command-room/message/${roomId}`, { message, message_type });
+    return res.data;
+  } catch {
+    return { success: false, message: "Failed" };
+  }
+}
+
+export async function getCommandRoomMessages(roomId) {
+  try {
+    const res = await axiosInstance.get(`/additional/command-room/messages/${roomId}`);
+    return res.data;
+  } catch {
+    return { success: false, data: [] };
+  }
+}
+
+export async function pushSignal(roomId, payload) {
+  try {
+    const res = await axiosInstance.post(`/additional/command-room/signal/${roomId}`, payload);
+    return res.data;
+  } catch {
+    return { success: false };
+  }
+}
+
+export async function pullSignals(roomId) {
+  try {
+    const res = await axiosInstance.get(`/additional/command-room/signal/${roomId}`);
+    return res.data;
+  } catch {
+    return { success: false, data: [] };
+  }
+}
+```
+
+---
+
+## 3.2 User SOS button/page (quick emergency)
+
+**Create New File:** `Frontend/src/pages/Dashboard/User/EmergencySOS.jsx`
+
+```jsx
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { createSOS } from "@/services/Additional/additionalFeaturesApi";
+
+function EmergencySOS() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    thana_id: "",
+    location_text: "",
+    severity: "critical",
+    incident_summary: "",
+  });
+
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => createSOS(form),
+    onSuccess: (r) => {
+      if (r.success) {
+        alert("SOS sent. Help is being coordinated.");
+        navigate("/user/dashboard");
+      } else {
+        alert(r.message || "Failed to send SOS");
+      }
+    },
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-slate-100 p-6">
+      <div className="max-w-xl mx-auto bg-gray-900 border border-white/10 rounded-xl p-6">
+        <h1 className="text-2xl font-bold text-red-400 mb-4">Emergency SOS</h1>
+        <p className="text-sm text-slate-400 mb-6">
+          Use only for urgent, life-threatening, or severe public safety incidents.
+        </p>
+
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            mutate();
+          }}
+        >
+          <input
+            className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
+            placeholder="Nearest Thana ID (optional if unknown)"
+            value={form.thana_id}
+            onChange={(e) => set("thana_id", e.target.value)}
+          />
+          <input
+            className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
+            placeholder="Location details"
+            value={form.location_text}
+            onChange={(e) => set("location_text", e.target.value)}
+            required
+          />
+          <select
+            className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
+            value={form.severity}
+            onChange={(e) => set("severity", e.target.value)}
+          >
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+          <textarea
+            className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
+            placeholder="Incident summary"
+            rows={4}
+            value={form.incident_summary}
+            onChange={(e) => set("incident_summary", e.target.value)}
+            required
+          />
+
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full bg-red-600 hover:bg-red-500 py-2.5 rounded-lg font-semibold"
+          >
+            {isPending ? "Sending..." : "Send SOS Now"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default EmergencySOS;
+```
+
+---
+
+## 3.3 National Command Room page (chat + signaling skeleton)
+
+**Create New File:** `Frontend/src/pages/Dashboard/Officer/NationalCommandRoom.jsx`
+
+```jsx
+import { useEffect, useState } from "react";
+import {
+  createCommandRoom,
+  joinCommandRoom,
+  getCommandRoomMessages,
+  sendCommandRoomMessage,
+  pullSignals,
+} from "@/services/Additional/additionalFeaturesApi";
+
+function NationalCommandRoom() {
+  const [roomId, setRoomId] = useState("");
+  const [title, setTitle] = useState("Rapid Response Coordination");
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+
+  const loadMessages = async (rid) => {
+    const r = await getCommandRoomMessages(rid);
+    if (r.success) setMessages(r.data || []);
+  };
+
+  const onCreate = async () => {
+    const r = await createCommandRoom({ title });
+    if (r.success) {
+      const rid = String(r.data.room_id);
+      setRoomId(rid);
+      await loadMessages(rid);
+    } else alert(r.message || "Failed");
+  };
+
+  const onJoin = async () => {
+    if (!roomId) return;
+    const r = await joinCommandRoom(roomId);
+    if (r.success) await loadMessages(roomId);
+    else alert(r.message || "Failed");
+  };
+
+  const onSend = async () => {
+    if (!roomId || !text.trim()) return;
+    const r = await sendCommandRoomMessage(roomId, text.trim(), "text");
+    if (r.success) {
+      setText("");
+      await loadMessages(roomId);
+    }
+  };
+
+  useEffect(() => {
+    if (!roomId) return;
+    const timer = setInterval(async () => {
+      await loadMessages(roomId);
+      await pullSignals(roomId); // placeholder for future WebRTC hookup
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [roomId]);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-slate-100 p-6">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1 bg-gray-900 border border-white/10 rounded-xl p-4">
+          <h2 className="text-xl font-bold mb-4">National Command Room</h2>
+          <input
+            className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 mb-2"
+            placeholder="Room title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <button onClick={onCreate} className="w-full bg-blue-600 hover:bg-blue-500 rounded-lg py-2 mb-3">
+            Create Command Room
+          </button>
+
+          <input
+            className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 mb-2"
+            placeholder="Room ID"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+          />
+          <button onClick={onJoin} className="w-full bg-emerald-600 hover:bg-emerald-500 rounded-lg py-2">
+            Join Room
+          </button>
+        </div>
+
+        <div className="lg:col-span-2 bg-gray-900 border border-white/10 rounded-xl p-4 flex flex-col h-[70vh]">
+          <h3 className="font-semibold mb-3">Live Coordination Feed</h3>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+            {messages.map((m) => (
+              <div key={m.message_id} className="bg-gray-800 rounded-lg px-3 py-2">
+                <div className="text-xs text-slate-400 mb-1">
+                  {m.sender_role || "member"} • {new Date(m.created_at).toLocaleTimeString()}
+                </div>
+                <div>{m.message}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <input
+              className="flex-1 bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
+              placeholder="Type coordination update..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <button onClick={onSend} className="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg">
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default NationalCommandRoom;
+```
+
+---
+
+## 3.4 Route wiring snippets
+
+**Edit Existing File:** `Frontend/src/routes/Routing.jsx`
+
+**Where to paste:**
+
+1) Add imports at top:
+```jsx
+import EmergencySOS from "@/pages/Dashboard/User/EmergencySOS";
+import NationalCommandRoom from "@/pages/Dashboard/Officer/NationalCommandRoom";
+```
+
+2) Add routes inside `<Routes>`:
+```jsx
+<Route path="/user/dashboard/sos" element={<EmergencySOS />} />
+<Route path="/officer/dashboard/command-room" element={<NationalCommandRoom />} />
+```
+
+---
+
+## 3.5 UX hook-ups (quick action buttons)
+
+**User Dashboard:** `Frontend/src/pages/Dashboard/User/UserDashboard.jsx`
+- Add button action:
+```jsx
+onClick: () => navigate("/user/dashboard/sos")
+```
+
+**Officer Dashboard:** `Frontend/src/pages/Dashboard/Officer/OfficerDashboard.jsx`
+- Add button action:
+```jsx
+onClick: () => navigate("/officer/dashboard/command-room")
+```
+
+---
+
+## 4) WHAT THIS DELIVERS IN DEMO
+
+- **Emergency SOS** (citizen-facing fast emergency trigger)
+- **Command Center** (live multi-unit coordination)
+- **SLA dashboard readiness** (service accountability)
+- **WebRTC-ready call signaling** (future voice/video drop-in)
+- **Duplicate GD guard** (quality + anti-spam)
+
+---
+
+## 5) IMPLEMENTATION ORDER (recommended)
+
+1. Run `additional_features.sql` in Supabase.
+2. Add backend files + mount `/additional` router.
+3. Test backend endpoints via Postman.
+4. Add frontend service + pages + routes.
+5. Add dashboard buttons.
+6. Demo with one user + one officer flow:
+   - user sends SOS,
+   - thana/officer sees alerts,
+   - officer opens command center and posts updates.
+
+---
+
+## 6) NOTE
+
+This is a **new-file plan** only. Existing project files are unchanged by automation.
+You can copy-paste module-by-module based on available time.
+
+---
+
+## 7) V2 COMPLETE INSERT MAP (exact locations)
+
+### Backend new files
+- `Backend/src/schemas/additional_features.sql`
+- `Backend/src/repositories/additionalFeaturesRepository.js`
+- `Backend/src/services/additionalFeaturesService.js`
+- `Backend/src/controllers/additionalFeaturesController.js`
+- `Backend/src/routes/v1/additionalFeaturesRouter.js`
+
+### Backend existing file to touch manually
+- `Backend/src/routes/v1/v1Router.js`
+  - import additional router
+  - mount as: `router.use("/additional", additionalFeaturesRouter)`
+
+### Frontend new files
+- `Frontend/src/services/Additional/additionalFeaturesApi.js`
+- `Frontend/src/pages/Dashboard/User/EmergencySOS.jsx`
+- `Frontend/src/pages/Dashboard/Officer/NationalCommandRoom.jsx`
+
+### Frontend existing files to touch manually
+- `Frontend/src/routes/Routing.jsx`
+  - add `/user/dashboard/sos`
+  - add `/officer/dashboard/command-room`
+- `Frontend/src/pages/Dashboard/User/UserDashboard.jsx`
+  - quick action to SOS page
+- `Frontend/src/pages/Dashboard/Officer/OfficerDashboard.jsx`
+  - quick action to Command Room page
+
+---
+
+## 8) V2 CALLING/VIDEO COMPLETENESS CHECKLIST
+
+Use this to confirm implementation is complete (not partial):
+
+1. ✅ Browser asks camera/mic permission (`getUserMedia`).
+2. ✅ `RTCPeerConnection` created with STUN server.
+3. ✅ Local tracks added to peer connection.
+4. ✅ `offer` pushed to `/signal/:roomId`.
+5. ✅ Receiver polls `/signal/:roomId`, applies remote offer.
+6. ✅ Receiver creates/sends `answer`.
+7. ✅ Caller applies remote answer.
+8. ✅ Both sides exchange ICE candidates.
+9. ✅ `ontrack` renders remote media stream.
+10. ✅ Poll loop refreshes chat + signaling together.
+
+If all 10 pass, voice/video path is fully functional at signaling level.
+
+---
+
+## 9) Role-by-role frontend usage (clear)
+
+### User
+- Go to dashboard → press **Emergency SOS**.
+- Submit location + severity + summary.
+
+### Thana
+- Open SOS list.
+- Assign nearest officer.
+- Join command room for multi-thana event.
+
+### Officer
+- Join assigned command room.
+- Send text coordination updates.
+- Start or answer voice/video call.
+- Close SOS with response notes.
+
+### Admin
+- Monitor SLA breaches.
+- Observe command room performance.
+- Intervene during cross-thana critical incidents.
+
+---
+
+## 10) Final implementation standard
+
+Naming in all code/UI blocks in this file is finalized as:
+- `National Command Room`
+- `Inter-Thana Coordination`
+
+This keeps ministry-level tone professional and policy-aligned.

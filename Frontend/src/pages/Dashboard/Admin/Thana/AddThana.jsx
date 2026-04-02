@@ -32,7 +32,7 @@ const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600
 
 export default function AddThana() {
   const { user } = userStore();
-  const admin_id = user?.admin_id;
+  const adminId = user?.admin_id;
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -57,7 +57,7 @@ export default function AddThana() {
     setFormError("");
     const missing = Object.values(form).some((v) => !v.trim());
     if (missing) { setFormError("All fields are required."); return; }
-    addThanaMutation({ ...form, created_by_admin_id: admin_id });
+    addThanaMutation({ ...form, created_by_admin_id: adminId });
   };
 
   return (

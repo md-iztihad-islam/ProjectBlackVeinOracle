@@ -89,7 +89,11 @@ export const updateCaseFileRepository = async (caseId, caseData) => {
   try {
     const { case_type, status, description } = caseData;
     const query = `
-            UPDATE case_file SET case_type = $1, status = $2, description = $3
+            UPDATE case_file
+            SET
+                case_type = COALESCE(NULLIF($1, ''), case_type),
+                status = COALESCE(NULLIF($2, ''), status),
+                description = COALESCE(NULLIF($3, ''), description)
             WHERE case_id = $4 RETURNING *;
         `;
     const result = await pool.query(query, [

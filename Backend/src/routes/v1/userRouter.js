@@ -10,7 +10,7 @@ router.post('/signin-user', signinUserController);
 router.post('/signout-user', isAuthenticated, signoutUserController);
 router.get('/get-user/:userId', isAuthenticated, getUserByIdController);
 // by Rayyan 2.0
-router.get('/get-users', isAuthenticated, requireRole("admin"), getAllUsersController);
+router.get('/get-users', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getAllUsersController);
 router.put('/update-user/:userId', isAuthenticated, updateUserController);
 router.delete('/delete-user/:userId', isAuthenticated, requireRole("admin"), deleteUserController);
 

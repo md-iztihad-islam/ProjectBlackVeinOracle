@@ -11,7 +11,7 @@ router.get('/get-location/:locationId', isAuthenticated, getLocationByIdControll
 
 // by Rayyan 2.0
 router.put('/update-location/:locationId', isAuthenticated, requireRole("admin", "thana"), updateLocationController);
-router.delete('/delete-location/:locationId', isAuthenticated, requireRole("admin"), deleteLocationController);
+router.delete('/delete-location/:locationId', isAuthenticated, requireRole("admin", "thana"), deleteLocationController);
 router.get('/get-locations-by-district/:district', isAuthenticated, getLocationsByDistrictController);
 
 export default router;

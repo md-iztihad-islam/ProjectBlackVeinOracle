@@ -92,14 +92,18 @@ export const getGeneralDairyByIdController = async (req, res) => {
 export const updateGeneralDairyStatusController = async (req, res) => {
     try {
         const { dairyId } = req.params;
-        const approvedByOfficerId = req.id;
+        const actorId = req.id;
 
-        if(!approvedByOfficerId) {
+        if(!actorId) {
             return res.status(401).json({
                 success: false,
                 message: 'Unauthorized access'
             });
         }
+
+        // Only officer IDs should be written into approved_by_officer_id (FK -> officer.officer_id).
+        // For thana/admin updates keep existing approved_by_officer_id unchanged.
+        const approvedByOfficerId = req.role === 'officer' ? actorId : null;
 
         
         const { status, assignedOfficerId } = req.body;
@@ -120,7 +124,16 @@ export const updateGeneralDairyStatusController = async (req, res) => {
     } catch (error) {
         console.log('Error updating general dairy status at updateGeneralDairyStatusController:', error);
         if (error.code === '23505') return res.status(409).json({ success: false, message: 'A record with these details already exists' });
-        if (error.code === '23503') return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
+        if (error.code === '23503') {
+            const detail = String(error.detail || '');
+            if (detail.includes('assigned_officer_id')) {
+                return res.status(400).json({ success: false, message: 'Selected officer does not exist' });
+            }
+            if (detail.includes('approved_by_officer_id')) {
+                return res.status(400).json({ success: false, message: 'Only officer accounts can be used as approver' });
+            }
+            return res.status(400).json({ success: false, message: 'Referenced record does not exist' });
+        }
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

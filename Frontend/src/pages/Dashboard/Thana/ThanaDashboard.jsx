@@ -6,7 +6,13 @@ import {
   getOfficersByThana,
   getCaseFilesByThana,
   getGDReportsByThana,
+  getAllOrganizations,
+  getAllLocations,
+  getAllCriminalOrganizationLinks,
+  getAllCriminalRelations,
+  getAllCriminalLocations,
 } from "@/services/Thana/thanaApi";
+import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
 import { useQuery } from "@tanstack/react-query";
 
@@ -42,11 +48,43 @@ function ThanaDashboard() {
     queryFn: () => getGDReportsByThana(thanaId),
     enabled: !!thanaId,
   });
+  const { data: orgData } = useQuery({
+    queryKey: ["thanaOrganizations"],
+    queryFn: getAllOrganizations,
+  });
+  const { data: locData } = useQuery({
+    queryKey: ["thanaLocations"],
+    queryFn: getAllLocations,
+  });
+  const { data: orgLinksData } = useQuery({
+    queryKey: ["thanaCriminalOrgLinks"],
+    queryFn: getAllCriminalOrganizationLinks,
+  });
+  const { data: relData } = useQuery({
+    queryKey: ["thanaCriminalRelations"],
+    queryFn: getAllCriminalRelations,
+  });
+  const { data: crimLocData } = useQuery({
+    queryKey: ["thanaCriminalLocations"],
+    queryFn: getAllCriminalLocations,
+  });
+  const { data: unreadNotificationData } = useQuery({
+    queryKey: ["thanaUnreadNotificationCount"],
+    queryFn: getUnreadNotificationCount,
+  });
 
   const criminals = crimData?.data || [];
   const officers = offData?.data || [];
   const cases = caseData?.data || [];
   const gdReports = gdData?.data || [];
+  const organizations = orgData?.data || [];
+  const locations = locData?.data || [];
+  const orgLinks = orgLinksData?.data || [];
+  const relations = relData?.data || [];
+  const criminalLocations = crimLocData?.data || [];
+  const unreadNotificationCount = Number(
+    unreadNotificationData?.data?.unread_count || 0,
+  );
 
   const statusColor = (s) => {
     const c = {
@@ -69,6 +107,11 @@ function ThanaDashboard() {
     { id: "officers", label: `Officers (${officers.length})` },
     { id: "cases", label: `Cases (${cases.length})` },
     { id: "gd", label: `GD Reports (${gdReports.length})` },
+    { id: "organizations", label: `Organizations (${organizations.length})` },
+    { id: "locations", label: `Locations (${locations.length})` },
+    { id: "orgLinks", label: `Criminal-Org Links (${orgLinks.length})` },
+    { id: "relations", label: `Criminal Relations (${relations.length})` },
+    { id: "crimLocations", label: `Criminal Locations (${criminalLocations.length})` },
   ];
 
   return (
@@ -140,6 +183,77 @@ function ThanaDashboard() {
             className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg"
           >
             + Add Organization
+          </button>
+          <button
+            onClick={() => navigate("/thana/update-organization")}
+            className="px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white text-sm rounded-lg"
+          >
+            + Update Organization
+          </button>
+          <button
+            onClick={() => navigate("/thana/add-criminal-relation")}
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg"
+          >
+            + Add Criminal Relation
+          </button>
+          <button
+            onClick={() => navigate("/thana/add-criminal-location")}
+            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg"
+          >
+            + Add Criminal Location
+          </button>
+          <button
+            onClick={() => navigate("/thana/add-criminal-organization")}
+            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg"
+          >
+            + Add Criminal Organization
+          </button>
+          <button
+            onClick={() => navigate("/thana/update-criminal-organization")}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg"
+          >
+            + Update Criminal Organization
+          </button>
+          <button
+            onClick={() => navigate("/thana/update-criminal-relation")}
+            className="px-4 py-2 bg-cyan-700 hover:bg-cyan-600 text-white text-sm rounded-lg"
+          >
+            + Update Criminal Relation
+          </button>
+          <button
+            onClick={() => navigate("/thana/update-location")}
+            className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm rounded-lg"
+          >
+            + Update/Remove Location
+          </button>
+          <button
+            onClick={() => navigate("/thana/notifications")}
+            className="relative px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm rounded-lg"
+          >
+            Notifications
+            {unreadNotificationCount > 0 && (
+              <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadNotificationCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => navigate("/thana/analytics-overview")}
+            className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-sm rounded-lg"
+          >
+            Analytics Overview
+          </button>
+          <button
+            onClick={() => navigate("/thana/transfer-criminal")}
+            className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg"
+          >
+            Transfer Criminal
+          </button>
+          <button
+            onClick={() => navigate("/thana/transfer-history")}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg"
+          >
+            Transfer History
           </button>
         </div>
 
@@ -317,6 +431,7 @@ function ThanaDashboard() {
                   <th className="text-left p-3">Description</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Date</th>
+                  <th className="text-right p-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -339,12 +454,201 @@ function ThanaDashboard() {
                         ? new Date(g.submitted_at).toLocaleDateString()
                         : "—"}
                     </td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => navigate(`/thana/gd/manage/${g.gd_id}`)}
+                        className="text-blue-400 hover:text-blue-300 text-xs"
+                      >
+                        Manage
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {gdReports.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={6} className="p-6 text-center text-slate-500">
                       No GD reports
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Organizations Tab */}
+        {activeTab === "organizations" && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <th className="text-left p-3">Org ID</th>
+                  <th className="text-left p-3">Name</th>
+                  <th className="text-left p-3">Ideology</th>
+                  <th className="text-left p-3">Threat</th>
+                  <th className="text-right p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {organizations.map((o) => (
+                  <tr key={o.org_id} className="border-b border-white/5">
+                    <td className="p-3 font-mono text-xs">{o.org_id}</td>
+                    <td className="p-3">{o.name}</td>
+                    <td className="p-3">{o.ideology || "—"}</td>
+                    <td className="p-3">{o.threat_level}</td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => navigate(`/thana/update-organization/${o.org_id}`)}
+                        className="text-blue-400 text-xs"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {organizations.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      No organizations found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Locations Tab */}
+        {activeTab === "locations" && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <th className="text-left p-3">Location ID</th>
+                  <th className="text-left p-3">District</th>
+                  <th className="text-left p-3">Zone</th>
+                  <th className="text-left p-3">Address</th>
+                  <th className="text-right p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locations.map((l) => (
+                  <tr key={l.location_id} className="border-b border-white/5">
+                    <td className="p-3 font-mono text-xs">{l.location_id}</td>
+                    <td className="p-3">{l.district}</td>
+                    <td className="p-3">{l.zone}</td>
+                    <td className="p-3">{l.address}</td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => navigate(`/thana/update-location/${l.location_id}`)}
+                        className="text-blue-400 text-xs"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {locations.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      No locations found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Criminal-Organization Links Tab */}
+        {activeTab === "orgLinks" && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <th className="text-left p-3">Criminal ID</th>
+                  <th className="text-left p-3">Organization ID</th>
+                  <th className="text-left p-3">Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orgLinks.map((link, idx) => (
+                  <tr key={`${link.criminal_id}-${link.org_id}-${idx}`} className="border-b border-white/5">
+                    <td className="p-3 font-mono text-xs">{link.criminal_id}</td>
+                    <td className="p-3 font-mono text-xs">{link.org_id}</td>
+                    <td className="p-3">{link.role || "—"}</td>
+                  </tr>
+                ))}
+                {orgLinks.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="p-6 text-center text-slate-500">
+                      No criminal-organization links found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Criminal Relations Tab */}
+        {activeTab === "relations" && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <th className="text-left p-3">Relation ID</th>
+                  <th className="text-left p-3">Criminal 1</th>
+                  <th className="text-left p-3">Criminal 2</th>
+                  <th className="text-left p-3">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {relations.map((r) => (
+                  <tr key={r.relation_id} className="border-b border-white/5">
+                    <td className="p-3 font-mono text-xs">{r.relation_id}</td>
+                    <td className="p-3 font-mono text-xs">{r.criminal_id_1}</td>
+                    <td className="p-3 font-mono text-xs">{r.criminal_id_2}</td>
+                    <td className="p-3">{r.relation_type}</td>
+                  </tr>
+                ))}
+                {relations.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-slate-500">
+                      No criminal relations found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Criminal Locations Tab */}
+        {activeTab === "crimLocations" && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <th className="text-left p-3">Link ID</th>
+                  <th className="text-left p-3">Criminal ID</th>
+                  <th className="text-left p-3">Location ID</th>
+                  <th className="text-left p-3">Noted At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {criminalLocations.map((cl) => (
+                  <tr key={cl.criminal_location_id} className="border-b border-white/5">
+                    <td className="p-3 font-mono text-xs">{cl.criminal_location_id}</td>
+                    <td className="p-3 font-mono text-xs">{cl.criminal_id}</td>
+                    <td className="p-3 font-mono text-xs">{cl.location_id}</td>
+                    <td className="p-3 text-xs">{cl.noted_at ? new Date(cl.noted_at).toLocaleString() : "—"}</td>
+                  </tr>
+                ))}
+                {criminalLocations.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-slate-500">
+                      No criminal-location links found
                     </td>
                   </tr>
                 )}

@@ -16,7 +16,8 @@ const statusOptions = [
 
 export default function AddCell() {
   const navigate = useNavigate();
-  const { cellBlockId } = useParams();
+  const { blockId } = useParams();
+  const cellBlockId = blockId;
   const queryClient = useQueryClient();
 
   const [cellNumber,     setCellNumber]     = useState("");

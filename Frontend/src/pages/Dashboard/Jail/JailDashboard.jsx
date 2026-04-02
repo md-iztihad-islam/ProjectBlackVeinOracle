@@ -1,7 +1,10 @@
 import getJailOccupancyDetailsApi from "@/services/Analytics/jailOccupancyDetailsApi";
+import { getIncarcerationsByJail, releaseIncarceration } from "@/services/Incarceration/incarcerationApi";
+import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import getJailByIdApi from "@/services/Jail/getJailByIdApi";
+import { jailSignoutApi } from "@/services/authServices/signoutApi";
 import userStore from "@/state/userStore";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 const statusStyle = {
@@ -24,8 +27,17 @@ function OccupancyBar({ pct, status }) {
 
 export default function JailDashboard() {
   const navigate = useNavigate();
-  const { user } = userStore();
+  const queryClient = useQueryClient();
+  const { user, clearUser } = userStore();
   const jailId = user?.jail_id;
+
+  const signoutMut = useMutation({
+    mutationFn: jailSignoutApi,
+    onSuccess: () => {
+      clearUser();
+      navigate("/", { replace: true });
+    },
+  });
 
   const { data: jailData, isLoading: jailDataLoading } = useQuery({
     queryKey: ["jailData", jailId],
@@ -37,8 +49,29 @@ export default function JailDashboard() {
 
   const { data: jailOccupancyData, isLoading: jailOccupancyLoading } = useQuery({
     queryKey: ["jailOccupancyData", jailId],
-    queryFn: () => getJailOccupancyDetailsApi(jailId),
+    queryFn: () => getJailOccupancyDetailsApi(),
     enabled: !!jailId,
+  });
+
+  const { data: incarcerationData, isLoading: incarcerationLoading } = useQuery({
+    queryKey: ["jailIncarcerations", jailId],
+    queryFn: () => getIncarcerationsByJail(jailId),
+    enabled: !!jailId,
+  });
+
+  const { data: unreadData } = useQuery({
+    queryKey: ["jailUnreadNotificationCount"],
+    queryFn: getUnreadNotificationCount,
+    enabled: !!jailId,
+  });
+
+  const releaseMut = useMutation({
+    mutationFn: (incarcerationId) => releaseIncarceration(incarcerationId, { notes: "Released by jail dashboard" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jailIncarcerations", jailId] });
+      queryClient.invalidateQueries({ queryKey: ["jailOccupancyData", jailId] });
+      alert("Inmate released successfully.");
+    },
   });
 
   // API returns array; find this jail's occupancy record
@@ -49,6 +82,10 @@ export default function JailDashboard() {
     : [];
 
   const jailOccupancy = occupancyList.find((o) => o.jail_id === jailId) || occupancyList[0] || null;
+  const incarcerations = Array.isArray(incarcerationData?.data) ? incarcerationData.data : [];
+  const unreadCount = Number(unreadData?.data?.unread_count || 0);
+  const activeIncarcerations = incarcerations.filter((i) => !i.released_at && !i.release_date);
+  const recentIncarcerations = activeIncarcerations.slice(0, 8);
 
   const isLoading = jailDataLoading || jailOccupancyLoading;
 
@@ -62,6 +99,14 @@ export default function JailDashboard() {
         { label: "Available Cells",  value: jailOccupancy.available_cells ?? "—",          accent: false },
       ]
     : [];
+
+  if (user && !jailId) {
+    return (
+      <div className="min-h-screen bg-[#080a0e] text-slate-300 p-8">
+        <p className="text-red-400">Access denied. Please login as jail account.</p>
+      </div>
+    );
+  }
 
   const occPct   = jailOccupancy ? parseFloat(jailOccupancy.occupancy_percentage) * (jailOccupancy.occupancy_percentage <= 1 ? 100 : 1) : 0;
   const occStatus = jailOccupancy?.occupancy_status || "LOW";
@@ -91,6 +136,43 @@ export default function JailDashboard() {
         <p className="text-[11px] text-slate-700 mt-2 tracking-widest">
           // Facility overview &amp; occupancy status
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => navigate("/jail/dashboard/cell-block-list")}
+            className="bg-blue-400 text-[#080a0e] px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:bg-blue-300 transition-all"
+          >
+            Cell Blocks
+          </button>
+          <button
+            onClick={() => navigate("/jail/dashboard/add-cell-block")}
+            className="border border-slate-800 text-slate-400 px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all"
+          >
+            Add Block
+          </button>
+          <button
+            onClick={() => navigate("/jail/dashboard/analytics")}
+            className="border border-slate-800 text-slate-400 px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all"
+          >
+            Analytics
+          </button>
+          <button
+            onClick={() => navigate("/jail/dashboard/notifications")}
+            className="relative border border-slate-800 text-slate-400 px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all"
+          >
+            Notifications
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => signoutMut.mutate()}
+            className="border border-red-500/30 text-red-400 px-4 py-2 text-[11px] font-black tracking-widest uppercase hover:bg-red-500/10 transition-all"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       <div className="h-px bg-gradient-to-r from-blue-400/30 via-blue-400/10 to-transparent mb-10" />
@@ -195,7 +277,91 @@ export default function JailDashboard() {
             >
               + Add Block
             </button>
+            <button
+              onClick={() => navigate("/jail/dashboard/cell-block-list")}
+              className="border border-slate-800 text-slate-400 px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150"
+            >
+              Manage Cells
+            </button>
+            <button
+              onClick={() => navigate("/jail/dashboard/analytics")}
+              className="border border-slate-800 text-slate-400 px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150"
+            >
+              View Analytics
+            </button>
+            <button
+              onClick={() => navigate("/jail/dashboard/notifications")}
+              className="relative border border-slate-800 text-slate-400 px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150"
+            >
+              Notifications
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => navigate("/jail/dashboard/transfer-criminal")}
+              className="border border-slate-800 text-slate-400 px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150"
+            >
+              Transfer Criminal
+            </button>
+            <button
+              onClick={() => navigate("/jail/dashboard/transfer-history")}
+              className="border border-slate-800 text-slate-400 px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150"
+            >
+              Transfer History
+            </button>
           </div>
+
+          {/* ── Active Incarcerations ── */}
+          <div className="text-[10px] tracking-[0.22em] uppercase text-slate-700 pb-3 mt-10 mb-5 border-b border-slate-800/80">
+            // Active Incarcerations (Recent)
+          </div>
+          {incarcerationLoading ? (
+            <p className="text-slate-600 text-sm">Loading incarceration records...</p>
+          ) : recentIncarcerations.length === 0 ? (
+            <p className="text-slate-600 text-sm">No active incarceration records found for this jail.</p>
+          ) : (
+            <div className="overflow-x-auto border border-slate-800 bg-slate-900/30">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-500 text-[10px] uppercase tracking-widest">
+                    <th className="text-left px-3 py-3">Incarceration ID</th>
+                    <th className="text-left px-3 py-3">Arrest ID</th>
+                    <th className="text-left px-3 py-3">Cell ID</th>
+                    <th className="text-left px-3 py-3">Admitted At</th>
+                    <th className="text-left px-3 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentIncarcerations.map((row) => (
+                    <tr key={row.incarceration_id} className="border-b border-slate-800/70 hover:bg-slate-900/50">
+                      <td className="px-3 py-3 text-blue-300 font-mono text-xs">{row.incarceration_id}</td>
+                      <td className="px-3 py-3 text-slate-300 font-mono text-xs">{row.arrest_id || "—"}</td>
+                      <td className="px-3 py-3 text-slate-300 font-mono text-xs">{row.cell_id || "Unassigned"}</td>
+                      <td className="px-3 py-3 text-slate-400 text-xs">
+                        {row.admitted_at ? new Date(row.admitted_at).toLocaleString() : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          disabled={releaseMut.isPending}
+                          onClick={() => {
+                            if (confirm(`Release incarceration ${row.incarceration_id}?`)) {
+                              releaseMut.mutate(row.incarceration_id);
+                            }
+                          }}
+                          className="text-xs px-3 py-1.5 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-50"
+                        >
+                          Release
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </div>

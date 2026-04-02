@@ -4,8 +4,19 @@ import { generateJwtToken } from "../utils/jwtToken.js";
 export const addOfficerController = async (req, res) => {
     try {
         const officerData = req.body;
-        const thana_id = req.id;
-        officerData.thana_id = thana_id;
+        // If requester is thana, force their own thana_id.
+        // If requester is admin, allow explicit thana_id from payload.
+        if (req.role === "thana") {
+            officerData.thana_id = req.id;
+        }
+
+        if (!officerData.thana_id) {
+            return res.status(400).json({
+                success: false,
+                message: "thana_id is required"
+            });
+        }
+
         const newOfficer = await addOfficerService(officerData);
 
         if(!newOfficer) {
