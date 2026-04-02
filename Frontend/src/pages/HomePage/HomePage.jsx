@@ -49,15 +49,34 @@ const features = [
 ];
 
 const stats = [
-  { value: "1,284", label: "Criminals Tracked" },
-  { value: "347", label: "Active Cases" },
-  { value: "64", label: "Police Stations" },
-  { value: "99.7%", label: "System Uptime" },
+  { value: "4", label: "Role Portals" },
+  { value: "20+", label: "Secured API Modules" },
+  { value: "30+", label: "Data Entities" },
+  { value: "RBAC", label: "Permission Model" },
+];
+
+const documentation = [
+  {
+    title: "Role Portals",
+    details: "Dedicated dashboards for Admin, Thana, Jail, and User operations with route-level access control.",
+  },
+  {
+    title: "Operational Coverage",
+    details: "Case files, arrests, incarceration, cell blocks, transfers, notifications, and analytics are integrated end-to-end.",
+  },
+  {
+    title: "Technical Stack",
+    details: "Frontend: React + Router + Query. Backend: Node.js + Express + PostgreSQL repository/service architecture.",
+  },
+  {
+    title: "Audit & Security",
+    details: "Authenticated workflows, role checks, and event visibility through role-specific notification and analytics modules.",
+  },
 ];
 
 function HomePage() {
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="home-page-root min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Custom Styles for the 'Bleed' Effect */}
       <style dangerouslySetInnerHTML={{ __html: `
         .text-glow {
@@ -128,7 +147,7 @@ function HomePage() {
                 Enter Oracle
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="gap-2 border-border hover:bg-secondary">
+            <Button size="lg" variant="outline" className="gap-2 border-border hover:bg-secondary" onClick={() => document.getElementById("project-docs")?.scrollIntoView({ behavior: "smooth" })}>
               <Database size={18} />
               View Documentation
             </Button>
@@ -205,6 +224,27 @@ function HomePage() {
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* Documentation */}
+      <section id="project-docs" className="relative z-10 mx-auto max-w-7xl px-6 pb-20">
+        <div className="rounded-xl border border-border bg-card/60 p-8 lg:p-10">
+          <p className="text-xs font-mono uppercase tracking-[0.28em] text-primary mb-3">Project Documentation</p>
+          <h2 className="text-2xl font-bold tracking-tight lg:text-3xl">Black Vein Oracle Overview</h2>
+          <p className="mt-3 text-muted-foreground max-w-3xl">
+            This project is a role-based criminal intelligence and custody platform built for coordinated operations
+            between administrative, thana, jail, and citizen-facing workflows.
+          </p>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {documentation.map((item) => (
+              <div key={item.title} className="rounded-lg border border-border bg-background/70 p-5">
+                <h3 className="font-semibold text-foreground">{item.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.details}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

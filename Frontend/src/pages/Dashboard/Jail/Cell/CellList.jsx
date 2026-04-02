@@ -317,7 +317,7 @@ export default function CellList() {
               <p className="text-[11px] text-slate-400">Select a cell to view details</p>
             </div>
 
-            <div className="rounded-2xl border border-blue-400/20 bg-gradient-to-b from-blue-500/5 to-transparent p-4">
+            <div className="jail-cell-layout-panel rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                 {layoutCells.map((cell) => {
                   const cellInmates = inmatesByCell[cell.cell_id] || [];
@@ -331,10 +331,10 @@ export default function CellList() {
                       key={cell.cell_id}
                       type="button"
                       onClick={() => setSelectedCellId(cell.cell_id)}
-                      className={`w-full text-left rounded-2xl border p-3 transition-all duration-200 ${
+                      className={`jail-cell-tile w-full text-left rounded-2xl border p-3 transition-all duration-200 ${
                         selected
-                          ? "border-blue-400/50 bg-blue-400/10 shadow-[0_0_0_1px_rgba(96,165,250,0.35)]"
-                          : "border-slate-700 bg-slate-950/90 hover:border-blue-400/30"
+                          ? "is-selected border-blue-400/40 bg-blue-400/5 shadow-[0_0_0_1px_rgba(96,165,250,0.25)]"
+                          : "border-slate-700 bg-slate-950/90 hover:border-slate-500"
                       }`}
                     >
                       <CellCardBody cell={cell} cellInmates={cellInmates} pct={pct} />
@@ -351,8 +351,8 @@ export default function CellList() {
               <p className="text-sm text-slate-400">Select a cell from map to view details.</p>
             ) : (
               <>
-                <div className="text-sm text-slate-300 mb-3">
-                  <span className="font-bold text-blue-300">{selectedCell.cell_number}</span> · {selectedCell.cell_id}
+                <div className="text-sm text-slate-200 mb-3">
+                  <span className="font-bold text-slate-100">{selectedCell.cell_number}</span> · <span className="text-slate-300">{selectedCell.cell_id}</span>
                 </div>
                 <div className="text-[12px] text-slate-400 mb-3">
                   Capacity: {selectedCell.capacity} · Occupancy: {selectedCell.number_of_people || 0}
@@ -368,10 +368,10 @@ export default function CellList() {
                           key={row.incarceration_id}
                           type="button"
                           onClick={() => setSelectedCriminalId(row.criminal_id)}
-                          className="w-full text-left rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 hover:border-blue-400/40 hover:bg-blue-400/5 transition-all"
+                          className="jail-inmate-tile w-full text-left rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 hover:border-blue-400/40 hover:bg-blue-400/5 transition-all"
                         >
                           <div className="text-sm text-slate-100 font-semibold">{row.criminal_name || "Unknown"}</div>
-                          <div className="text-[11px] text-blue-300">{row.criminal_id}</div>
+                          <div className="text-[11px] text-slate-300">{row.criminal_id}</div>
                         </button>
                       ))}
                     </div>
@@ -386,7 +386,7 @@ export default function CellList() {
       {/* ── Delete Confirm Modal ── */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-[#080a0e]/90 flex items-center justify-center z-50 px-6">
-          <div className="bg-[#0c1017] border border-slate-700 p-8 max-w-sm w-full rounded-2xl">
+          <div className="bg-[#0c1017] border border-slate-700 p-8 max-w-sm w-full rounded-2xl overflow-hidden">
             <div className="text-[10px] tracking-[0.22em] uppercase text-red-400 bg-red-400/10 border border-red-400/20 px-3 py-1 inline-block mb-4">
               Confirm Delete
             </div>
@@ -421,7 +421,7 @@ export default function CellList() {
       {/* ── Assign Criminal to Cell Modal ── */}
       {assignTarget && (
         <div className="fixed inset-0 bg-[#080a0e]/90 flex items-center justify-center z-50 px-6">
-          <div className="bg-[#0c1017] border border-slate-700 p-8 max-w-md w-full rounded-2xl">
+          <div className="bg-[#0c1017] border border-slate-700 p-8 max-w-md w-full rounded-2xl overflow-hidden">
             <div className="text-[10px] tracking-[0.22em] uppercase text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 inline-block mb-4">
               Add Inmate
             </div>
@@ -433,9 +433,9 @@ export default function CellList() {
             </p>
 
             <div className="text-[11px] text-slate-400 bg-slate-900/60 border border-slate-800 px-4 py-3 mb-4 tracking-wider">
-              Cell: <span className="text-blue-400">{assignTarget.cell_number}</span> ({assignTarget.cell_id})
+              Cell: <span className="text-slate-100">{assignTarget.cell_number}</span> ({assignTarget.cell_id})
               <br />
-              Jail: <span className="text-blue-400">{jailId || "—"}</span>
+              Jail: <span className="text-slate-100">{jailId || "—"}</span>
             </div>
 
             <label className="text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-2 block">Arrest ID *</label>
@@ -478,7 +478,7 @@ export default function CellList() {
       {/* ── Criminal Profile Modal ── */}
       {selectedCriminalId && (
         <div className="fixed inset-0 bg-[#080a0e]/90 flex items-center justify-center z-50 px-6">
-          <div className="bg-[#0c1017] border border-slate-700 p-6 max-w-3xl w-full rounded-2xl max-h-[85vh] overflow-y-auto">
+          <div className="bg-[#0c1017] border border-slate-700 p-6 max-w-3xl w-full rounded-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-black tracking-widest uppercase text-white">Criminal Profile</h2>
               <button
@@ -525,19 +525,21 @@ export default function CellList() {
 }
 
 function CellCardBody({ cell, cellInmates, pct }) {
+  const barClass = pct >= 90 ? "bg-red-400" : pct >= 70 ? "bg-amber-400" : "bg-emerald-400";
+
   return (
     <>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-slate-100 font-bold">{cell.cell_number}</span>
-        <span className="text-[10px] uppercase tracking-widest text-slate-400">{cell.cell_id}</span>
+        <span className="text-slate-100 font-bold tracking-wide">{cell.cell_number}</span>
+        <span className="text-[10px] uppercase tracking-widest text-slate-300">{cell.cell_id}</span>
       </div>
-      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
-        <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
+      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden mb-2">
+        <div className={`h-full ${barClass} rounded-full`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="text-[11px] text-slate-300">
+      <div className="text-[11px] text-slate-200">
         {cell.number_of_people || 0}/{cell.capacity} occupied
       </div>
-      <div className="text-[10px] text-slate-400 mt-1">Inmates listed: {cellInmates.length}</div>
+      <div className="text-[10px] text-slate-300 mt-1">Inmates listed: {cellInmates.length}</div>
     </>
   );
 }

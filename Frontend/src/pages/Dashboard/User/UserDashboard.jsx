@@ -151,7 +151,7 @@ function UserDashboard() {
     ];
 
     return (
-        <div className="min-h-screen w-full bg-[#080c14] flex flex-col">
+        <div className="user-dashboard-page min-h-screen w-full bg-[#080c14] flex flex-col">
 
             {/* ── Ambient background ── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -235,9 +235,9 @@ function UserDashboard() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         <span className="text-[10px] tracking-[0.15em] uppercase font-semibold text-slate-600">Live Dashboard</span>
                     </div>
-                    <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-slate-50 tracking-tight leading-tight">
+                    <h1 className="user-welcome-title text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-slate-50 tracking-tight leading-tight">
                         Welcome back,{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
+                        <span className="user-welcome-name text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
                             {user?.full_name?.split(" ")[0] ?? "User"}
                         </span>
                     </h1>
@@ -266,7 +266,7 @@ function UserDashboard() {
                                 <button
                                     key={action.label}
                                     onClick={action.onClick}
-                                    className={`group flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-left transition-all duration-200 hover:-translate-y-px ${
+                                    className={`user-action-btn group flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-left transition-all duration-200 hover:-translate-y-px ${
                                         action.primary
                                             ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/40"
                                             : "bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] text-slate-200"
@@ -370,7 +370,7 @@ function UserDashboard() {
                                                 <li
                                                     key={report.gd_id}
                                                     onClick={() => navigate("/user/dashboard/gd-reports")}
-                                                    className="group px-5 py-4 flex items-start justify-between gap-4 hover:bg-white/[0.025] transition-colors cursor-pointer"
+                                                    className="user-report-item group px-5 py-4 flex items-start justify-between gap-4 hover:bg-white/[0.025] transition-colors cursor-pointer"
                                                 >
                                                     <div className="flex items-start gap-3 min-w-0">
                                                         <div className={`flex-shrink-0 mt-[7px] w-1.5 h-1.5 rounded-full ${sc.dot}`} />

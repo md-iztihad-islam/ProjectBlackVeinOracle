@@ -45,7 +45,7 @@ function CriminalsByArea() {
   const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-100 p-6">
+    <div className="user-criminals-page min-h-screen bg-gray-950 text-slate-100 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Criminals by Area</h1>
@@ -101,7 +101,7 @@ function CriminalsByArea() {
                 {rows.map((r, i) => (
                   <tr
                     key={`${r.criminal_id || i}-${r.noted_at || i}`}
-                    className="border-t border-white/10 hover:bg-white/[0.03] cursor-pointer"
+                    className="user-row-hover border-t border-white/10 hover:bg-white/[0.03] cursor-pointer"
                     onClick={() => setSelectedCriminal(r)}
                   >
                     <td className="px-4 py-3 font-mono">{r.criminal_id}</td>

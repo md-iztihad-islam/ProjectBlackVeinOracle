@@ -149,6 +149,9 @@ function ThanaDashboard() {
     { id: "crimLocations", label: `Criminal Locations (${criminalLocations.length})` },
   ];
 
+  const quickActionClass =
+    "thana-quick-action-btn px-4 py-2 text-white text-sm rounded-lg";
+
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200">
       <header className="border-b border-white/5 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
@@ -162,7 +165,7 @@ function ThanaDashboard() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => openThanaModal("/thana/notifications")}
-              className="relative w-10 h-10 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-300 rounded-lg transition-all flex items-center justify-center"
+              className="thana-icon-btn relative w-10 h-10 rounded-lg transition-all flex items-center justify-center"
               aria-label="Notifications"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -177,7 +180,7 @@ function ThanaDashboard() {
             </button>
             <button
               onClick={handleSignout}
-              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-sm rounded-lg"
+              className="thana-danger-btn px-4 py-2 text-sm rounded-lg"
             >
               Sign Out
             </button>
@@ -208,85 +211,85 @@ function ThanaDashboard() {
         <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => openThanaModal("/thana/add-criminal")}
-            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Criminal
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-officer")}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Officer
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-case-file")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Case File
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-location")}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Location
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-organization")}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Organization
           </button>
           <button
             onClick={() => openThanaModal("/thana/update-organization")}
-            className="px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Update Organization
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-criminal-relation")}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Criminal Relation
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-criminal-location")}
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Criminal Location
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-criminal-organization")}
-            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Add Criminal Organization
           </button>
           <button
             onClick={() => openThanaModal("/thana/update-criminal-organization")}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Update Criminal Organization
           </button>
           <button
             onClick={() => openThanaModal("/thana/update-criminal-relation")}
-            className="px-4 py-2 bg-cyan-700 hover:bg-cyan-600 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Update Criminal Relation
           </button>
           <button
             onClick={() => openThanaModal("/thana/update-location")}
-            className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             + Update/Remove Location
           </button>
           <button
             onClick={() => openThanaModal("/thana/analytics-overview")}
-            className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             Analytics Overview
           </button>
           <button
             onClick={() => openThanaModal("/thana/transfer-history")}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg"
+            className={quickActionClass}
           >
             Transfer History
           </button>

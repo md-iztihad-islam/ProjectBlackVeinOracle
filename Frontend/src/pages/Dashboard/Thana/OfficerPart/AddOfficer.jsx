@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { addOfficer, getAllRanks } from "@/services/Thana/thanaApi";
 import userStore from "@/state/userStore";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 function AddOfficer() {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const isModal = Boolean(location.state?.modal);
 	const { user } = userStore();
 	const [form, setForm] = useState({
 		badge_no: "",
@@ -67,7 +69,7 @@ function AddOfficer() {
 	});
 
 	return (
-		<div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+		<div className={isModal ? "flex items-center justify-center p-0" : "min-h-screen bg-gray-950 flex items-center justify-center p-4"}>
 			<div className="w-full max-w-lg bg-gray-900 border border-white/[0.07] rounded-2xl p-6">
 				<button
 					onClick={() => navigate("/thana/dashboard")}

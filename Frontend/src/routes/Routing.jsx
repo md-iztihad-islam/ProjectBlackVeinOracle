@@ -2,6 +2,7 @@ import NotFound from "@/pages/NotFound/NotFound";
 import HomePage from "@/pages/HomePage/HomePage";
 import AccessRedirectionPage from "@/pages/AccessRedirectionPage/AccessRedirectionPage";
 import LoginPage from "@/pages/AccessRedirectionPage/LoginPage";
+import { useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import OfficerRegistrationPage from "@/pages/RegistrationPage/OfficerRegistrationPage";
 import ThanaRegistrationPage from "@/pages/RegistrationPage/ThanaRegistrationPage";
@@ -254,13 +255,22 @@ function Routing() {
 }
 
 function ModalShell({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div
-      className="fixed inset-0 z-[80] bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4"
+      className="app-modal-overlay fixed inset-0 z-[80] bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="modal-shell-content w-full max-w-6xl max-h-[92vh] overflow-y-auto"
+        className="app-modal-content modal-shell-content w-full max-w-6xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
