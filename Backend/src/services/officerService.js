@@ -1,12 +1,59 @@
 import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository, getOfficerByIdRepository } from "../repositories/officerRepository.js"; 
 import bcrypt from 'bcryptjs';
+import { sendOfficerOnboardingEmail } from "../utils/mailer.js";
+
+const VALID_GENDERS = ["male", "female", "other"];
 
 export const addOfficerService = async (officerData) => {
     try {
+        if (!officerData?.birth_date || !officerData?.gender) {
+            throw new Error("birth_date and gender are required");
+        }
+
         const { password } = officerData;
+        const plainPassword = password;
         const hashedPassword = await bcrypt.hash(password, 10);
         officerData.password = hashedPassword;
+
+        if (officerData.birth_date) {
+            const parsedBirthDate = new Date(officerData.birth_date);
+            if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > new Date()) {
+                throw new Error("Invalid birth_date");
+            }
+        }
+
+        if (officerData.gender) {
+            const normalizedGender = String(officerData.gender).trim().toLowerCase();
+            if (!VALID_GENDERS.includes(normalizedGender)) {
+                throw new Error("Invalid gender");
+            }
+            officerData.gender = normalizedGender;
+        }
+
         const newOfficer = await addOfficerRepository(officerData);
+
+        try {
+            await sendOfficerOnboardingEmail({
+                to: newOfficer.email,
+                officerId: newOfficer.officer_id,
+                fullName: newOfficer.full_name,
+                badgeNo: newOfficer.badge_no,
+                rankCode: newOfficer.rank_code,
+                thanaId: newOfficer.thana_id,
+                nidNumber: newOfficer.nid_number,
+                fatherName: newOfficer.father_name,
+                motherName: newOfficer.mother_name,
+                birthDate: newOfficer.birth_date,
+                gender: newOfficer.gender,
+                age: newOfficer.age,
+                imageUrl: newOfficer.image_url,
+                loginEmail: newOfficer.email,
+                plainPassword,
+            });
+        } catch (emailError) {
+            console.log("Failed to send officer onboarding email:", emailError?.message || emailError);
+        }
+
         return newOfficer;
     } catch (error) {
         console.log('Error adding officer at addOfficerService:', error);
@@ -69,6 +116,21 @@ export const getOfficersByRankService = async (rankId) => {
 // by Rayyan 2.0
 export const updateOfficerService = async (officerId, data) => {
     try {
+        if (data.birth_date) {
+            const parsedBirthDate = new Date(data.birth_date);
+            if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > new Date()) {
+                throw new Error("Invalid birth_date");
+            }
+        }
+
+        if (typeof data.gender !== "undefined") {
+            const normalizedGender = String(data.gender || "").trim().toLowerCase();
+            if (!VALID_GENDERS.includes(normalizedGender)) {
+                throw new Error("Invalid gender");
+            }
+            data.gender = normalizedGender;
+        }
+
         const updatedOfficer = await updateOfficerRepository(officerId, data);
         return updatedOfficer;
     } catch (error) {

@@ -78,3 +78,9 @@
   background: hsl(var(--muted));
   border-radius: 10px;
 }
+
+/* Modal route rendering tweaks: avoid extra full-page dark blocks behind form cards */
+.modal-shell-content > * {
+  min-height: auto !important;
+  background: transparent !important;
+}

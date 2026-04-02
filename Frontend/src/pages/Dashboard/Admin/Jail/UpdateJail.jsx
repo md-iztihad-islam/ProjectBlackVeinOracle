@@ -2,7 +2,7 @@ import getJailByIdApi from "@/services/Jail/getJailByIdApi";
 import updateJailApi from "@/services/Jail/updateJailApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2";
 const inputClass =
@@ -11,8 +11,15 @@ const hintClass = "text-[10px] text-slate-700 mt-1.5";
 
 export default function UpdateJail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { jailId } = useParams();
   const queryClient = useQueryClient();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const { data: jailData, isLoading: jailLoading, error: jailError } = useQuery({
     queryKey: ["jailData", jailId],
@@ -49,7 +56,7 @@ export default function UpdateJail() {
     onSuccess: () => {
       queryClient.invalidateQueries(["jailList"]);
       queryClient.invalidateQueries(["jailData", jailId]);
-      navigate("/admin/dashboard/jaillist");
+      navigateWithModal("/admin/dashboard/jaildashboard/jail-list");
     },
     onError: () => setFormError("Failed to update jail. Please try again."),
   });
@@ -241,7 +248,7 @@ export default function UpdateJail() {
               {updateJailLoading ? "SAVING..." : "SAVE CHANGES"}
             </button>
             <button
-              onClick={() => navigate("/admin/dashboard/jaillist")}
+              onClick={() => navigateWithModal("/admin/dashboard/jaildashboard/jail-list")}
               className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
             >
               CANCEL

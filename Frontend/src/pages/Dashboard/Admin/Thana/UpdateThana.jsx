@@ -2,7 +2,7 @@ import getThanaByThanaIdApi from "@/services/Thana/getThanaByThanaIdApi";
 import updateThanaApi from "@/services/Thana/updateThanaApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 const ZONES = [
   "Dhaka Metro", "Chittagong Metro", "Rajshahi",
@@ -30,7 +30,14 @@ const labelClass = "block text-[10px] tracking-[0.18em] uppercase text-slate-600
 export default function UpdateThana() {
   const { thana_id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const [form, setForm] = useState({
     thana_name: "", district: "", zone: "", address: "", phone: "", email: "",
@@ -224,7 +231,7 @@ export default function UpdateThana() {
                 {updateLoading ? "SAVING..." : "SAVE CHANGES"}
               </button>
               <button
-                onClick={() => navigate("/admin/dashboard/thanadashboard/thana-list")}
+                onClick={() => navigateWithModal("/admin/dashboard/thanadashboard/thana-list")}
                 className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
               >
                 CANCEL

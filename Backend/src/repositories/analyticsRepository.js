@@ -15,7 +15,7 @@ export const getCriminalFullProfileRepository = async (criminalId) => {
                  FROM criminal_organization co 
                  JOIN organization o ON co.org_id = o.org_id 
                  WHERE co.criminal_id = c.criminal_id) AS organizations,
-                (SELECT json_agg(json_build_object('case_number', cf.case_number, 'case_type', cf.case_type, 'status', cf.status, 'filed_at', cf.filed_at))
+                (SELECT json_agg(json_build_object('case_id', cf.case_id, 'case_title', cf.case_title, 'case_type', cf.case_type, 'status', cf.status, 'filed_at', cf.filed_at))
                  FROM case_file cf 
                  WHERE cf.criminal_id = c.criminal_id) AS cases,
                 (SELECT json_agg(json_build_object('arrest_id', ar.arrest_id, 'arrest_date', ar.arrest_date, 'custody_status', ar.custody_status))

@@ -9,6 +9,16 @@ function UpdateCriminal() {
   const [form, setForm] = useState({
     full_name: "",
     nid: "",
+    image_url: "",
+    father_name: "",
+    mother_name: "",
+    birth_date: "",
+    gender: "",
+    aliases: "",
+    nationality: "",
+    permanent_address: "",
+    current_address: "",
+    identifying_marks: "",
     status: "",
     risk_level: "",
   });
@@ -26,11 +36,37 @@ function UpdateCriminal() {
     ? criminalData.data[0]
     : criminalData?.data;
 
+  const effectiveBirthDate = form.birth_date || currentCriminal?.birth_date || "";
+  const effectiveImageUrl = form.image_url || currentCriminal?.image_url || "";
+
+  const getAgeFromBirthDate = (birthDate) => {
+    if (!birthDate) return "";
+    const dob = new Date(birthDate);
+    if (Number.isNaN(dob.getTime())) return "";
+    const now = new Date();
+    let age = now.getFullYear() - dob.getFullYear();
+    const m = now.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age -= 1;
+    return age >= 0 ? age : "";
+  };
+
+  const calculatedAge = getAgeFromBirthDate(effectiveBirthDate);
+
   const { mutate, isPending } = useMutation({
     mutationFn: () => {
       const payload = {
         full_name: form.full_name || currentCriminal?.full_name || "",
         nid: form.nid || currentCriminal?.nid || "",
+        image_url: form.image_url || currentCriminal?.image_url || "",
+        father_name: form.father_name || currentCriminal?.father_name || "",
+        mother_name: form.mother_name || currentCriminal?.mother_name || "",
+        birth_date: form.birth_date || currentCriminal?.birth_date || null,
+        gender: form.gender || currentCriminal?.gender || "",
+        aliases: form.aliases || currentCriminal?.aliases || "",
+        nationality: form.nationality || currentCriminal?.nationality || "",
+        permanent_address: form.permanent_address || currentCriminal?.permanent_address || "",
+        current_address: form.current_address || currentCriminal?.current_address || "",
+        identifying_marks: form.identifying_marks || currentCriminal?.identifying_marks || "",
         status: form.status || currentCriminal?.status || "unknown",
         risk_level:
           form.risk_level === ""
@@ -84,6 +120,106 @@ function UpdateCriminal() {
               value={form.nid || currentCriminal?.nid || ""}
               onChange={(e) => set("nid", e.target.value)}
               className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Image URL / Data URL</label>
+            <input
+              value={effectiveImageUrl}
+              onChange={(e) => set("image_url", e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          {effectiveImageUrl && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-white/10">
+              <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                <img src={effectiveImageUrl} alt="Criminal preview" className="w-full h-full rounded-full object-cover" />
+              </div>
+              <p className="text-xs text-slate-400">Profile image preview</p>
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Father's Name</label>
+            <input
+              value={form.father_name || currentCriminal?.father_name || ""}
+              onChange={(e) => set("father_name", e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Mother's Name</label>
+            <input
+              value={form.mother_name || currentCriminal?.mother_name || ""}
+              onChange={(e) => set("mother_name", e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Birth Date</label>
+            <input
+              type="date"
+              value={effectiveBirthDate}
+              onChange={(e) => set("birth_date", e.target.value)}
+              className={inputCls}
+            />
+            {calculatedAge !== "" && (
+              <p className="mt-1 text-xs text-blue-300">Calculated Age: {calculatedAge}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Gender</label>
+            <select
+              value={form.gender || currentCriminal?.gender || ""}
+              onChange={(e) => set("gender", e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Aliases / Known Names</label>
+            <input
+              value={form.aliases || currentCriminal?.aliases || ""}
+              onChange={(e) => set("aliases", e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Nationality</label>
+            <input
+              value={form.nationality || currentCriminal?.nationality || ""}
+              onChange={(e) => set("nationality", e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Permanent Address</label>
+            <textarea
+              value={form.permanent_address || currentCriminal?.permanent_address || ""}
+              onChange={(e) => set("permanent_address", e.target.value)}
+              className={inputCls}
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Current Address</label>
+            <textarea
+              value={form.current_address || currentCriminal?.current_address || ""}
+              onChange={(e) => set("current_address", e.target.value)}
+              className={inputCls}
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Identifying Marks</label>
+            <textarea
+              value={form.identifying_marks || currentCriminal?.identifying_marks || ""}
+              onChange={(e) => set("identifying_marks", e.target.value)}
+              className={inputCls}
+              rows={2}
             />
           </div>
           <div>

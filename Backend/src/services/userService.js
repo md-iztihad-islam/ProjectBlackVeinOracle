@@ -1,8 +1,32 @@
 import { addUserRepository, getUserByEmailRepository, getUserByIdRepository, getAllUsersRepository, updateUserRepository, deleteUserRepository } from "../repositories/userRepository.js"; 
 import bcrypt from 'bcryptjs';
 
+const VALID_GENDERS = ["male", "female", "other"];
+
+const normalizeUserProfileFields = (payload = {}, { requireProfile = false } = {}) => {
+    if (requireProfile && (!payload.birth_date || !payload.gender)) {
+        throw new Error("birth_date and gender are required");
+    }
+
+    if (typeof payload.birth_date !== "undefined") {
+        const parsedBirthDate = new Date(payload.birth_date);
+        if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > new Date()) {
+            throw new Error("Invalid birth_date");
+        }
+    }
+
+    if (typeof payload.gender !== "undefined") {
+        const normalizedGender = String(payload.gender || "").trim().toLowerCase();
+        if (!VALID_GENDERS.includes(normalizedGender)) {
+            throw new Error("Invalid gender");
+        }
+        payload.gender = normalizedGender;
+    }
+};
+
 export const addUserService = async (userData) => {
     try {
+        normalizeUserProfileFields(userData, { requireProfile: true });
         const { password } = userData;
         const hashedPassword = await bcrypt.hash(password, 10);
         userData.password = hashedPassword;
@@ -60,6 +84,7 @@ export const getAllUsersService = async () => {
 
 export const updateUserService = async (userId, data) => {
     try {
+        normalizeUserProfileFields(data, { requireProfile: false });
         const updatedUser = await updateUserRepository(userId, data);
         return updatedUser;
     } catch (error) {

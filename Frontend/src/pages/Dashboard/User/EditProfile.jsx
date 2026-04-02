@@ -11,12 +11,14 @@ function EditProfile() {
     const [fullName, setFullName] = useState(user?.full_name ?? "");
     const [phone, setPhone] = useState(user?.phone ?? "");
     const [address, setAddress] = useState(user?.address ?? "");
+    const [birthDate, setBirthDate] = useState(user?.birth_date ? String(user.birth_date).slice(0, 10) : "");
+    const [gender, setGender] = useState(user?.gender ?? "");
     const userId = user?.user_id;
 
     const { mutate: updateUser, isPending } = useMutation({
         mutationFn: ({ userId, updatedData }) => updateUserApi({ userId, updatedData }),
         onSuccess: (data) => {
-            setUser(data?.user ?? { ...user, full_name: fullName, phone, address });
+            setUser(data?.data ?? { ...user, full_name: fullName, phone, address, birth_date: birthDate, gender });
             navigate("/user/dashboard/profile");
         },
         onError: () => alert("Failed to update profile. Please try again."),
@@ -30,6 +32,8 @@ function EditProfile() {
             full_name: fullName,
             phone,
             address,
+            birth_date: birthDate,
+            gender,
         }
         updateUser({ userId, updatedData });
     };
@@ -134,6 +138,33 @@ function EditProfile() {
                                     required
                                     className={inputClass}
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={labelClass}>Birth Date</label>
+                                    <input
+                                        type="date"
+                                        value={birthDate}
+                                        onChange={(e) => setBirthDate(e.target.value)}
+                                        required
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={labelClass}>Gender</label>
+                                    <select
+                                        value={gender}
+                                        onChange={(e) => setGender(e.target.value)}
+                                        required
+                                        className={inputClass}
+                                    >
+                                        <option value="">Select gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>

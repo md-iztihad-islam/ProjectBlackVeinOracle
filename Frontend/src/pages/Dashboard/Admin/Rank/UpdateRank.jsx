@@ -2,15 +2,22 @@ import getRankByIdApi from "@/services/Rank/getRankByIdApi";
 import updateRankApi from "@/services/Rank/updateRankApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 const labelClass =
   "block text-[10px] tracking-[0.18em] uppercase text-slate-600 mb-2 flex items-center gap-2";
 
 export default function UpdateRank() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { rankId } = useParams();
   const queryClient = useQueryClient();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const [rankCode, setRankCode] = useState("");
   const [rankName, setRankName] = useState("");
@@ -201,7 +208,7 @@ export default function UpdateRank() {
                 {updateRankLoading ? "SAVING..." : "SAVE CHANGES"}
               </button>
               <button
-                onClick={() => navigate("/admin/dashboard/rankdashboard/rank-list")}
+                onClick={() => navigateWithModal("/admin/dashboard/rankdashboard/rank-list")}
                 className="border border-slate-800 text-slate-600 px-6 py-3.5 text-[13px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
               >
                 CANCEL

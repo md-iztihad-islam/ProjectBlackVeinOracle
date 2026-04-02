@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   getMyNotifications,
   getUnreadNotificationCount,
@@ -49,7 +49,16 @@ const getNotificationMeta = (n) => {
 
 export default function JailNotificationCenter() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/jail/dashboard");
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["jailNotifications"],
@@ -81,8 +90,8 @@ export default function JailNotificationCenter() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-200 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="relative w-9 h-9 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center">
@@ -97,8 +106,8 @@ export default function JailNotificationCenter() {
               )}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Jail Notification Center</h1>
-              <p className="text-sm text-slate-400 mt-1">Custody and facility-specific alerts</p>
+              <h1 className="text-2xl font-bold">Notification Center</h1>
+              <p className="text-sm text-slate-400 mt-1">Operational alerts</p>
             </div>
           </div>
 
@@ -111,7 +120,7 @@ export default function JailNotificationCenter() {
               Mark all read
             </button>
             <button
-              onClick={() => navigate("/jail/dashboard")}
+              onClick={handleBack}
               className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
             >
               Back
@@ -121,15 +130,15 @@ export default function JailNotificationCenter() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
-            <p className="text-xs uppercase text-slate-500">Total Alerts</p>
+            <p className="text-xs uppercase text-slate-400">Total Alerts</p>
             <p className="text-2xl font-bold text-slate-100 mt-1">{notifications.length}</p>
           </div>
           <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
-            <p className="text-xs uppercase text-slate-500">Unread</p>
+            <p className="text-xs uppercase text-slate-400">Unread</p>
             <p className="text-2xl font-bold text-amber-300 mt-1">{unreadCount}</p>
           </div>
           <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
-            <p className="text-xs uppercase text-slate-500">Read</p>
+            <p className="text-xs uppercase text-slate-400">Read</p>
             <p className="text-2xl font-bold text-emerald-300 mt-1">
               {Math.max(notifications.length - unreadCount, 0)}
             </p>
@@ -138,9 +147,9 @@ export default function JailNotificationCenter() {
 
         <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
           {isLoading ? (
-            <p className="p-6 text-slate-500">Loading notifications...</p>
+            <p className="p-6 text-slate-400">Loading notifications...</p>
           ) : notifications.length === 0 ? (
-            <p className="p-6 text-slate-500">No notifications found.</p>
+            <p className="p-6 text-slate-400">No notifications found.</p>
           ) : (
             <ul className="divide-y divide-white/5">
               {notifications.map((n) => {
@@ -169,7 +178,7 @@ export default function JailNotificationCenter() {
                         </div>
                       )}
                       <p className="text-sm text-slate-400 mt-1 whitespace-pre-line">{n.message}</p>
-                      <p className="text-xs text-slate-500 mt-2">
+                      <p className="text-xs text-slate-400 mt-2">
                         {n.created_at ? new Date(n.created_at).toLocaleString() : "—"}
                       </p>
                     </div>

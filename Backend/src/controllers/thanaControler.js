@@ -3,8 +3,16 @@ import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addThanaContoller = async (req, res) => {
     try {
-        const thanaData = req.body;
         const admin_id = req.id;
+        if (!admin_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized access'
+            });
+        }
+
+        // Never trust client-provided creator ID; resolve from authenticated admin token.
+        const { created_by_admin_id, ...thanaData } = req.body || {};
         const newThana = await addThanaService(thanaData, admin_id);
 
         if(!newThana) {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   getMyNotifications,
   getUnreadNotificationCount,
@@ -49,7 +49,16 @@ const getNotificationMeta = (n) => {
 
 function AdminNotificationCenter() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/admin/dashboard");
+  };
 
   const { data: notificationsData, isLoading } = useQuery({
     queryKey: ["adminNotifications"],
@@ -81,8 +90,8 @@ function AdminNotificationCenter() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-200 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
@@ -98,7 +107,8 @@ function AdminNotificationCenter() {
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Admin Notification Center</h1>
+                <h1 className="text-2xl font-bold">Notification Center</h1>
+                <p className="text-sm text-slate-400 mt-1">Operational alerts</p>
               </div>
             </div>
           </div>
@@ -111,7 +121,7 @@ function AdminNotificationCenter() {
               Mark all read
             </button>
             <button
-              onClick={() => navigate("/admin/dashboard")}
+              onClick={handleBack}
               className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
             >
               Back

@@ -41,6 +41,33 @@ export async function getCriminalById(criminalId) {
 	}
 }
 
+export async function getCriminalFullProfile(criminalId) {
+	try {
+		const res = await axiosInstance.get(`/criminal/profile/${criminalId}`);
+		return res.data;
+	} catch {
+		return { success: false, data: null };
+	}
+}
+
+export async function getCriminalTimeline(criminalId) {
+	try {
+		const res = await axiosInstance.get(`/criminal/timeline/${criminalId}`);
+		return res.data;
+	} catch {
+		return { success: false, data: [] };
+	}
+}
+
+export async function getCriminalCaseHistory(criminalId) {
+	try {
+		const res = await axiosInstance.get(`/criminal/case-history/${criminalId}`);
+		return res.data;
+	} catch {
+		return { success: false, data: [] };
+	}
+}
+
 export async function getOfficersByThana(thanaId) {
 	try {
 		const res = await axiosInstance.get(

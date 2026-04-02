@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { findAvailableCell, transferCriminal } from "@/services/Incarceration/incarcerationApi";
+import { findAvailableCell, getIncarcerationsByJail, transferCriminal } from "@/services/Incarceration/incarcerationApi";
 import getAllJailApi from "@/services/Jail/getAllJailApi";
 import userStore from "@/state/userStore";
 
 export default function JailTransferCriminal() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = userStore();
   const jailId = user?.jail_id;
 
@@ -26,6 +27,16 @@ export default function JailTransferCriminal() {
     enabled: !!jailId,
   });
 
+  const { data: jailIncarcerationData } = useQuery({
+    queryKey: ["jail-transfer-criminal-options", jailId],
+    queryFn: () => getIncarcerationsByJail(jailId),
+    enabled: !!jailId,
+  });
+
+  const jailInmates = Array.isArray(jailIncarcerationData?.data)
+    ? jailIncarcerationData.data.filter((i) => i?.criminal_id)
+    : [];
+
   const destinationJails = (Array.isArray(jailData?.data) ? jailData.data : []).filter(
     (j) => j?.jail_id && j.jail_id !== jailId
   );
@@ -38,7 +49,6 @@ export default function JailTransferCriminal() {
         toJailId: form.toJailId,
         toCellId: form.toCellId.trim() || null,
         reason: form.reason.trim(),
-        authorizedBy: jailId,
       }),
     onSuccess: (res) => {
       if (res?.success) {
@@ -66,6 +76,14 @@ export default function JailTransferCriminal() {
   const inputCls =
     "w-full bg-gray-800 border border-white/10 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50";
 
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/jail/dashboard");
+  };
+
   if (!jailId) {
     return (
       <div className="min-h-screen bg-gray-950 text-slate-200 p-6">
@@ -77,9 +95,9 @@ export default function JailTransferCriminal() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-200 p-6">
-      <div className="max-w-3xl mx-auto bg-gray-900 border border-white/5 rounded-2xl p-6">
-        <button onClick={() => navigate("/jail/dashboard")} className="text-sm text-blue-400 mb-4">
+    <div className="w-full max-w-4xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+        <button onClick={handleBack} className="text-sm text-blue-300 hover:text-blue-200 mb-4">
           ← Back
         </button>
 
@@ -99,11 +117,6 @@ export default function JailTransferCriminal() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-400 uppercase">Authorized By</label>
-            <input className={`${inputCls} opacity-70`} value={jailId} readOnly />
-          </div>
-
-          <div>
             <label className="text-xs text-slate-400 uppercase">Criminal ID</label>
             <input
               required
@@ -112,6 +125,22 @@ export default function JailTransferCriminal() {
               value={form.criminalId}
               onChange={(e) => set("criminalId", e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 uppercase">Pick Criminal</label>
+            <select
+              className={inputCls}
+              value={form.criminalId}
+              onChange={(e) => set("criminalId", e.target.value)}
+            >
+              <option value="">Select criminal</option>
+              {jailInmates.map((row) => (
+                <option key={`${row.incarceration_id}-${row.criminal_id}`} value={row.criminal_id}>
+                  {row.criminal_name || "Unknown"} ({row.criminal_id})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -181,7 +210,7 @@ export default function JailTransferCriminal() {
             <button
               type="button"
               onClick={() => navigate("/jail/dashboard/transfer-history")}
-              className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-slate-200"
+              className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-900/70 text-slate-100 hover:border-blue-400/50 hover:text-blue-300"
             >
               Transfer History
             </button>

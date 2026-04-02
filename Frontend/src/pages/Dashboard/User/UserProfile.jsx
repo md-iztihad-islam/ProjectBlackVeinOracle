@@ -37,6 +37,8 @@ function UserProfile() {
         { label: "Full Name", value: user?.full_name },
         { label: "Phone",     value: user?.phone     },
         { label: "Address",   value: user?.address   },
+        { label: "Birth Date", value: user?.birth_date ? new Date(user.birth_date).toLocaleDateString() : null },
+        { label: "Gender", value: user?.gender ? String(user.gender).charAt(0).toUpperCase() + String(user.gender).slice(1) : null },
     ];
 
     const initials = user?.full_name

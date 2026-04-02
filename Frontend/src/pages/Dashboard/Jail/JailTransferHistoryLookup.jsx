@@ -35,16 +35,24 @@ export default function JailTransferHistoryLookup() {
     setSubmittedId(criminalId.trim());
   };
 
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/jail/dashboard");
+  };
+
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-200 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Transfer History</h1>
             <p className="text-sm text-slate-400 mt-1">Showing records related to your jail account</p>
           </div>
           <button
-            onClick={() => navigate("/jail/dashboard")}
+            onClick={handleBack}
             className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
           >
             Back
@@ -87,13 +95,12 @@ export default function JailTransferHistoryLookup() {
                     <th className="text-left px-4 py-3">To Jail</th>
                     <th className="text-left px-4 py-3">Transfer Date</th>
                     <th className="text-left px-4 py-3">Reason</th>
-                    <th className="text-left px-4 py-3">Authorized By</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRows.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                      <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
                         No transfer history found for this jail.
                       </td>
                     </tr>
@@ -110,7 +117,6 @@ export default function JailTransferHistoryLookup() {
                             : "-"}
                         </td>
                         <td className="px-4 py-3">{item.transfer_reason || item.reason || "-"}</td>
-                        <td className="px-4 py-3 font-mono text-xs">{item.authorized_by || "-"}</td>
                       </tr>
                     ))
                   )}

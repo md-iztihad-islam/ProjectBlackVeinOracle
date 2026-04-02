@@ -1,6 +1,6 @@
 import getAllThanaApi from "@/services/Thana/getAllThanaApi";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const BASE = "/admin/dashboard/thanadashboard";
 
@@ -21,7 +21,14 @@ const quickLinks = [
 
 export default function ThanaDashBoard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const now = new Date();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const { data: allThanaData, isLoading } = useQuery({
     queryKey: ["allThanas"],
@@ -172,7 +179,7 @@ export default function ThanaDashBoard() {
         {quickLinks.map((link, i) => (
           <button
             key={i}
-            onClick={() => navigate(link.to)}
+            onClick={() => navigateWithModal(link.to)}
             className={`flex items-center justify-between px-5 py-4 bg-slate-900/60 border ${link.border} transition-all duration-200 cursor-pointer`}
           >
             <span className={`text-sm font-bold tracking-widest uppercase ${link.textColor}`}>{link.label}</span>

@@ -1,7 +1,7 @@
 import express from 'express';
 import isAuthenticated from '../../utils/isAuthenticated.js';
 import requireRole from '../../utils/requireRole.js'; // by Rayyan 2.0
-import { addCriminalController, getCriminalByIdController, getCriminalsByThanaIdController, getCriminalFullProfileController, getCriminalTimelineController, recalculateCriminalRiskController, getAllCriminalsController, updateCriminalController, deleteCriminalController, getCriminalsByStatusController, searchCriminalsController, getWantedCriminalsController, getCriminalsByAreaController } from '../../controllers/criminalController.js'; // by Rayyan 2.0
+import { addCriminalController, getCriminalByIdController, getCriminalsByThanaIdController, getCriminalFullProfileController, getCriminalTimelineController, getCriminalCaseHistoryController, recalculateCriminalRiskController, getAllCriminalsController, updateCriminalController, deleteCriminalController, getCriminalsByStatusController, searchCriminalsController, getWantedCriminalsController, getCriminalsByAreaController } from '../../controllers/criminalController.js'; // by Rayyan 2.0
 
 const router = express.Router();
 
@@ -14,8 +14,9 @@ router.get('/get-criminal/:criminalid', isAuthenticated, requireRole("admin", "t
 router.get('/get-criminals-by-thana/:thanaId', isAuthenticated, requireRole("admin", "thana"), getCriminalsByThanaIdController);
 
 // by Rayyan 2.0
-router.get('/profile/:id', isAuthenticated, requireRole("admin", "thana", "officer"), getCriminalFullProfileController);
-router.get('/timeline/:id', isAuthenticated, requireRole("admin", "thana", "officer"), getCriminalTimelineController);
+router.get('/profile/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getCriminalFullProfileController);
+router.get('/timeline/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getCriminalTimelineController);
+router.get('/case-history/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getCriminalCaseHistoryController);
 router.put('/recalculate-risk/:id', isAuthenticated, requireRole("admin"), recalculateCriminalRiskController);
 // by Rayyan 2.0
 router.get('/get-criminals', isAuthenticated, requireRole("admin", "thana", "officer"), getAllCriminalsController);

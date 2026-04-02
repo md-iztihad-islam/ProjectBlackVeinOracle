@@ -3,12 +3,19 @@ import getThanaByThanaIdApi from "@/services/Thana/getThanaByThanaIdApi";
 import updateThanaApi from "@/services/Thana/updateThanaApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 function AssignThanaHead() {
   const { thana_id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const [selectedOfficerId, setSelectedOfficerId] = useState(null);
   const [search, setSearch] = useState("");
@@ -257,7 +264,7 @@ function AssignThanaHead() {
                 {updateLoading ? "ASSIGNING..." : "⭐ ASSIGN AS HEAD"}
               </button>
               <button
-                onClick={() => navigate("/admin/dashboard/thanadashboard/thana-list")}
+                onClick={() => navigateWithModal("/admin/dashboard/thanadashboard/thana-list")}
                 className="w-full border border-slate-800 text-slate-600 py-3 text-[12px] font-bold tracking-widest uppercase hover:border-slate-600 hover:text-slate-400 transition-all duration-150"
               >
                 BACK TO LIST

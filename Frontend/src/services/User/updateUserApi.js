@@ -2,12 +2,14 @@ import axiosInstance from "@/helpers/axiosInstance";
 
 async function updateUserApi(userData) {
   try {
+    const payload = userData?.updatedData ? userData.updatedData : userData;
     const userId =
-      userData.user_id ||
+      userData?.userId ||
+      userData?.user_id ||
       JSON.parse(localStorage.getItem("user-storage"))?.state?.user?.user_id;
     const response = await axiosInstance.put(
       `/user/update-user/${userId}`,
-      userData,
+      payload,
     );
     return response.data;
   } catch (error) {

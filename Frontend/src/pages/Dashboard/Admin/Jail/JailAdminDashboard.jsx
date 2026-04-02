@@ -1,9 +1,16 @@
 import getAllJailApi from "@/services/Jail/getAllJailApi";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function JailAdminDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const { data: jailListData, isLoading: jailListLoading } = useQuery({
     queryKey: ["jailList"],
@@ -77,13 +84,13 @@ export default function JailAdminDashboard() {
       {/* ── Buttons ── */}
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={() => navigate("add-jail")}
+          onClick={() => navigateWithModal("/admin/dashboard/jaildashboard/add-jail")}
           className="bg-blue-400 text-[#080a0e] px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:bg-blue-300 hover:-translate-y-0.5 transition-all duration-150"
         >
           + Add Jail
         </button>
         <button
-          onClick={() => navigate("jail-list")}
+          onClick={() => navigateWithModal("/admin/dashboard/jaildashboard/jail-list")}
           className="border border-slate-800 text-slate-400 px-8 py-3.5 text-[13px] font-black tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-400 transition-all duration-150"
         >
           View Jail List

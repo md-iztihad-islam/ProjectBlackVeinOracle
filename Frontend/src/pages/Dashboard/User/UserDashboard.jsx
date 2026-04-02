@@ -137,13 +137,6 @@ function UserDashboard() {
             onClick: () => navigate("/user/dashboard/profile"),
         },
         {
-            label: "Notifications",
-            description: "See updates on your submitted GD reports",
-            icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-            unreadCount: unreadNotificationCount,
-            onClick: () => navigate("/user/dashboard/notifications"),
-        },
-        {
             label: "Wanted Criminals",
             description: "Browse active wanted / escaped alerts",
             icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="1"/></svg>,

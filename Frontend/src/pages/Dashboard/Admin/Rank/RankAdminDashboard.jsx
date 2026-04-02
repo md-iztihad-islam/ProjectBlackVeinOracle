@@ -1,6 +1,6 @@
 import getAllRankApi from "@/services/Rank/getAllRankApi";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const BASE = "/admin/dashboard/rankdashboard";
 
@@ -30,6 +30,13 @@ const quickLinks = [
 
 export default function RankAdminDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const navigateWithModal = (to) => {
+    const isModal = Boolean(location.state?.modal);
+    const backgroundLocation = location.state?.backgroundLocation || location;
+    navigate(to, isModal ? { state: { modal: true, backgroundLocation } } : undefined);
+  };
 
   const { data: ranksData, isLoading } = useQuery({
     queryKey: ["ranks"],
@@ -107,7 +114,7 @@ export default function RankAdminDashboard() {
           </p>
         </div>
         <button
-          onClick={() => navigate(`${BASE}/add-rank`)}
+          onClick={() => navigateWithModal(`${BASE}/add-rank`)}
           className="flex items-center gap-2 bg-cyan-400 text-[#080a0e] px-6 py-3 text-sm font-black tracking-widest uppercase hover:bg-cyan-300 hover:-translate-y-0.5 transition-all duration-150"
         >
           + Add Rank
@@ -188,13 +195,13 @@ export default function RankAdminDashboard() {
                   {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                     <button
-                      onClick={() => navigate(`${BASE}/rank-list/update-rank/${rank.rank_code}`)}
+                      onClick={() => navigateWithModal(`${BASE}/rank-list/update-rank/${rank.rank_code}`)}
                       className="border border-slate-700 text-slate-400 px-3 py-1 text-[10px] font-bold tracking-widest uppercase hover:border-cyan-400/40 hover:text-cyan-400 transition-all duration-150"
                     >
                       EDIT
                     </button>
                     <button
-                      onClick={() => navigate(`${BASE}/rank-list/assign-rank/${rank.rank_code}`)}
+                      onClick={() => navigateWithModal(`${BASE}/rank-list/assign-rank/${rank.rank_code}`)}
                       className="border border-slate-700 text-amber-400 px-3 py-1 text-[10px] font-bold tracking-widest uppercase hover:border-amber-400/40 hover:bg-amber-400/5 transition-all duration-150"
                     >
                       ASSIGN
@@ -213,7 +220,7 @@ export default function RankAdminDashboard() {
         {quickLinks.map((link, i) => (
           <button
             key={i}
-            onClick={() => navigate(link.to)}
+            onClick={() => navigateWithModal(link.to)}
             className={`flex items-center justify-between px-5 py-4 bg-slate-900/60 border ${link.border} transition-all duration-200`}
           >
             <span className={`text-sm font-bold tracking-widest uppercase ${link.textColor}`}>{link.label}</span>

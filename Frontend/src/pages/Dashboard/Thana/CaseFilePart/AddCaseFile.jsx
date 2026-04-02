@@ -4,14 +4,30 @@ import { useMutation } from "@tanstack/react-query";
 import userStore from "@/state/userStore";
 import { addCaseFile } from "@/services/Thana/thanaApi";
 
+const CASE_TYPE_OPTIONS = [
+  { value: "theft", label: "Theft" },
+  { value: "robbery", label: "Robbery" },
+  { value: "murder", label: "Murder" },
+  { value: "assault", label: "Assault" },
+  { value: "kidnapping", label: "Kidnapping" },
+  { value: "fraud", label: "Fraud" },
+  { value: "cyber_crime", label: "Cyber Crime" },
+  { value: "drug_offense", label: "Drug Offense" },
+  { value: "domestic_violence", label: "Domestic Violence" },
+  { value: "extortion", label: "Extortion" },
+  { value: "illegal_firearms", label: "Illegal Firearms" },
+  { value: "human_trafficking", label: "Human Trafficking" },
+  { value: "other", label: "Other" },
+];
+
 function AddCaseFile() {
   const navigate = useNavigate();
   const { user } = userStore();
 
   const [form, setForm] = useState({
-    case_number: "",
+    case_title: "",
     criminal_id: "",
-    case_type: "other",
+    case_type: "theft",
     status: "open",
     description: "",
   });
@@ -57,12 +73,12 @@ function AddCaseFile() {
           className="flex flex-col gap-4"
         >
           <div>
-            <label className="text-xs text-slate-400 uppercase">Case Number</label>
+            <label className="text-xs text-slate-400 uppercase">Case Title</label>
             <input
-              value={form.case_number}
-              onChange={(e) => set("case_number", e.target.value)}
+              value={form.case_title}
+              onChange={(e) => set("case_title", e.target.value)}
               className={inputCls}
-              placeholder="e.g. CFS-2026-001"
+              placeholder="e.g. Sonargaon Bank Robbery"
               required
             />
           </div>
@@ -80,13 +96,18 @@ function AddCaseFile() {
 
           <div>
             <label className="text-xs text-slate-400 uppercase">Case Type</label>
-            <input
+            <select
               value={form.case_type}
               onChange={(e) => set("case_type", e.target.value)}
               className={inputCls}
-              placeholder="e.g. robbery"
               required
-            />
+            >
+              {CASE_TYPE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -100,6 +121,9 @@ function AddCaseFile() {
               <option value="under_investigation">Under Investigation</option>
               <option value="closed">Closed</option>
             </select>
+            <p className="text-xs text-slate-500 mt-1">
+              Registration time is auto-captured when you submit this case file.
+            </p>
           </div>
 
           <div>
@@ -111,6 +135,11 @@ function AddCaseFile() {
               rows={4}
               required
             />
+            {form.case_type === "other" && (
+              <p className="text-xs text-amber-300 mt-1">
+                For "Other" type, give specific legal/narrative details in description.
+              </p>
+            )}
           </div>
 
           <button

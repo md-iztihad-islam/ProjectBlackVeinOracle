@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   getMyNotifications,
   getUnreadNotificationCount,
@@ -49,7 +49,16 @@ const getNotificationMeta = (n) => {
 
 function UserNotificationCenter() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/user/dashboard");
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["userNotifications"],
@@ -80,8 +89,8 @@ function UserNotificationCenter() {
   });
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-200 p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
@@ -97,19 +106,21 @@ function UserNotificationCenter() {
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">My Notifications</h1>
+                <h1 className="text-2xl font-bold">Notification Center</h1>
+                <p className="text-sm text-slate-400 mt-1">Operational alerts</p>
               </div>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => readAllMut.mutate()}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm"
+              disabled={readAllMut.isPending || unreadCount === 0}
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm disabled:opacity-50"
             >
               Mark all read
             </button>
             <button
-              onClick={() => navigate("/user/dashboard")}
+              onClick={handleBack}
               className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
             >
               Back
@@ -117,13 +128,30 @@ function UserNotificationCenter() {
           </div>
         </div>
 
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+            <p className="text-xs uppercase text-slate-500">Total Alerts</p>
+            <p className="text-2xl font-bold text-slate-100 mt-1">{notifications.length}</p>
+          </div>
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+            <p className="text-xs uppercase text-slate-500">Unread</p>
+            <p className="text-2xl font-bold text-amber-300 mt-1">{unreadCount}</p>
+          </div>
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+            <p className="text-xs uppercase text-slate-500">Read</p>
+            <p className="text-2xl font-bold text-emerald-300 mt-1">
+              {Math.max(notifications.length - unreadCount, 0)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
           {isLoading ? (
             <p className="p-6 text-slate-500">Loading notifications...</p>
           ) : notifications.length === 0 ? (
-            <p className="p-6 text-slate-500">No notifications yet.</p>
+            <p className="p-6 text-slate-500">No notifications found.</p>
           ) : (
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-white/5">
               {notifications.map((n) => (
                 <li
                   key={n.notification_id}

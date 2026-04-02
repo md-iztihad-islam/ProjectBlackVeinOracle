@@ -6,12 +6,21 @@ import {
 import getJailByIdApi from "@/services/Jail/getJailByIdApi";
 import userStore from "@/state/userStore";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function JailAnalyticsOverview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = userStore();
   const jailId = user?.jail_id;
+
+  const handleBack = () => {
+    if (location.state?.modal) {
+      navigate(-1);
+      return;
+    }
+    navigate("/jail/dashboard");
+  };
 
   const { data: jailData } = useQuery({
     queryKey: ["jailDataForAnalytics", jailId],
@@ -60,8 +69,8 @@ export default function JailAnalyticsOverview() {
   const occupancyPct = totals.capacity > 0 ? ((totals.occupants / totals.capacity) * 100).toFixed(1) : "0.0";
 
   return (
-    <div className="min-h-screen bg-[#080a0e] text-slate-200 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto text-slate-200">
+      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-xs uppercase tracking-widest text-blue-400">Jail Analytics</p>
@@ -71,7 +80,7 @@ export default function JailAnalyticsOverview() {
             </p>
           </div>
           <button
-            onClick={() => navigate("/jail/dashboard")}
+            onClick={handleBack}
             className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
           >
             Back
@@ -91,13 +100,13 @@ export default function JailAnalyticsOverview() {
           <h2 className="text-lg font-semibold mb-3">Block-wise Occupancy</h2>
           <div className="bg-gray-900 border border-white/5 rounded-xl overflow-x-auto">
             {cellOccLoading ? (
-              <p className="p-6 text-slate-500">Loading block occupancy...</p>
+              <p className="p-6 text-slate-400">Loading block occupancy...</p>
             ) : blockRows.length === 0 ? (
-              <p className="p-6 text-slate-500">No cell occupancy data found for this jail.</p>
+              <p className="p-6 text-slate-400">No cell occupancy data found for this jail.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <tr className="border-b border-white/5 text-slate-400 text-xs uppercase">
                     <th className="text-left p-3">Block</th>
                     <th className="text-left p-3">Cells</th>
                     <th className="text-left p-3">Capacity</th>
@@ -113,7 +122,7 @@ export default function JailAnalyticsOverview() {
                     <tr key={r.block_id} className="border-b border-white/5">
                       <td className="p-3">
                         <div className="font-medium text-slate-100">{r.block_name}</div>
-                        <div className="text-xs text-slate-500 font-mono">{r.block_id}</div>
+                        <div className="text-xs text-slate-400 font-mono">{r.block_id}</div>
                       </td>
                       <td className="p-3">{r.total_cells}</td>
                       <td className="p-3">{r.total_cell_capacity}</td>
@@ -134,13 +143,13 @@ export default function JailAnalyticsOverview() {
           <h2 className="text-lg font-semibold mb-3">Inmates Due for Bail (This Jail)</h2>
           <div className="bg-gray-900 border border-white/5 rounded-xl overflow-x-auto">
             {dueLoading ? (
-              <p className="p-6 text-slate-500">Loading due-for-bail list...</p>
+              <p className="p-6 text-slate-400">Loading due-for-bail list...</p>
             ) : dueRows.length === 0 ? (
-              <p className="p-6 text-slate-500">No upcoming bail-due inmates found for this jail.</p>
+              <p className="p-6 text-slate-400">No upcoming bail-due inmates found for this jail.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <tr className="border-b border-white/5 text-slate-400 text-xs uppercase">
                     <th className="text-left p-3">Criminal</th>
                     <th className="text-left p-3">Arrest ID</th>
                     <th className="text-left p-3">Risk</th>
@@ -154,7 +163,7 @@ export default function JailAnalyticsOverview() {
                     <tr key={`${r.arrest_id}-${r.criminal_id}`} className="border-b border-white/5">
                       <td className="p-3">
                         <div className="font-medium text-slate-100">{r.full_name}</div>
-                        <div className="text-xs text-slate-500 font-mono">{r.criminal_id}</div>
+                        <div className="text-xs text-slate-400 font-mono">{r.criminal_id}</div>
                       </td>
                       <td className="p-3 font-mono text-xs">{r.arrest_id}</td>
                       <td className="p-3">{r.risk_level}</td>
@@ -173,13 +182,13 @@ export default function JailAnalyticsOverview() {
           <h2 className="text-lg font-semibold mb-3">National Custody Snapshot</h2>
           <div className="bg-gray-900 border border-white/5 rounded-xl overflow-x-auto">
             {custodyLoading ? (
-              <p className="p-6 text-slate-500">Loading custody snapshot...</p>
+              <p className="p-6 text-slate-400">Loading custody snapshot...</p>
             ) : custodyRows.length === 0 ? (
-              <p className="p-6 text-slate-500">No custody summary found.</p>
+              <p className="p-6 text-slate-400">No custody summary found.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <tr className="border-b border-white/5 text-slate-400 text-xs uppercase">
                     <th className="text-left p-3">Status</th>
                     <th className="text-left p-3">Count</th>
                     <th className="text-left p-3">Share</th>
@@ -207,8 +216,8 @@ export default function JailAnalyticsOverview() {
 
 function StatCard({ label, value, accent = false }) {
   return (
-    <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
-      <p className="text-xs uppercase text-slate-500">{label}</p>
+    <div className="bg-gray-900/80 border border-white/10 rounded-xl p-4">
+      <p className="text-xs uppercase text-slate-400">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${accent ? "text-blue-300" : "text-slate-100"}`}>{value}</p>
     </div>
   );
