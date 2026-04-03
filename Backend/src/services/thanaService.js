@@ -1,3 +1,4 @@
+import { getThanaAnalyticsRepository } from "../repositories/ThanaAnalyticsRepository.js";
 import { addHeadOfficerToThanaRepository, addThanaRepository, getAllThanasRepository, getThanaByDistrictRepository, getThanaByEmail, getThanaByIdRepository, updateThanaRepository, deleteThanaRepository, geThanaByNameRepository } from "../repositories/thanaRepository.js"; // by Rayyan 2.0
 import bcrypt from 'bcryptjs';
 
@@ -109,3 +110,12 @@ export const getThanaByNameService = async (name) => {
         throw error;
     }
 }
+
+export const getThanaAnalyticsService = async (filters = {}) => {
+    try {
+        return await getThanaAnalyticsRepository(filters);
+    } catch (error) {
+        console.error('getThanaAnalyticsService:', error);
+        throw error;
+    }
+};

@@ -96,6 +96,7 @@ import Organization from "@/pages/Dashboard/Officer/Arrest/Organization";
 import OfficerProfile from "@/pages/Dashboard/Officer/OfficerProfile";
 import OfficerAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerAnalytics";
 import OfficerProfileAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerProfileAnalytics";
+import ThanaAnalytics from "@/pages/Dashboard/Admin/Analytics/ThanaAnalytics";
 
 
 
@@ -212,6 +213,7 @@ function Routing() {
       {/* Analytics */}
       <Route path="/analytics/officer" element={<OfficerAnalytics />} />
       <Route path="/analytics/officer/profile/:officerId" element={<OfficerProfileAnalytics />} />
+      <Route path="/analytics/thana" element={<ThanaAnalytics />} />
 
       {/* User */}
       <Route path="/user-registration" element={<RegisterUser />} />
