@@ -1,5 +1,19 @@
-import { addHeadOfficerToThanaService, addThanaService, getAllThanasService, getThanasByDistrictService, signinThanaService, getThanaByIdService, updateThanaService, deleteThanaService, getThanaByNameService } from "../services/thanaService.js"; 
+import { addHeadOfficerToThanaService, addThanaService, getAllThanasService, getThanaAnalyticsService, getThanasByDistrictService, signinThanaService, getThanaByIdService, updateThanaService, deleteThanaService, getThanaByNameService } from "../services/thanaService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
+
+const normalizeQueryValue = (value) => {
+    if (Array.isArray(value)) {
+        const firstValue = value[0];
+        return typeof firstValue === 'string' ? firstValue.trim() : firstValue ?? null;
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed === '' ? null : trimmed;
+    }
+
+    return value ?? null;
+};
 
 export const addThanaContoller = async (req, res) => {
     try {
@@ -323,3 +337,53 @@ export const getThanaByNameController = async (req, res) => {
         });
     }
 }
+
+export const getThanaAnalyticsController = async (req, res) => {
+    try {
+        const q = req.query;
+
+        console.log('Received request for thana analytics with query:', q);
+ 
+        const filters = {
+            thanaId:           q.thanaId           ?? q.thana_id            ?? q.thanaID,
+            thanaName:         q.thanaName          ?? q.name,
+            district:          q.district,
+            zone:              q.zone,
+            email:             q.email,
+            phone:             q.phone,
+            search:            q.search,
+            headOfficerId:     q.headOfficerId       ?? q.head_officer_id,
+            createdByAdminId:  q.createdByAdminId    ?? q.created_by_admin_id,
+            hasHeadOfficer:    q.hasHeadOfficer      ?? q.has_head_officer,
+            officerRank:       q.officerRank         ?? q.rank,
+            officerGender:     q.officerGender       ?? q.gender,
+            officerSearch:     q.officerSearch,
+            gdStatus:          q.gdStatus            ?? q.gd_status,
+            gdType:            q.gdType              ?? q.gd_type,
+            gdFrom:            q.gdFrom              ?? q.gd_from,
+            gdTo:              q.gdTo                ?? q.gd_to,
+            caseStatus:        q.caseStatus          ?? q.case_status,
+            caseType:          q.caseType            ?? q.case_type,
+            caseFrom:          q.caseFrom            ?? q.case_from,
+            caseTo:            q.caseTo              ?? q.case_to,
+            custodyStatus:     q.custodyStatus       ?? q.custody_status,
+            arrestFrom:        q.arrestFrom          ?? q.arrest_from,
+            arrestTo:          q.arrestTo            ?? q.arrest_to,
+            criminalStatus:    q.criminalStatus      ?? q.criminal_status,
+            minRiskLevel:      q.minRiskLevel        ?? q.min_risk_level,
+            maxRiskLevel:      q.maxRiskLevel        ?? q.max_risk_level,
+            bailStatus:        q.bailStatus          ?? q.bail_status,
+            bailFrom:          q.bailFrom            ?? q.bail_from,
+            bailTo:            q.bailTo              ?? q.bail_to,
+            incarcerationFrom: q.incarcerationFrom   ?? q.incarceration_from,
+            incarcerationTo:   q.incarcerationTo     ?? q.incarceration_to,
+        };
+ 
+        const data = await getThanaAnalyticsService(filters);
+ 
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.error('getThanaAnalyticsController:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};

@@ -1,5 +1,68 @@
 import pool from '../config/dbConnection.js';
 
+const escapeLikePattern = (value) => String(value ?? '').replace(/[\\%_]/g, '\\$&');
+
+const normalizeText = (value) => {
+    if (value === undefined || value === null) return null;
+    const text = String(value).trim();
+    return text === '' ? null : text;
+};
+
+const addParam = (params, value) => {
+    params.push(value);
+    return `$${params.length}`;
+};
+
+const addExactMatch = (clauses, params, column, value) => {
+    const normalized = normalizeText(value);
+    if (!normalized) return;
+    clauses.push(`${column} = ${addParam(params, normalized)}`);
+};
+
+const addInsensitiveLike = (clauses, params, column, value) => {
+    const normalized = normalizeText(value);
+    if (!normalized) return;
+    const placeholder = addParam(params, `%${escapeLikePattern(normalized)}%`);
+    clauses.push(`${column} ILIKE ${placeholder} ESCAPE '\\'`);
+};
+
+const addDateRange = (clauses, params, column, fromValue, toValue) => {
+    const from = normalizeText(fromValue);
+    const to = normalizeText(toValue);
+
+    if (from) {
+        clauses.push(`${column} >= ${addParam(params, from)}`);
+    }
+
+    if (to) {
+        clauses.push(`${column} <= ${addParam(params, to)}`);
+    }
+};
+
+const addNumericRange = (clauses, params, column, minValue, maxValue) => {
+    const min = normalizeText(minValue);
+    const max = normalizeText(maxValue);
+
+    if (min) {
+        clauses.push(`${column} >= ${addParam(params, Number(min))}`);
+    }
+
+    if (max) {
+        clauses.push(`${column} <= ${addParam(params, Number(max))}`);
+    }
+};
+
+const parseBooleanFilter = (value) => {
+    const normalized = normalizeText(value);
+    if (!normalized) return null;
+    const lowered = normalized.toLowerCase();
+    if (['true', '1', 'yes'].includes(lowered)) return true;
+    if (['false', '0', 'no'].includes(lowered)) return false;
+    return null;
+};
+
+const coalesceNumber = (value) => Number(value) || 0;
+
 export const addThanaRepository = async (thanaData) => {
     try {
         const { thana_name, district, zone, address, phone, email, password, created_by_admin_id, head_officer_id } = thanaData;
@@ -72,7 +135,6 @@ export const getAllThanasRepository = async () => {
     }
 }
 
-// by Rayyan 2.0
 export const getThanaByIdRepository = async (thanaId) => {
     try {
         const query = 'SELECT * FROM thana WHERE thana_id = $1;';
@@ -131,3 +193,4 @@ export const geThanaByNameRepository = async (thanaName) => {
         throw error;
     }
 }
+

@@ -1,4 +1,4 @@
-import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository, getOfficerByIdRepository, resetPasswordRepository, getOfficerAnalyticsRepository } from "../repositories/officerRepository.js"; 
+import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository, getOfficerByIdRepository, resetPasswordRepository, getOfficerAnalyticsRepository, getOfficerByNameRepository } from "../repositories/officerRepository.js"; 
 import bcrypt from 'bcryptjs';
 import { sendOfficerOnboardingEmail } from "../utils/mailer.js";
 import { normalizeImageUrl } from "../utils/cloudinary.js";
@@ -216,6 +216,16 @@ export const getOfficerAnalyticsService = async (thanaId, district, gender, rank
         return data;
     } catch (error) {
         console.log('Error fetching officer analytics at getOfficerAnalyticsService:', error);
+        throw error;
+    }
+}
+
+export const getOfficerByNameService = async (name) => {
+    try {
+        const officers = await getOfficerByNameRepository(name);
+        return officers;
+    } catch (error) {        
+        console.log('Error fetching officer by name at getOfficerByNameService:', error);
         throw error;
     }
 }

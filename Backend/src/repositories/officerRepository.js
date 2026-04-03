@@ -478,3 +478,19 @@ export const getOfficerAnalyticsRepository = async (thanaId, district, gender, r
         throw error;
     }
 }
+
+export const getOfficerByNameRepository = async (name) => {
+    try {
+        const query = `
+            SELECT *
+            FROM officer
+            WHERE full_name ILIKE $1;
+        `;
+        const sanitizedName = name.replace(/[%_\\]/g, '\\$&');
+        const result = await pool.query(query, [`%${sanitizedName}%`]);
+        return result.rows;
+    } catch (error) {
+        console.log('Error fetching officer by name at getOfficerByNameRepository:', error);
+        throw error;
+    }
+}

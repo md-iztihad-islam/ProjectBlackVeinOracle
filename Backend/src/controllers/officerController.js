@@ -1,4 +1,4 @@
-import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService, getOfficerByIdService, resetPasswordService, getOfficerAnalyticsService } from "../services/officerService.js"; 
+import { addOfficerService, getAllOfficersService, getOfficersByThanaIdService, signinOfficerService, getOfficersByRankService, updateOfficerService, deleteOfficerService, searchOfficersService, getOfficerByIdService, resetPasswordService, getOfficerAnalyticsService, getOfficerByNameService } from "../services/officerService.js"; 
 import { generateJwtToken } from "../utils/jwtToken.js";
 
 export const addOfficerController = async (req, res) => {
@@ -372,19 +372,11 @@ export const resetPasswordController = async (req, res) => {
 
 export const getOfficerAnalyticsController = async (req, res) => {
     try {
-        const thanaId = req.query.thanaId ?? req.query.thana_id ?? req.query.thanaID ?? null;
-        const district = req.query.district ?? null;
-        const gender = req.query.gender ?? null;
-        const rank = req.query.rank ?? null;
-
-        const normalizedThanaId = typeof thanaId === 'string' ? thanaId.trim() : thanaId;
-        const normalizedDistrict = typeof district === 'string' ? district.trim() : district;
-        const normalizedGender = typeof gender === 'string' ? gender.trim() : gender;
-        const normalizedRank = typeof rank === 'string' ? rank.trim() : rank;
+        const { thanaId, district, gender, rank } = req.query;
 
         console.log('Get Officer Analytics Query Params:', req.query);
 
-        const data = await getOfficerAnalyticsService(normalizedThanaId, normalizedDistrict, normalizedGender, normalizedRank);
+        const data = await getOfficerAnalyticsService(thanaId, district, gender, rank);
 
         return res.status(200).json({
             success: true,
@@ -392,6 +384,38 @@ export const getOfficerAnalyticsController = async (req, res) => {
         });
     } catch (error) {
         console.log('Error fetching officer analytics at getOfficerAnalyticsController:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+}
+
+export const getOfficerByNameController = async (req, res) => {
+    try {
+        const { name } = req.params;
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Officer name is required'
+            });
+        }
+
+        const officers = await getOfficerByNameService(name);
+
+        if (!officers || officers.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No officers found with the given name'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: officers
+        });
+    } catch (error) {
+        console.log('Error fetching officer by name at getOfficerByNameController:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

@@ -1,5 +1,5 @@
 import express from 'express';
-import { addOfficerController, getAllOfficersController, getOfficersByThanaIdController, signinOfficerController, signoutOfficerController, getOfficersByRankController, updateOfficerController, deleteOfficerController, searchOfficersController, getOfficerByIdController, resetPasswordController, getOfficerAnalyticsController } from '../../controllers/officerController.js'; // by Rayyan 2.0
+import { addOfficerController, getAllOfficersController, getOfficersByThanaIdController, signinOfficerController, signoutOfficerController, getOfficersByRankController, updateOfficerController, deleteOfficerController, searchOfficersController, getOfficerByIdController, resetPasswordController, getOfficerAnalyticsController, getOfficerByNameController } from '../../controllers/officerController.js'; // by Rayyan 2.0
 import isAuthenticated from '../../utils/isAuthenticated.js';
 import requireRole from '../../utils/requireRole.js'; // by Rayyan 2.0
 
@@ -17,5 +17,6 @@ router.delete('/delete-officer/:officerId', isAuthenticated, requireRole("admin"
 router.get('/search-officers', isAuthenticated, requireRole("admin", "thana"), searchOfficersController);
 router.post('/reset-password/:officerId', isAuthenticated, resetPasswordController);
 router.get('/analytics', isAuthenticated, requireRole("admin", "thana", "officer"), getOfficerAnalyticsController);
+router.get('/get-officer-by-name/:name', isAuthenticated, requireRole("admin", "thana", "officer"), getOfficerByNameController);
 
 export default router;
