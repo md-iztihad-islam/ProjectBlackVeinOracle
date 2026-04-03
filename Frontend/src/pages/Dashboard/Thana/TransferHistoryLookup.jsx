@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { getTransferHistory } from "@/services/Incarceration/incarcerationApi";
+import getCriminalByNameApi from "@/services/Criminal/getCriminalByNameApi";
 
 function TransferHistoryLookup() {
   const navigate = useNavigate();
   const [criminalId, setCriminalId] = useState("");
+  const [criminalInput, setCriminalInput] = useState("");
+  const [open, setOpen] = useState(false);
   const [submittedId, setSubmittedId] = useState("");
+  const ref = useRef(null);
+
+  const { data: criminalSearchData } = useQuery({
+    queryKey: ["transfer-history-criminal-search", criminalInput],
+    queryFn: () => getCriminalByNameApi(criminalInput),
+    enabled: criminalInput.trim().length >= 2,
+    staleTime: 30_000,
+  });
+  const criminalSuggestions = criminalSearchData?.data || [];
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   const {
     data: history,
@@ -41,14 +61,40 @@ function TransferHistoryLookup() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-gray-900 border border-white/5 rounded-xl p-4 mb-4">
-          <label className="text-sm text-slate-400 block mb-2">Criminal ID</label>
-          <div className="flex gap-2">
-            <input
-              value={criminalId}
-              onChange={(e) => setCriminalId(e.target.value)}
-              placeholder="Enter criminal ID"
-              className="flex-1 bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-sm"
-            />
+          <label className="text-sm text-slate-400 block mb-2">Criminal</label>
+          <div className="flex gap-2" ref={ref}>
+            <div className="relative flex-1">
+              <input
+                value={criminalInput}
+                onChange={(e) => {
+                  setCriminalId("");
+                  setCriminalInput(e.target.value);
+                  setOpen(true);
+                }}
+                onFocus={() => criminalInput.trim().length >= 2 && setOpen(true)}
+                placeholder="Type criminal name..."
+                className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-sm"
+              />
+              {open && !criminalId && criminalSuggestions.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-white/10 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                  {criminalSuggestions.map((c) => (
+                    <button
+                      key={c.criminal_id}
+                      type="button"
+                      onClick={() => {
+                        setCriminalId(c.criminal_id);
+                        setCriminalInput(`${c.full_name} (${c.criminal_id})`);
+                        setOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/5 border-b border-white/5 last:border-0"
+                    >
+                      <span className="font-semibold text-slate-100">{c.full_name}</span>
+                      <span className="text-slate-400 text-xs ml-2">{c.criminal_id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm"

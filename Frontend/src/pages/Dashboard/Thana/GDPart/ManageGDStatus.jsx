@@ -14,7 +14,6 @@ function ManageGDStatus() {
   const { user } = userStore();
   const thanaId = user?.thana_id;
 
-  const [status, setStatus] = useState("submitted");
   const [assignedOfficerId, setAssignedOfficerId] = useState("");
 
   const { data: officersData } = useQuery({
@@ -39,7 +38,7 @@ function ManageGDStatus() {
   const { mutate, isPending } = useMutation({
     mutationFn: () =>
       updateGDReportStatus(gdId, {
-        status,
+        status: "assigned",
         assignedOfficerId: assignedOfficerId || null,
       }),
     onSuccess: (r) => {
@@ -77,31 +76,20 @@ function ManageGDStatus() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!assignedOfficerId) {
+              alert("Please select an officer to assign this GD.");
+              return;
+            }
             mutate();
           }}
           className="flex flex-col gap-4"
         >
           <div>
-            <label className="text-xs text-slate-400 uppercase">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-gray-800 border border-white/10 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50"
-            >
-              <option value="submitted">Submitted</option>
-              <option value="assigned">Assigned</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="resolved">Resolved</option>
-            </select>
-          </div>
-
-          <div>
             <label className="text-xs text-slate-400 uppercase">
               Assign / Change Assigned Officer
             </label>
             <select
-              value={assignedOfficerId}
+              value={assignedOfficerId || gdRecord?.assigned_officer_id || ""}
               onChange={(e) => setAssignedOfficerId(e.target.value)}
               className="w-full bg-gray-800 border border-white/10 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50"
             >
@@ -119,7 +107,7 @@ function ManageGDStatus() {
             disabled={isPending}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-medium"
           >
-            {isPending ? "Updating..." : "Update GD Status / Assignment"}
+            {isPending ? "Assigning..." : "Assign Officer"}
           </button>
         </form>
       </div>

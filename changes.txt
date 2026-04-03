@@ -1,0 +1,276 @@
+PROJECT BLACK VEIN ORACLE — WHAT WE DID & WHAT'S LEFT
+======================================================
+
+
+BACKEND — WHAT WE BUILT (after schema + db connection)
+======================================================
+
+1. SERVER SETUP
+   - index.js: Express.js server on port 6001, CORS enabled, cookie-parser for JWT cookies
+   - dbConnection.js: PostgreSQL connection pool to Supabase cloud database
+   - serverConfig.js: Environment config (PORT, JWT_SECRET, DB_URL)
+   - Location: Backend/src/index.js, Backend/src/config/
+
+2. AUTHENTICATION SYSTEM (JWT + Cookies)
+   - jwtToken.js: Generates JWT token and sets it as HTTP-only cookie (7-day expiry)
+   - isAuthenticated.js: Middleware that reads JWT cookie, verifies token, sets req.id
+   - Every entity (admin, thana, officer, jail, user) has signin + signout endpoints
+   - Signin: validates email/password with bcrypt, returns JWT cookie
+   - Signout: clears the JWT cookie from browser
+   - Location: Backend/src/utils/jwtToken.js, Backend/src/utils/isAuthenticated.js
+
+3. ROLE-BASED ACCESS CONTROL (RBAC)
+   - requireRole.js: Middleware that checks user role from ID prefix (ADM, THN, OFC, JAL, USR)
+   - 5 roles: admin (full access), thana (their data), officer (view+respond), jail (their jail), user (GD reports only)
+   - Applied to every protected route — blocks unauthorized access with 403
+   - Location: Backend/src/utils/requireRole.js
+
+4. FOUR-LAYER ARCHITECTURE (for every entity)
+   - Repository: Raw SQL queries to PostgreSQL (INSERT, SELECT, UPDATE, DELETE)
+   - Service: Business logic layer calling repository functions
+   - Controller: Handles HTTP request/response, error codes (409 duplicate, 400 bad FK, 500 server)
+   - Router: Express routes with middleware chains (isAuthenticated → requireRole → controller)
+   - Location: Backend/src/repositories/, services/, controllers/, routes/v1/
+
+5. ENTITIES BUILT (21 modules, 160 endpoints total)
+
+   5a. ADMIN (7 endpoints)
+       - Register, signin, signout, get all, get by ID, update, delete
+       - Only admin can manage other admins
+       - Location: adminRepository.js, adminService.js, adminController.js, adminRouter.js
+
+   5b. THANA — Police Station (9 endpoints)
+       - Register, signin, signout, add head officer, get by district, get all, get by ID, update, delete
+       - Only admin can create/delete thanas
+       - Location: thanaRepository.js, thanaService.js, thanaControler.js, thanaRouter.js
+
+   5c. OFFICER (9 endpoints)
+       - Register, signin, signout, get all, get by thana, get by rank, search, update, delete
+       - Thana registers officers under their station
+       - Location: officerRepository.js, officerService.js, officerController.js, officerRouter.js
+
+   5d. JAIL (10 endpoints)
+       - Register, signin, signout, get all, get by ID, get by name, get by zone, get by district, update, delete
+       - Admin creates jails, jail admin manages their own data
+       - Location: jailRepository.js, jailService.js, jailController.js, jailRouter.js
+
+   5e. USER — Citizen (7 endpoints)
+       - Register, signin, signout, get all, get by ID, update, delete
+       - Citizens can file GD reports
+       - Location: userRepository.js, userService.js, userController.js, userRouter.js
+
+   5f. RANK (5 endpoints)
+       - Add rank, get all, get by code, update, delete
+       - Admin manages police ranks (Inspector, Sub-Inspector, etc.)
+       - Location: rankRepository.js, rankService.js, rankController.js, rankRouter.js
+
+   5g. CRIMINAL (13 endpoints)
+       - Add, get by ID, get by thana, get all, update, delete, search, get by status
+       - Full profile (cases+arrests+orgs combined), timeline, recalculate risk score
+       - Public: wanted list, criminals by area — no login needed
+       - Location: criminalRepository.js, criminalService.js, criminalController.js, criminalRouter.js
+
+   5h. LOCATION (6 endpoints)
+       - Add, get all, get by ID, update, delete, get by district
+       - Tracks areas/addresses used in criminal tracking
+       - Location: locationRepository.js, locationService.js, locationController.js, locationRouter.js
+
+   5i. ORGANIZATION — Criminal Org (6 endpoints)
+       - Add, get all, get by ID, update, delete, search
+       - Tracks criminal organizations with threat levels
+       - Location: organizationRepository.js, organizationService.js, organizationController.js, organizationRouter.js
+
+   5j. GD REPORT — General Diary (7 endpoints)
+       - Add (user files report), get by user, get by ID, update status (approve/reject), get all, get by thana, delete
+       - Users file reports, thana/officers approve/reject
+       - Location: gdReportRepository.js, gdReportService.js, gdReportController.js, gdReportRouter.js
+
+   5k. CELL BLOCK (6 endpoints)
+       - Add, get all, get by ID, get by jail, update, delete
+       - Jail blocks inside a jail (Block A, Block B, etc.)
+       - Location: cellBlockRepository.js, cellBlockService.js, cellBlockController.js, cellBlockRouter.js
+
+   5l. CELL (7 endpoints)
+       - Add, get all, get by ID, get by block, get available cells, update, delete
+       - Individual cells inside blocks with capacity tracking
+       - Location: cellRepository.js, cellService.js, cellController.js, cellRouter.js
+
+   5m. CASE FILE (7 endpoints)
+       - Add, get all, get by ID, get by thana, get by criminal, update, delete
+       - Legal case files tied to criminals and thanas
+       - Location: caseFileRepository.js, caseFileService.js, caseFileController.js, caseFileRouter.js
+
+   5n. ARREST RECORD (7 endpoints)
+       - Add, get all, get by ID, get by criminal, get by thana, update, delete
+       - Arrest records with dates, custody status, bail due dates
+       - Location: arrestRecordRepository.js, arrestRecordService.js, arrestRecordController.js, arrestRecordRouter.js
+
+   5o. INCARCERATION (11 endpoints)
+       - Add, get all, get by ID, get by criminal, get by jail, update, release, delete
+       - Find available cell, transfer criminal between jails, transfer history
+       - Location: incarcerationRepository.js, incarcerationService.js, incarcerationController.js, incarcerationRouter.js
+
+   5p. BAIL RECORD (8 endpoints)
+       - Add, get all, get by ID, get by criminal, get by arrest, update, delete, process bail decision
+       - Court bail records with amount, surety, status
+       - Location: bailRecordRepository.js, bailRecordService.js, bailRecordController.js, bailRecordRouter.js
+
+   5q. CRIMINAL-ORGANIZATION link (6 endpoints)
+       - Add link, get all, get criminals by org, get orgs by criminal, update role, delete link
+       - Many-to-many: which criminals belong to which organizations
+       - Location: criminalOrganizationRepository.js, criminalOrganizationService.js, criminalOrganizationController.js, criminalOrganizationRouter.js
+
+   5r. CRIMINAL-RELATION (5 endpoints)
+       - Add relation, get all, get by criminal, update, delete
+       - Links between criminals (accomplice, family, rival)
+       - Location: criminalRelationRepository.js, criminalRelationService.js, criminalRelationController.js, criminalRelationRouter.js
+
+   5s. CRIMINAL-LOCATION (5 endpoints)
+       - Add, get all, get locations by criminal, get criminals by location, delete
+       - Tracks where criminals have been spotted
+       - Location: criminalLocationRepository.js, criminalLocationService.js, criminalLocationController.js, criminalLocationRouter.js
+
+   5t. ANALYTICS (20 endpoints)
+       - Dashboard overview (total counts of everything)
+       - Criminal full profile, high-risk network, criminal ranking
+       - Thana performance, officer workload
+       - Jail occupancy detail, cell occupancy, custody overview
+       - GD report analytics, bail statistics
+       - Criminal movement history, inmates due for bail
+       - Organization threat analysis, free org members
+       - Monthly arrest trend, district crime stats
+       - Criminals above average cases, audit logs
+       - Recalculate all risk scores
+       - Location: analyticsRepository.js, analyticsService.js, analyticsController.js, analyticsRouter.js
+
+   5u. NOTIFICATION (4 endpoints)
+       - Get my notifications, unread count, mark one as read, mark all as read
+       - Location: notificationRepository.js, notificationService.js, notificationController.js, notificationRouter.js
+
+6. DATABASE OBJECTS (created in Supabase via setup script)
+   - 22 tables with proper constraints, foreign keys, indexes
+   - 5 database views (v_wanted_criminals, v_criminal_full_profile, etc.)
+   - 4 functions (fn_calculate_criminal_risk, fn_get_criminal_timeline, etc.)
+   - 5 trigger functions + 5 triggers (auto-update timestamps, risk recalculation)
+   - 3 stored procedures (proc_transfer_criminal, proc_process_bail, etc.)
+   - Location: Backend/src/schemas/schema.sql (definitions), executed in Supabase
+
+7. ERROR HANDLING (applied to all 19 controllers)
+   - PostgreSQL error code 23505 → 409 "Record already exists" (duplicate)
+   - PostgreSQL error code 23503 → 400 "Referenced record does not exist" (bad FK)
+   - All other errors → 500 "Internal server error"
+
+8. ROUTING SETUP
+   - apiRouter.js: Mounts v1Router at /api
+   - v1Router.js: Mounts all 21 entity routers at /v1/admin, /v1/thana, etc.
+   - Full path: http://localhost:6001/api/v1/{entity}/{action}
+   - Location: Backend/src/routes/apiRouter.js, Backend/src/routes/v1/v1Router.js
+
+
+FRONTEND — WHAT WE BUILT
+=========================
+
+1. PROJECT SETUP (by Iztihad)
+   - React 19 + Vite 7, TailwindCSS v4, DaisyUI, shadcn/ui components
+   - React Router v7, TanStack React Query, Zustand state, Framer Motion
+   - Axios + cookie-based auth
+   - Location: Frontend/src/main.jsx, App.jsx, vite.config.js
+
+2. PAGES BUILT (by Iztihad)
+   - HomePage.jsx: Landing page with links to access portal
+   - AccessRedirectionPage.jsx: Login portal with 4 role cards (admin, thana, officer, jail)
+   - LoginPage.jsx: Dynamic login form for any role
+   - ThanaRegistrationPage.jsx, OfficerRegistrationPage.jsx, JailRegistrationPage.jsx: Registration forms
+   - AdminDashboard.jsx: Full admin dashboard with stats, tables, tabs (mock data)
+   - ThanaDashboard.jsx: Thana dashboard with officers, criminals, GD reports, case files
+   - UserDashboard.jsx: User dashboard showing GD reports
+   - AddGDReport.jsx: Form for users to file GD reports
+   - UserProfile.jsx, EditProfile.jsx: User profile management
+   - RegisterUser.jsx, SigninUser.jsx: User auth pages
+   - NotFound.jsx: 404 page
+   - Location: Frontend/src/pages/
+
+3. UI COMPONENTS (by Iztihad — shadcn/ui)
+   - button, input, card, table, tabs, badge, select, separator, field, label
+   - Location: Frontend/src/components/ui/
+
+4. STATE MANAGEMENT
+   - userStore.js: Zustand store with localStorage persistence for user session
+   - Location: Frontend/src/state/userStore.js
+
+5. API SERVICES (existing)
+   - loginApi.js: Login functions for all 5 roles
+   - signoutApi.js: Signout functions for all 5 roles (by Rayyan)
+   - registrationApi.js: Registration for thana, officer, jail
+   - getAllThanaApi.js, getThanaByDistrictApi.js: Thana data fetching
+   - getCriminalByThanaId.js: Criminal data by thana
+   - getGDReportByUserApi.js: GD reports for logged-in user
+   - addGDReportApi.js: Submit new GD report
+   - registerUserApi.js, signinUserApi.js: User auth
+   - Location: Frontend/src/services/
+
+6. ROUTING
+   - Routing.jsx: Maps URLs to page components (admin, thana, officer, jail, user dashboards)
+   - Location: Frontend/src/routes/Routing.jsx
+
+7. BUG FIXES APPLIED (by Rayyan)
+   - LoginPage.jsx: Fixed isLoading→isPending, role-based redirect after login
+   - registrationApi.js: Fixed 3 wrong API URLs
+   - getAllThanaApi.js: Fixed URL /get-all-thana → /get-all-thanas
+   - Registration pages: Fixed redirect paths after registration
+   - HomePage.jsx: Fixed dead links to navigate to /access
+   - AdminDashboard.jsx: Fixed ESLint motion error, added signout button
+   - UserDashboard.jsx: Added signout button with security API call
+   - Location: Various files in Frontend/src/
+
+
+WHAT IS REMAINING & WHY
+========================
+
+1. PROTECTED ROUTE COMPONENT (Frontend)
+   - What: ProtectedRoute.jsx — wraps dashboard routes, redirects if not logged in or wrong role
+   - Why not done: Frontend routing guard — Iztihad will add this when connecting all dashboards
+   - Code is ready in FINAL_PROJECT_GUIDE.md PART 7
+
+2. ADDITIONAL API SERVICE FILES (Frontend — 9 files)
+   - What: cellBlockApi.js, cellApi.js, caseFileApi.js, arrestRecordApi.js, incarcerationApi.js, bailRecordApi.js, criminalOrgApi.js, criminalRelationApi.js, criminalLocationApi.js, notificationApi.js
+   - Why not done: These are frontend HTTP wrappers — only needed when dashboard pages use them
+   - Code is ready in FINAL_PROJECT_GUIDE.md PART 8.5-8.9
+
+3. OFFICER DASHBOARD PAGE (Frontend)
+   - What: OfficerDashboard.jsx with criminal search and GD report response
+   - Why not done: Iztihad is building dashboards — he has officer sub-pages already (SearchPart/, GDPart/)
+   - Code is ready in FINAL_PROJECT_GUIDE.md PART 9.3
+
+4. JAIL DASHBOARD ENHANCEMENT (Frontend)
+   - What: JailDashboard.jsx needs cell block management, inmate tables
+   - Why not done: Basic version exists, needs enhancement with real API calls
+   - Code is ready in FINAL_PROJECT_GUIDE.md PART 9.4
+
+5. PUBLIC PAGES (Frontend — 2 files)
+   - What: WantedCriminals.jsx, CriminalsByArea.jsx — public pages anyone can view
+   - Why not done: These are extra features, core system works without them
+   - Code is ready in FINAL_PROJECT_GUIDE.md PART 10
+
+6. ADMIN DASHBOARD REAL DATA (Frontend)
+   - What: Replace hardcoded mock data in AdminDashboard.jsx with real API calls
+   - Why not done: Iztihad designed the UI with mock data first — API wiring is next step
+   - Import snippets ready in FINAL_PROJECT_GUIDE.md PART 11
+
+7. USER LOGIN CARD (Frontend)
+   - What: Add 5th card (user/citizen) to AccessRedirectionPage.jsx
+   - Why not done: Iztihad built 4 cards (admin, thana, officer, jail) — user card is a quick addition
+   - Code pattern exists in FINAL_PROJECT_GUIDE.md PART 12
+
+8. GD REPORT SUB-ROUTES (Frontend)
+   - What: /user/dashboard/gd-reports, /user/gd-reports, /user/add-gd-report pages
+   - Why not done: Iztihad planned these routes in UserDashboard navigation — he will create them
+   - These are his planned pages, not ours to build
+
+
+SUMMARY
+=======
+Backend: 100% complete — 21 modules, 160 endpoints, 4-layer architecture, RBAC, JWT auth, error handling
+Database: 100% complete — 22 tables, views, functions, triggers, procedures all live in Supabase
+Frontend: ~70% complete — all pages exist, auth works, dashboards built, remaining is API wiring + a few new pages
+All remaining frontend code is written in FINAL_PROJECT_GUIDE.md — just needs copy-paste

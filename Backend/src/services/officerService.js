@@ -1,6 +1,7 @@
 import { addOfficerRepository, getAllOfficersRepository, getOfficerByEmailRepository, getOfficerByThanaIdRepository, getOfficersByRankRepository, updateOfficerRepository, deleteOfficerRepository, searchOfficersRepository, getOfficerByIdRepository, resetPasswordRepository, getOfficerAnalyticsRepository } from "../repositories/officerRepository.js"; 
 import bcrypt from 'bcryptjs';
 import { sendOfficerOnboardingEmail } from "../utils/mailer.js";
+import { normalizeImageUrl } from "../utils/cloudinary.js";
 
 const VALID_GENDERS = ["male", "female", "other"];
 
@@ -28,6 +29,13 @@ export const addOfficerService = async (officerData) => {
                 throw new Error("Invalid gender");
             }
             officerData.gender = normalizedGender;
+        }
+
+        if (officerData.image_url) {
+            officerData.image_url = await normalizeImageUrl({
+                imageUrl: officerData.image_url,
+                folder: "black-vein-oracle/officers",
+            });
         }
 
         const newOfficer = await addOfficerRepository(officerData);
@@ -128,6 +136,13 @@ export const updateOfficerService = async (officerId, data) => {
                 throw new Error("Invalid gender");
             }
             data.gender = normalizedGender;
+        }
+
+        if (data.image_url) {
+            data.image_url = await normalizeImageUrl({
+                imageUrl: data.image_url,
+                folder: "black-vein-oracle/officers",
+            });
         }
 
         const updatedOfficer = await updateOfficerRepository(officerId, data);

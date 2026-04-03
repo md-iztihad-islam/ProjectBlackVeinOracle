@@ -3,6 +3,7 @@ import addArrestRecordApi from "@/services/ArrestRecord/addArrestRecordApi";
 import { officerSignoutApi } from "@/services/authServices/signoutApi";
 import getGDReportByAssignedOfficerApi from "@/services/GDReport/getGDReportByAssignedOfficerApi";
 import getCriminalByNameApi from "@/services/Criminal/getCriminalByNameApi";
+import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
@@ -352,6 +353,11 @@ export default function OfficerDashboard() {
 
   const gdReports     = gdReportsData?.data     || [];
   const arrestRecords = arrestRecordsData?.data || [];
+  const { data: unreadNotificationData } = useQuery({
+    queryKey: ["officerNotificationUnreadCount"],
+    queryFn: getUnreadNotificationCount,
+  });
+  const unreadNotificationCount = Number(unreadNotificationData?.data?.unread_count || 0);
   const pendingGDs    = gdReports.filter(r => r.status === "submitted" || r.status === "assigned");
   const inCustody     = arrestRecords.filter(r => r.custody_status === "in_custody");
   const gdCounts      = gdReports.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
@@ -393,6 +399,23 @@ export default function OfficerDashboard() {
                 <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
               </svg>
               Profile
+            </button>
+
+            {/* Notifications */}
+            <button
+              onClick={() => navigate("/officer/dashboard/notifications")}
+              className="relative w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition flex items-center justify-center"
+              aria-label="Notifications"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadNotificationCount}
+                </span>
+              )}
             </button>
 
             {/* Sign out */}

@@ -6,14 +6,21 @@ import {
   getCriminalFullProfileApi,
   getCriminalTimelineApi,
   getCriminalCaseHistoryApi,
+  getWantedCriminalsApi,
 } from "@/services/User/criminalLookupApi";
 
 function CriminalsByArea() {
   const navigate = useNavigate();
   const [districtInput, setDistrictInput] = useState("");
   const [district, setDistrict] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedCriminal, setSelectedCriminal] = useState(null);
   const [selectedCaseFile, setSelectedCaseFile] = useState(null);
+
+  const { data: wantedData } = useQuery({
+    queryKey: ["user-district-suggestions"],
+    queryFn: getWantedCriminalsApi,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["user-criminals-by-area", district],
@@ -38,7 +45,33 @@ function CriminalsByArea() {
     enabled: Boolean(selectedCriminalId),
   });
 
-  const rows = data?.data || [];
+  const rows = Array.isArray(data?.data) ? data.data : [];
+  const wantedRows = Array.isArray(wantedData?.data) ? wantedData.data : [];
+  const suggestedDistricts = (() => {
+    const bag = new Set();
+    wantedRows.forEach((r) => {
+      const d = (r.last_seen_district || r.district || "").trim();
+      if (d) bag.add(d);
+    });
+    rows.forEach((r) => {
+      const d = (r.district || r.last_seen_district || "").trim();
+      if (d) bag.add(d);
+    });
+    return Array.from(bag).sort((a, b) => a.localeCompare(b));
+  })();
+
+  const districtSuggestions = (() => {
+    const q = districtInput.trim().toLowerCase();
+    if (!q) return suggestedDistricts.slice(0, 8);
+    return suggestedDistricts.filter((d) => d.toLowerCase().includes(q)).slice(0, 8);
+  })();
+
+  const filteredRows = (() => {
+    if (!district) return rows;
+    const d = district.toLowerCase();
+    return rows.filter((r) => String(r.district || r.last_seen_district || "").toLowerCase() === d);
+  })();
+
   const apiFailed = Boolean(district && data && data.success === false);
   const selectedCriminalProfile = selectedCriminalProfileData?.data || null;
   const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
@@ -60,19 +93,46 @@ function CriminalsByArea() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!districtInput.trim()) return;
             setDistrict(districtInput.trim());
+            setShowSuggestions(false);
           }}
-          className="flex gap-2 mb-6"
+          className="rounded-2xl border border-white/10 bg-gray-900/70 p-4 mb-6"
         >
-          <input
-            value={districtInput}
-            onChange={(e) => setDistrictInput(e.target.value)}
-            placeholder="Enter district (e.g. Dhaka)"
-            className="flex-1 bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
-          />
-          <button className="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg">
-            Search
-          </button>
+          <label className="text-xs uppercase tracking-widest text-slate-400 block mb-2">District</label>
+          <div className="relative flex gap-2">
+            <input
+              value={districtInput}
+              onFocus={() => setShowSuggestions(true)}
+              onChange={(e) => {
+                setDistrictInput(e.target.value);
+                setShowSuggestions(true);
+              }}
+              placeholder="Type district (e.g. Dhaka)"
+              className="flex-1 bg-gray-800 border border-white/10 rounded-lg px-3 py-2"
+            />
+            <button className="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg text-sm">
+              Search
+            </button>
+            {showSuggestions && districtSuggestions.length > 0 && (
+              <div className="absolute left-0 right-24 top-11 z-20 bg-gray-900 border border-white/10 rounded-lg max-h-56 overflow-auto">
+                {districtSuggestions.map((d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    onClick={() => {
+                      setDistrictInput(d);
+                      setDistrict(d);
+                      setShowSuggestions(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/5"
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </form>
 
         {!district ? (
@@ -81,12 +141,12 @@ function CriminalsByArea() {
           <p className="text-slate-400">Loading...</p>
         ) : apiFailed ? (
           <p className="text-rose-400">Failed to fetch records. Please retry.</p>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <p className="text-slate-400">No records found for this district.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-gray-900/70">
             <table className="w-full text-sm">
-              <thead className="bg-gray-900">
+              <thead className="bg-gradient-to-r from-slate-900 to-gray-800 text-slate-300">
                 <tr>
                   <th className="text-left px-4 py-3">Criminal ID</th>
                   <th className="text-left px-4 py-3">Name</th>
@@ -98,15 +158,19 @@ function CriminalsByArea() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
+                {filteredRows.map((r, i) => (
                   <tr
                     key={`${r.criminal_id || i}-${r.noted_at || i}`}
-                    className="user-row-hover border-t border-white/10 hover:bg-white/[0.03] cursor-pointer"
+                    className={`user-row-hover border-t border-white/10 hover:bg-blue-500/[0.08] cursor-pointer ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}
                     onClick={() => setSelectedCriminal(r)}
                   >
-                    <td className="px-4 py-3 font-mono">{r.criminal_id}</td>
-                    <td className="px-4 py-3">{r.full_name}</td>
-                    <td className="px-4 py-3 capitalize">{r.status}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-blue-300">{r.criminal_id}</td>
+                    <td className="px-4 py-3 font-semibold">{r.full_name}</td>
+                    <td className="px-4 py-3 capitalize">
+                      <span className="px-2 py-1 rounded-md text-xs border border-white/10 bg-white/[0.04]">
+                        {r.status}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">{r.risk_level}</td>
                     <td className="px-4 py-3">{r.district || r.last_seen_district || district}</td>
                     <td className="px-4 py-3">{r.zone || "N/A"}</td>

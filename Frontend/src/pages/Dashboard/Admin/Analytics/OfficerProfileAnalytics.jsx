@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import getOfficerByIdApi from "@/services/Officer/getOfficerByIdApi";
-import changePasswordApi from "@/services/Officer/changePasswordApi";
-import userStore from "@/state/userStore";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 // --- Utility & UI Components ---
 
@@ -70,6 +68,16 @@ function SkeletonProfile() {
 
 export default function OfficerProfileAnalytics() {
     const { officerId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleBack = () => {
+        if (location.state?.modal) {
+            navigate(-1);
+            return;
+        }
+        navigate("/admin/dashboard");
+    };
 
     const { data: officerData, isLoading, isError } = useQuery({
         queryKey: ["officerProfile", officerId],
@@ -79,11 +87,25 @@ export default function OfficerProfileAnalytics() {
 
     const o = officerData?.data || {};
 
-    if (isLoading) return <div className="min-h-screen bg-gray-50 p-6"><SkeletonProfile /></div>;
-    if (isError) return <div className="min-h-screen bg-gray-50 p-6 text-center text-red-600">Failed to load profile.</div>;
+    if (isLoading) return <div className="space-y-6 bg-slate-950/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 md:p-6"><SkeletonProfile /></div>;
+    if (isError) return <div className="space-y-6 bg-slate-950/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 md:p-6 text-center text-red-300">Failed to load profile.</div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6 font-sans">
+        <div className="space-y-6 bg-slate-950/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 md:p-6 font-sans">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-blue-300 font-bold">Admin Analytics</p>
+                    <h1 className="text-2xl font-bold text-slate-100 mt-1">Officer Profile</h1>
+                    <p className="text-sm text-slate-400 mt-1">Detailed operational and jurisdiction profile.</p>
+                </div>
+                <button
+                    onClick={handleBack}
+                    className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+                >
+                    Back
+                </button>
+            </div>
+
             <div className="max-w-5xl mx-auto space-y-6">
 
                 {/* ── Top Header Card ── */}

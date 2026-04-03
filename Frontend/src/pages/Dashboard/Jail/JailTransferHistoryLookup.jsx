@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getTransferHistory } from "@/services/Incarceration/incarcerationApi";
+import { getIncarcerationsByJail, getTransferHistory } from "@/services/Incarceration/incarcerationApi";
 import userStore from "@/state/userStore";
 
 export default function JailTransferHistoryLookup() {
@@ -11,7 +11,40 @@ export default function JailTransferHistoryLookup() {
   const jailId = user?.jail_id;
 
   const [criminalId, setCriminalId] = useState(location.state?.criminalId || "");
+  const [criminalQuery, setCriminalQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [submittedId, setSubmittedId] = useState(location.state?.criminalId || "");
+
+  const { data: jailIncarcerationData } = useQuery({
+    queryKey: ["jail-transfer-history-options", jailId],
+    queryFn: () => getIncarcerationsByJail(jailId),
+    enabled: !!jailId,
+  });
+
+  const jailInmates = useMemo(
+    () => (Array.isArray(jailIncarcerationData?.data) ? jailIncarcerationData.data.filter((i) => i?.criminal_id) : []),
+    [jailIncarcerationData],
+  );
+
+  const inmateSuggestions = useMemo(() => {
+    const q = criminalQuery.trim().toLowerCase();
+    const unique = [];
+    const seen = new Set();
+    jailInmates.forEach((row) => {
+      if (seen.has(row.criminal_id)) return;
+      seen.add(row.criminal_id);
+      unique.push(row);
+    });
+    const list = unique.filter((row) => {
+      if (!q) return true;
+      return (
+        String(row.criminal_name || "").toLowerCase().includes(q) ||
+        String(row.criminal_id || "").toLowerCase().includes(q) ||
+        String(row.arrest_id || "").toLowerCase().includes(q)
+      );
+    });
+    return list.slice(0, 8);
+  }, [criminalQuery, jailInmates]);
 
   const {
     data: history,
@@ -33,6 +66,7 @@ export default function JailTransferHistoryLookup() {
     e.preventDefault();
     if (!criminalId.trim()) return;
     setSubmittedId(criminalId.trim());
+    setShowSuggestions(false);
   };
 
   const handleBack = () => {
@@ -59,19 +93,47 @@ export default function JailTransferHistoryLookup() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 border border-white/5 rounded-xl p-4 mb-4">
-          <label className="text-sm text-slate-400 block mb-2">Criminal ID</label>
+        <form onSubmit={handleSubmit} className="bg-gray-900 border border-white/5 rounded-xl p-4 mb-4 relative">
+          <label className="text-sm text-slate-400 block mb-2">Criminal (name, ID, arrest ID)</label>
           <div className="flex gap-2">
             <input
-              value={criminalId}
-              onChange={(e) => setCriminalId(e.target.value)}
-              placeholder="Enter criminal ID"
+              value={criminalQuery}
+              onFocus={() => setShowSuggestions(true)}
+              onChange={(e) => {
+                setCriminalQuery(e.target.value);
+                setCriminalId("");
+                setShowSuggestions(true);
+              }}
+              placeholder="Type criminal name..."
               className="flex-1 bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-sm"
             />
             <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm">
               Fetch
             </button>
           </div>
+          {showSuggestions && inmateSuggestions.length > 0 && (
+            <div className="absolute left-4 right-4 top-[95px] z-20 bg-gray-900 border border-white/10 rounded-lg max-h-56 overflow-auto">
+              {inmateSuggestions.map((row) => (
+                <button
+                  key={`${row.incarceration_id}-${row.criminal_id}`}
+                  type="button"
+                  onClick={() => {
+                    setCriminalId(row.criminal_id);
+                    setCriminalQuery(`${row.criminal_name || "Unknown"} (${row.criminal_id}) · ${row.arrest_id || "No arrest"}`);
+                    setSubmittedId(row.criminal_id);
+                    setShowSuggestions(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-white/5"
+                >
+                  <span className="font-medium text-slate-100">{row.criminal_name || "Unknown"}</span>
+                  <span className="text-slate-400"> ({row.criminal_id}) · {row.arrest_id || "No arrest"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!!criminalId && (
+            <p className="text-xs text-emerald-300 mt-2">Selected criminal ID: {criminalId}</p>
+          )}
         </form>
 
         {isFetching && <p className="text-sm text-slate-400">Loading transfer history...</p>}

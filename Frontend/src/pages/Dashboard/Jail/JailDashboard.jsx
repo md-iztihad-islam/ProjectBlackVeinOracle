@@ -1,6 +1,10 @@
 import getJailOccupancyDetailsApi from "@/services/Analytics/jailOccupancyDetailsApi";
 import { getIncarcerationsByJail, releaseIncarceration } from "@/services/Incarceration/incarcerationApi";
-import { getCriminalFullProfileForJail } from "@/services/Jail/jailCriminalApi";
+import {
+  getCriminalCaseHistoryForJail,
+  getCriminalFullProfileForJail,
+  getCriminalTimelineForJail,
+} from "@/services/Jail/jailCriminalApi";
 import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import getJailByIdApi from "@/services/Jail/getJailByIdApi";
 import { jailSignoutApi } from "@/services/authServices/signoutApi";
@@ -78,7 +82,19 @@ export default function JailDashboard() {
     queryFn: () => getCriminalFullProfileForJail(selectedCriminalId),
     enabled: !!selectedCriminalId,
   });
+  const { data: selectedCriminalTimelineData } = useQuery({
+    queryKey: ["jailDashboardCriminalTimeline", selectedCriminalId],
+    queryFn: () => getCriminalTimelineForJail(selectedCriminalId),
+    enabled: !!selectedCriminalId,
+  });
+  const { data: selectedCriminalCaseHistoryData } = useQuery({
+    queryKey: ["jailDashboardCriminalCaseHistory", selectedCriminalId],
+    queryFn: () => getCriminalCaseHistoryForJail(selectedCriminalId),
+    enabled: !!selectedCriminalId,
+  });
   const selectedCriminalProfile = selectedCriminalProfileData?.data || null;
+  const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
+  const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
 
   const releaseMut = useMutation({
     mutationFn: (incarcerationId) => releaseIncarceration(incarcerationId, { notes: "Released by jail dashboard" }),
@@ -461,19 +477,58 @@ export default function JailDashboard() {
                 ) : !selectedCriminalProfile ? (
                   <p className="text-red-300">Could not load criminal details.</p>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <DashInfo label="Criminal ID" value={selectedCriminalProfile.criminal_id} />
-                    <DashInfo label="Name" value={selectedCriminalProfile.full_name || "Name in record"} />
-                    <DashInfo label="Gender" value={selectedCriminalProfile.gender || "male"} />
-                    <DashInfo label="Age" value={String(selectedCriminalProfile.age ?? "Adult")} />
-                    <DashInfo label="Status" value={selectedCriminalProfile.status || "in_custody"} />
-                    <DashInfo label="NID" value={selectedCriminalProfile.nid || "NID in record"} />
-                    <DashInfo label="Father Name" value={selectedCriminalProfile.father_name || "Md. Rahman"} />
-                    <DashInfo label="Mother Name" value={selectedCriminalProfile.mother_name || "Amena Khatun"} />
-                    <DashInfo label="Nationality" value={selectedCriminalProfile.nationality || "Bangladeshi"} />
-                    <DashInfo label="Aliases" value={selectedCriminalProfile.aliases || "Not available"} />
-                    <DashInfo label="Permanent Address" value={selectedCriminalProfile.permanent_address || "Not available"} />
-                    <DashInfo label="Current Address" value={selectedCriminalProfile.current_address || "Not available"} />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <DashInfo label="Criminal ID" value={selectedCriminalProfile.criminal_id} />
+                      <DashInfo label="Name" value={selectedCriminalProfile.full_name || "Name in record"} />
+                      <DashInfo label="Gender" value={selectedCriminalProfile.gender || "male"} />
+                      <DashInfo label="Age" value={String(selectedCriminalProfile.age ?? "Adult")} />
+                      <DashInfo label="Status" value={selectedCriminalProfile.status || "in_custody"} />
+                      <DashInfo label="NID" value={selectedCriminalProfile.nid || "NID in record"} />
+                      <DashInfo label="Father Name" value={selectedCriminalProfile.father_name || "Md. Rahman"} />
+                      <DashInfo label="Mother Name" value={selectedCriminalProfile.mother_name || "Amena Khatun"} />
+                      <DashInfo label="Nationality" value={selectedCriminalProfile.nationality || "Bangladeshi"} />
+                      <DashInfo label="Aliases" value={selectedCriminalProfile.aliases || "Not available"} />
+                      <DashInfo label="Permanent Address" value={selectedCriminalProfile.permanent_address || "Not available"} />
+                      <DashInfo label="Current Address" value={selectedCriminalProfile.current_address || "Not available"} />
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Legal History Timeline</p>
+                      <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                        {selectedCriminalTimeline.length === 0 ? (
+                          <p className="p-4 text-sm text-slate-400">No legal history found.</p>
+                        ) : (
+                          <ul className="divide-y divide-slate-800">
+                            {selectedCriminalTimeline.map((item, idx) => (
+                              <li key={`${item.event_type}-${item.event_date}-${idx}`} className="p-3">
+                                <p className="text-xs text-slate-500">{item.event_date ? new Date(item.event_date).toLocaleString() : "—"}</p>
+                                <p className="text-sm font-semibold text-slate-200 mt-1">{item.event_type}</p>
+                                <p className="text-sm text-slate-300 mt-1 whitespace-pre-wrap">{item.description}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Case Files</p>
+                      <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                        {selectedCriminalCaseHistory.length === 0 ? (
+                          <p className="p-4 text-sm text-slate-400">No case history found.</p>
+                        ) : (
+                          <ul className="divide-y divide-slate-800">
+                            {selectedCriminalCaseHistory.map((c) => (
+                              <li key={c.case_id} className="p-3">
+                                <p className="text-sm text-slate-200 font-semibold">Case #{c.case_id}: {c.case_title || "Untitled Case"}</p>
+                                <p className="text-xs text-slate-400 mt-1">{c.case_type} | {c.status} | Registered: {c.filed_at ? new Date(c.filed_at).toLocaleString() : "—"}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

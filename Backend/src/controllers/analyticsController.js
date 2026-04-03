@@ -2,7 +2,7 @@ import {
     getCriminalFullProfileService,
     getHighRiskNetworkService,
     getGdReportAnalyticsService,
-    getBailStatisticsService,
+    // getBailStatisticsService,
     getCriminalMovementHistoryService,
     getOrganizationThreatAnalysisService,
     getCustodyOverviewService,
@@ -10,16 +10,28 @@ import {
     getCellOccupancyDetailsService,
     getDashboardOverviewService,
     getCriminalsAboveAvgCasesService,
+    getCriminalOverviewService,
+    getCriminalByDistrictService,
+    getCrimeTypeDistributionService,
+    getCrimePeakByYearService,
+    getWantedByAreaService,
+    getCrimeYearsService,
     getCriminalRankingService,
     getFreeOrgMembersService,
     getMonthlyArrestTrendService,
     getThanaPerformanceService,
     getJailOccupancyDetailService,
     getOfficerWorkloadService,
+    getOfficerRankingService,
     getDistrictCrimeStatsService,
     getAuditLogsService,
     recalculateAllRiskScoresService,
 } from "../services/analyticsService.js";
+
+const resolveScopedThanaId = (req) => {
+    if (req?.role === "thana") return req.id;
+    return req.query.thanaId || null;
+};
 
 
 export const getCriminalFullProfileController = async (req, res) => {
@@ -46,7 +58,8 @@ export const getHighRiskNetworkController = async (_, res) => {
 
 export const getGdReportAnalyticsController = async (_, res) => {
     try {
-        const data = await getGdReportAnalyticsService();
+        const thanaId = resolveScopedThanaId(_);
+        const data = await getGdReportAnalyticsService(thanaId);
         return res.status(200).json({ success: true, data });
     } catch (error) {
         console.log("Error at getGdReportAnalyticsController:", error);
@@ -54,15 +67,15 @@ export const getGdReportAnalyticsController = async (_, res) => {
     }
 };
 
-export const getBailStatisticsController = async (_, res) => {
-    try {
-        const data = await getBailStatisticsService();
-        return res.status(200).json({ success: true, data });
-    } catch (error) {
-        console.log("Error at getBailStatisticsController:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-};
+// export const getBailStatisticsController = async (_, res) => {
+//     try {
+//         const data = await getBailStatisticsService();
+//         return res.status(200).json({ success: true, data });
+//     } catch (error) {
+//         console.log("Error at getBailStatisticsController:", error);
+//         return res.status(500).json({ success: false, message: "Internal server error" });
+//     }
+// };
 
 export const getCriminalMovementHistoryController = async (req, res) => {
     try {
@@ -136,9 +149,83 @@ export const getCriminalsAboveAvgCasesController = async (_, res) => {
     }
 };
 
-export const getCriminalRankingController = async (_, res) => {
+export const getCriminalOverviewController = async (req, res) => {
     try {
-        const data = await getCriminalRankingService();
+        const district = req.query.district || null;
+        const thanaId = resolveScopedThanaId(req);
+        const data = await getCriminalOverviewService(district, thanaId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getCriminalOverviewController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getCriminalByDistrictController = async (req, res) => {
+    try {
+        const district = req.query.district || null;
+        const thanaId = resolveScopedThanaId(req);
+        const data = await getCriminalByDistrictService(district, thanaId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getCriminalByDistrictController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getCrimeTypeDistributionController = async (req, res) => {
+    try {
+        const year = req.query.year ? Number(req.query.year) : null;
+        const district = req.query.district || null;
+        const thanaId = resolveScopedThanaId(req);
+        const data = await getCrimeTypeDistributionService(year, district, thanaId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getCrimeTypeDistributionController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getCrimePeakByYearController = async (req, res) => {
+    try {
+        const year = req.query.year ? Number(req.query.year) : null;
+        const district = req.query.district || null;
+        const thanaId = resolveScopedThanaId(req);
+        const data = await getCrimePeakByYearService(year, district, thanaId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getCrimePeakByYearController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getWantedByAreaController = async (req, res) => {
+    try {
+        const district = req.query.district || null;
+        const thanaId = resolveScopedThanaId(req);
+        const data = await getWantedByAreaService(district, thanaId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getWantedByAreaController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getCrimeYearsController = async (_, res) => {
+    try {
+        const data = await getCrimeYearsService();
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getCrimeYearsController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getCriminalRankingController = async (req, res) => {
+    try {
+        const district = req.query.district || null;
+        const thanaId = resolveScopedThanaId(req);
+        const data = await getCriminalRankingService(district, thanaId);
         return res.status(200).json({ success: true, data });
     } catch (error) {
         console.log("Error at getCriminalRankingController:", error);
@@ -170,7 +257,8 @@ export const getMonthlyArrestTrendController = async (_, res) => {
 
 export const getThanaPerformanceController = async (_, res) => {
     try {
-        const data = await getThanaPerformanceService();
+        const thanaId = resolveScopedThanaId(_);
+        const data = await getThanaPerformanceService(thanaId);
         return res.status(200).json({ success: true, data });
     } catch (error) {
         console.log("Error at getThanaPerformanceController:", error);
@@ -190,10 +278,22 @@ export const getJailOccupancyDetailController = async (_, res) => {
 
 export const getOfficerWorkloadController = async (_, res) => {
     try {
-        const data = await getOfficerWorkloadService();
+        const thanaId = resolveScopedThanaId(_);
+        const data = await getOfficerWorkloadService(thanaId);
         return res.status(200).json({ success: true, data });
     } catch (error) {
         console.log("Error at getOfficerWorkloadController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getOfficerRankingController = async (_, res) => {
+    try {
+        const thanaId = resolveScopedThanaId(_);
+        const data = await getOfficerRankingService(thanaId);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getOfficerRankingController:", error);
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

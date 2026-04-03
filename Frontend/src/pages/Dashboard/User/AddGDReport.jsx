@@ -119,7 +119,7 @@ function AddGDReport() {
             setIncidentDate("");
             setIncidentLocation("");
             setDescription("");
-            setTimeout(() => setSubmitted(false), 4000);
+            setTimeout(() => navigate("/user/dashboard"), 1200);
         },
         onError: () => {
             alert("Failed to submit GD report. Please try again.");

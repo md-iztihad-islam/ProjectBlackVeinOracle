@@ -39,7 +39,7 @@ export default function CellBlockList() {
     <div className="min-h-screen bg-[#080a0e] text-slate-300 px-6 py-10 md:px-10"
       style={{ backgroundImage: "linear-gradient(rgba(96,165,250,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.025) 1px,transparent 1px)", backgroundSize: "40px 40px", fontFamily: "'IBM Plex Mono', monospace" }}>
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
       <div className="mb-6 flex items-center justify-between gap-3">
         <button
           onClick={() => navigate(-1)}
@@ -66,7 +66,7 @@ export default function CellBlockList() {
           { label: "Total Capacity",  value: isLoading ? "—" : totalCapacity,     accent: false },
           { label: "Jail ID",         value: jailId || "—",                       accent: false },
         ].map((s) => (
-          <div key={s.label} className="bg-slate-900/40 border border-slate-800 px-4 py-4 relative overflow-hidden">
+          <div key={s.label} className="bg-slate-900/40 border border-slate-800 px-4 py-4 relative rounded-lg">
             <div className={`absolute top-0 left-0 right-0 h-px ${s.accent ? "bg-blue-400/60" : "bg-slate-700"}`} />
             <div className="text-[10px] tracking-[0.18em] uppercase text-slate-500 mb-1">{s.label}</div>
             <div className={`text-xl font-black truncate ${s.accent ? "text-blue-400" : "text-white"}`} style={{ fontFamily: "'Rajdhani', sans-serif" }}>{s.value}</div>
@@ -104,15 +104,15 @@ export default function CellBlockList() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {["Block ID", "Block Name", "Capacity", "Actions"].map((h) => (
-                  <th key={h} className="text-left text-[10px] tracking-[0.18em] uppercase text-slate-400 pb-3 pr-6 font-normal whitespace-nowrap">{h}</th>
+                {["Block ID", "Block Name", "Capacity", "Actions"].map((h, idx) => (
+                  <th key={h} className={`text-left text-[10px] tracking-[0.18em] uppercase text-slate-400 pb-3 pr-6 font-normal whitespace-nowrap ${idx === 0 ? "pl-2" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((block) => (
                 <tr key={block.block_id} className="border-b border-slate-800/60 hover:bg-slate-900/40 transition-colors">
-                  <td className="py-4 pr-6 text-blue-400 text-[11px] tracking-wider whitespace-nowrap">{block.block_id}</td>
+                  <td className="py-4 pr-6 pl-2 text-blue-400 text-[11px] tracking-wider whitespace-nowrap">{block.block_id}</td>
                   <td className="py-4 pr-6 whitespace-nowrap">
                     <span className="text-white font-bold text-base" style={{ fontFamily: "'Rajdhani', sans-serif" }}>{block.block_name}</span>
                   </td>

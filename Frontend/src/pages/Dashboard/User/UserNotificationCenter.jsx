@@ -6,6 +6,8 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/services/Notification/notificationApi";
+import getOfficerByIdApi from "@/services/Officer/getOfficerByIdApi";
+import { useState } from "react";
 
 const pickFirst = (...values) => values.find((v) => typeof v === "string" && v.trim() !== "") || null;
 
@@ -23,11 +25,15 @@ const parseNotificationMessageMeta = (message) => {
     text.match(/Location\s*:\s*([^\n]+)/i);
 
   const escapedFromMatch = text.match(/Escaped\s*From\s*:\s*([^\n]+)/i);
+  const officerIdMatch =
+    text.match(/Assigned\s*Officer\s*ID\s*:\s*([^\s\n.]+)/i) ||
+    text.match(/Officer\s*ID\s*:\s*([^\s\n.]+)/i);
 
   return {
     criminalId: criminalIdMatch?.[1]?.trim() || null,
     location: locationMatch?.[1]?.trim() || null,
     escapedFrom: escapedFromMatch?.[1]?.trim() || null,
+    officerId: officerIdMatch?.[1]?.trim() || null,
   };
 };
 
@@ -44,6 +50,7 @@ const getNotificationMeta = (n) => {
       parsed.location
     ),
     escapedFrom: pickFirst(n?.escape_from, n?.escaped_from, n?.escapedFrom, parsed.escapedFrom),
+    officerId: pickFirst(n?.officer_id, n?.officerId, parsed.officerId),
   };
 };
 
@@ -51,6 +58,9 @@ function UserNotificationCenter() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [officerProfile, setOfficerProfile] = useState(null);
+  const [isOfficerModalOpen, setIsOfficerModalOpen] = useState(false);
+  const [isOfficerLoading, setIsOfficerLoading] = useState(false);
 
   const handleBack = () => {
     if (location.state?.modal) {
@@ -87,6 +97,24 @@ function UserNotificationCenter() {
       queryClient.invalidateQueries({ queryKey: ["userNotificationUnreadCount"] });
     },
   });
+
+  const handleOpenOfficerProfile = async (officerId) => {
+    if (!officerId) return;
+    setIsOfficerLoading(true);
+    setIsOfficerModalOpen(true);
+    try {
+      const res = await getOfficerByIdApi(officerId);
+      if (res?.success) {
+        setOfficerProfile(res.data || null);
+      } else {
+        setOfficerProfile(null);
+      }
+    } catch {
+      setOfficerProfile(null);
+    } finally {
+      setIsOfficerLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-6xl mx-auto text-slate-200">
@@ -161,7 +189,7 @@ function UserNotificationCenter() {
                     <p className="font-medium text-slate-100">{n.title}</p>
                     {(() => {
                       const meta = getNotificationMeta(n);
-                      if (!meta.criminalId && !meta.location && !meta.escapedFrom) return null;
+                      if (!meta.criminalId && !meta.location && !meta.escapedFrom && !meta.officerId) return null;
 
                       return (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -179,6 +207,14 @@ function UserNotificationCenter() {
                             <span className="text-[11px] px-2 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-400/20 max-w-full truncate">
                               Escaped From: {meta.escapedFrom}
                             </span>
+                          )}
+                          {meta.officerId && (
+                            <button
+                              onClick={() => handleOpenOfficerProfile(meta.officerId)}
+                              className="text-[11px] px-2 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-400/20 hover:bg-blue-500/25 transition-colors"
+                            >
+                              View Assigned Officer: {meta.officerId}
+                            </button>
                           )}
                         </div>
                       );
@@ -213,6 +249,64 @@ function UserNotificationCenter() {
           )}
         </div>
       </div>
+
+      {isOfficerModalOpen && (
+        <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-gray-900 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-100">Assigned Officer Profile</h2>
+              <button
+                onClick={() => {
+                  setIsOfficerModalOpen(false);
+                  setOfficerProfile(null);
+                }}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            {isOfficerLoading ? (
+              <p className="text-slate-400 text-sm">Loading officer details...</p>
+            ) : !officerProfile ? (
+              <p className="text-rose-300 text-sm">Officer details could not be loaded.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Officer ID</p>
+                  <p className="text-sm text-slate-200 font-mono">{officerProfile.officer_id || "—"}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Name</p>
+                  <p className="text-sm text-slate-200">{officerProfile.full_name || "—"}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Badge No</p>
+                  <p className="text-sm text-slate-200">{officerProfile.badge_no || "—"}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Rank</p>
+                  <p className="text-sm text-slate-200">{officerProfile.rank_name || officerProfile.rank_code || "—"}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Phone</p>
+                  <p className="text-sm text-slate-200">{officerProfile.phone || "—"}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Email</p>
+                  <p className="text-sm text-slate-200 break-all">{officerProfile.email || "—"}</p>
+                </div>
+                <div className="sm:col-span-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase text-slate-500">Thana</p>
+                  <p className="text-sm text-slate-200">
+                    {officerProfile?.thana?.thana_name || officerProfile?.thana_id || "—"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

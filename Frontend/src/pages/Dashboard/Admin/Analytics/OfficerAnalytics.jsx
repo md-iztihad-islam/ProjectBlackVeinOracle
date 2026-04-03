@@ -7,7 +7,7 @@ import {
 import getOfficerAnalyticsApi from "@/services/Officer/getOfficerAnalyticsApi";
 import getAllRankApi from "@/services/Rank/getAllRankApi";
 import getThanaByNameApi from "@/services/Thana/getThanaByNameApi";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 /* ─── Constants ─────────────────────────────────────────── */
 const DISTRICTS = [
@@ -310,16 +310,14 @@ function ChartLoader() {
 }
 
 /* ─── Officer Table Row ──────────────────────────────────── */
-function OfficerRow({ o, index }) {
+function OfficerRow({ o, index, onOpenProfile }) {
   const rankCfg = RANK_COLOR_MAP[o.rank_code] || { label: o.rank_name || o.rank_code, color: "#94a3b8" };
   const totalGD   = Number(o.total_assigned_gd || 0);
   const approved  = Number(o.assigned_approved_gd || 0);
   const approvalRate = totalGD > 0 ? Math.round((approved / totalGD) * 100) : null;
 
-  const navigate = useNavigate();
-
   return (
-    <tr onClick={() => navigate(`profile/${o.officer_id}`)} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition">
+    <tr onClick={() => onOpenProfile(o.officer_id)} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition cursor-pointer">
       <td className="px-4 py-3 text-xs text-slate-400 font-mono w-10">{index + 1}</td>
       <td className="px-4 py-3">
         <div className="font-semibold text-sm text-slate-900 leading-tight">{o.full_name}</div>
@@ -353,6 +351,8 @@ function OfficerRow({ o, index }) {
 
 /* ─── Main Component ─────────────────────────────────────── */
 export default function OfficerAnalytics() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [thana,    setThana]    = useState(null);
   const [district, setDistrict] = useState(null);
   const [rank,     setRank]     = useState(null);
@@ -436,28 +436,57 @@ export default function OfficerAnalytics() {
     { label: "Arrests", key: "total_arrests_in_officer_thana" },
   ];
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+  const handleBack = () => {
+    if (location.state?.modal) {
+      const bg = location.state?.backgroundLocation;
+      if (bg?.pathname) {
+        navigate(
+          {
+            pathname: bg.pathname,
+            search: bg.search || "",
+            hash: bg.hash || "",
+          },
+          { replace: true },
+        );
+        return;
+      }
+      navigate("/admin/dashboard", { replace: true });
+      return;
+    }
+    navigate("/admin/dashboard");
+  };
 
-      {/* ── Header ── */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Officer Analytics</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {loading
-                ? "Loading data…"
-                : `${fmt(analytics?.totalOfficersInFilter || 0)} officers${activeTags.length ? " · filtered" : ""}`
-              }
-            </p>
-          </div>
-          {activeTags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {activeTags.map((t, i) => (
-                <span key={i} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium">{t}</span>
-              ))}
-            </div>
-          )}
+  const handleOpenOfficerProfile = (officerId) => {
+    navigate(`/analytics/officer/profile/${officerId}`, {
+      state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location },
+    });
+  };
+
+  return (
+    <div className="space-y-6 bg-slate-950/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 md:p-6 shadow-2xl shadow-slate-950/20">
+
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-blue-300 font-bold">Admin Analytics</p>
+          <h1 className="text-2xl font-bold text-slate-100 mt-1">Officer Analytics</h1>
+          <p className="text-sm text-slate-400 mt-1">Performance, workload, and jurisdiction intelligence for officers.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
+            Back to Dashboard
+          </button>
+          <button
+            onClick={() => navigate("/admin/dashboard/analytics", { state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location } })}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
+            Criminal
+          </button>
+          <button className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">Officer</button>
+          <button className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-500 text-sm font-semibold cursor-not-allowed opacity-70">Thana</button>
+          <button className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-500 text-sm font-semibold cursor-not-allowed opacity-70">Jail</button>
         </div>
       </div>
 
@@ -465,7 +494,12 @@ export default function OfficerAnalytics() {
 
         {/* ── Filters ── */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm px-5 py-4">
-          <p className="text-[0.62rem] font-bold uppercase tracking-widest text-slate-400 mb-3">Filters</p>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <p className="text-[0.62rem] font-bold uppercase tracking-widest text-slate-400">Filters</p>
+            <p className="text-xs text-slate-500 font-semibold">
+              {loading ? "Loading data…" : `${fmt(analytics?.totalOfficersInFilter || 0)} total officers`}
+            </p>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
             <FilterSelect label="District" value={district} onChange={setDistrict} options={DISTRICTS} placeholder="All Districts" />
             <ThanaCombobox value={thana} onChange={setThana} />
@@ -484,6 +518,13 @@ export default function OfficerAnalytics() {
               )}
             </div>
           </div>
+          {activeTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {activeTags.map((t, i) => (
+                <span key={i} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium">{t}</span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── KPI Cards ── */}
@@ -587,7 +628,17 @@ export default function OfficerAnalytics() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={analytics.thanaData} margin={{ left: 0, right: 16, top: 4, bottom: 24 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} angle={-25} textAnchor="end" interval={0} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 9, fill: "#64748b" }}
+                      tickFormatter={(v) => (String(v || "").length > 12 ? `${String(v).slice(0, 12)}…` : v)}
+                      axisLine={false}
+                      tickLine={false}
+                      angle={-35}
+                      textAnchor="end"
+                      interval={0}
+                      height={72}
+                    />
                     <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.72rem" }} />
@@ -659,7 +710,7 @@ export default function OfficerAnalytics() {
                     ))
                   : filteredOfficers.length === 0
                     ? <tr><td colSpan={10} className="py-12 text-center text-sm text-slate-400">No officers found.</td></tr>
-                    : filteredOfficers.map((o, i) => <OfficerRow key={o.officer_id} o={o} index={i} />)
+                    : filteredOfficers.map((o, i) => <OfficerRow key={o.officer_id} o={o} index={i} onOpenProfile={handleOpenOfficerProfile} />)
                 }
               </tbody>
             </table>

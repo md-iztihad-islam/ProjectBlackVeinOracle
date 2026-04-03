@@ -12,6 +12,9 @@ function WantedCriminals() {
   const navigate = useNavigate();
   const [selectedCriminal, setSelectedCriminal] = useState(null);
   const [selectedCaseFile, setSelectedCaseFile] = useState(null);
+  const [districtInput, setDistrictInput] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["user-wanted-criminals"],
     queryFn: getWantedCriminalsApi,
@@ -33,7 +36,33 @@ function WantedCriminals() {
     enabled: Boolean(selectedCriminalId),
   });
 
-  const rows = data?.data || [];
+  const rows = Array.isArray(data?.data) ? data.data : [];
+  const allDistricts = (() => {
+    const bag = new Set();
+    rows.forEach((r) => {
+      const d = (r.last_seen_district || r.district || "").trim();
+      if (d) bag.add(d);
+    });
+    return Array.from(bag).sort((a, b) => a.localeCompare(b));
+  })();
+
+  const districtSuggestions = (() => {
+    const q = districtInput.trim().toLowerCase();
+    if (!q) return allDistricts.slice(0, 8);
+    return allDistricts
+      .filter((d) => d.toLowerCase().includes(q))
+      .slice(0, 8);
+  })();
+
+  const filteredRows = (() => {
+    if (!selectedDistrict) return rows;
+    const d = selectedDistrict.toLowerCase();
+    return rows.filter(
+      (r) =>
+        String(r.last_seen_district || "").toLowerCase() === d ||
+        String(r.district || "").toLowerCase() === d,
+    );
+  })();
   const selectedCriminalProfile = selectedCriminalProfileData?.data || null;
   const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
   const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
@@ -51,14 +80,67 @@ function WantedCriminals() {
           </button>
         </div>
 
+        <div className="rounded-2xl border border-white/10 bg-gray-900/70 p-4 mb-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <p className="text-sm text-slate-300">Filter by last seen district</p>
+            {selectedDistrict && (
+              <button
+                onClick={() => {
+                  setSelectedDistrict("");
+                  setDistrictInput("");
+                  setShowSuggestions(false);
+                }}
+                className="text-xs px-2 py-1 rounded-md border border-white/10 text-slate-300 hover:text-white"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <input
+              value={districtInput}
+              onFocus={() => setShowSuggestions(true)}
+              onChange={(e) => {
+                setDistrictInput(e.target.value);
+                setSelectedDistrict("");
+                setShowSuggestions(true);
+              }}
+              placeholder="Type district name..."
+              className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+            />
+            {showSuggestions && districtSuggestions.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full bg-gray-900 border border-white/10 rounded-lg max-h-56 overflow-auto">
+                {districtSuggestions.map((d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    onClick={() => {
+                      setSelectedDistrict(d);
+                      setDistrictInput(d);
+                      setShowSuggestions(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/5"
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            Showing {filteredRows.length} wanted criminal{filteredRows.length === 1 ? "" : "s"}
+            {selectedDistrict ? ` in ${selectedDistrict}` : " across all districts"}.
+          </p>
+        </div>
+
         {isLoading ? (
           <p className="text-slate-400">Loading...</p>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <p className="text-slate-400">No wanted criminals found.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-gray-900/70">
             <table className="w-full text-sm">
-              <thead className="bg-gray-900">
+              <thead className="bg-gradient-to-r from-slate-900 to-gray-800 text-slate-300">
                 <tr>
                   <th className="text-left px-4 py-3">Criminal ID</th>
                   <th className="text-left px-4 py-3">Name</th>
@@ -69,16 +151,20 @@ function WantedCriminals() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {filteredRows.map((r, idx) => (
                   <tr
                     key={r.criminal_id}
-                    className="user-row-hover border-t border-white/10 hover:bg-white/[0.03] cursor-pointer"
+                    className={`user-row-hover border-t border-white/10 hover:bg-blue-500/[0.08] cursor-pointer ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}
                     onClick={() => setSelectedCriminal(r)}
                   >
-                    <td className="px-4 py-3 font-mono">{r.criminal_id}</td>
-                    <td className="px-4 py-3">{r.full_name}</td>
-                    <td className="px-4 py-3 capitalize">{r.status}</td>
-                    <td className="px-4 py-3">{r.risk_level}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-blue-300">{r.criminal_id}</td>
+                    <td className="px-4 py-3 font-semibold">{r.full_name}</td>
+                    <td className="px-4 py-3 capitalize">
+                      <span className="px-2 py-1 rounded-md text-xs border border-rose-400/30 bg-rose-400/10 text-rose-300">
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium">{r.risk_level}</td>
                     <td className="px-4 py-3">{r.registered_thana || r.thana_name || r.registered_thana_id || "N/A"}</td>
                     <td className="px-4 py-3">{r.last_seen_district || r.district || "Unknown"}</td>
                   </tr>

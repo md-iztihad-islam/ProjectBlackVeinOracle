@@ -9,13 +9,22 @@ export const addGeneralDairyRepository = async (dairyData) => {
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
             ),
-            inserted_notification AS (
+            inserted_user_notification AS (
                 INSERT INTO notification (target_role, target_id, title, message)
                 SELECT
                     'user',
                     user_id,
                     'GD Submitted',
                     'Your GD report has been submitted successfully and is pending review by thana.'
+                FROM inserted_gd
+            ),
+            inserted_thana_notification AS (
+                INSERT INTO notification (target_role, target_id, title, message)
+                SELECT
+                    'thana',
+                    thana_id,
+                    'New GD Submitted',
+                    'A new GD report #' || gd_id || ' has been submitted under your jurisdiction and is awaiting assignment.'
                 FROM inserted_gd
             )
             SELECT * FROM inserted_gd;
@@ -124,9 +133,28 @@ export const updateGeneralDairyStatusRepository = async (dairyId, status, approv
                 SELECT
                     'user',
                     user_id,
-                    'GD Status Updated',
-                    'Your GD report #' || gd_id || ' status is now: ' || status
+                    CASE
+                        WHEN status = 'assigned' THEN 'GD Assigned to Officer'
+                        WHEN status = 'approved' THEN 'GD Approved'
+                        WHEN status = 'rejected' THEN 'GD Rejected'
+                        ELSE 'GD Status Updated'
+                    END,
+                    CASE
+                        WHEN status = 'assigned' AND assigned_officer_id IS NOT NULL
+                            THEN 'Your GD report #' || gd_id || ' has been assigned to an officer. Assigned Officer ID: ' || assigned_officer_id || '.'
+                        ELSE 'Your GD report #' || gd_id || ' status is now: ' || status
+                    END
                 FROM updated_gd
+            ),
+            inserted_officer_notification AS (
+                INSERT INTO notification (target_role, target_id, title, message)
+                SELECT
+                    'officer',
+                    assigned_officer_id,
+                    'New GD Assigned',
+                    'You have been assigned GD report #' || gd_id || '. Please review and respond.'
+                FROM updated_gd
+                WHERE status = 'assigned' AND assigned_officer_id IS NOT NULL
             )
             SELECT * FROM updated_gd;
         `;
@@ -196,15 +224,35 @@ export const getGeneralDairiesByAssignedOfficerRepository = async (officerId) =>
     }
 }
 
-export const respondToGeneralDairyRepository = async (dairyId, status) => {
+export const respondToGeneralDairyRepository = async (dairyId, status, officerId) => {
     try {
         const query = `
-            UPDATE gd_report
-            SET status = $1
-            WHERE gd_id = $2
-            RETURNING *;
+            WITH updated_gd AS (
+                UPDATE gd_report
+                SET status = $1::varchar,
+                    approved_by_officer_id = CASE
+                        WHEN $1::varchar IN ('approved'::varchar, 'rejected'::varchar) THEN $3
+                        ELSE approved_by_officer_id
+                    END
+                WHERE gd_id = $2
+                RETURNING *
+            ),
+            inserted_notification AS (
+                INSERT INTO notification (target_role, target_id, title, message)
+                SELECT
+                    'user',
+                    user_id,
+                    CASE
+                        WHEN status = 'approved' THEN 'GD Approved'
+                        WHEN status = 'rejected' THEN 'GD Rejected'
+                        ELSE 'GD Status Updated'
+                    END,
+                    'Your GD report #' || gd_id || ' has been ' || status || ' by the assigned officer. Assigned Officer ID: ' || COALESCE(assigned_officer_id, 'N/A') || '.'
+                FROM updated_gd
+            )
+            SELECT * FROM updated_gd;
         `;
-        const values = [status, dairyId];
+        const values = [status, dairyId, officerId];
         const result = await pool.query(query, values);
         return result.rows[0];
     } catch (error) {

@@ -82,9 +82,9 @@ export const getGeneralDairiesByAssignedOfficerService = async (officerId) => {
     }
 }
 
-export const respondToGeneralDairyService = async (dairyId, status) => {
+export const respondToGeneralDairyService = async (dairyId, status, officerId) => {
     try {
-        const updatedDairy = await respondToGeneralDairyRepository(dairyId, status);
+        const updatedDairy = await respondToGeneralDairyRepository(dairyId, status, officerId);
         return updatedDairy;
     } catch (error) {
         console.log('Error responding to general dairy at respondToGeneralDairyService:', error);

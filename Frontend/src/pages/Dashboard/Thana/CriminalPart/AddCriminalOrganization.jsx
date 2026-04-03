@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addCriminalOrganizationLink } from "@/services/Thana/thanaApi";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import getCriminalByNameApi from "@/services/Criminal/getCriminalByNameApi";
+import getOrganizationByNameApi from "@/services/Organization/getOrganizationByNameApi";
 
 function AddCriminalOrganization() {
   const navigate = useNavigate();
@@ -10,6 +12,37 @@ function AddCriminalOrganization() {
     org_id: "",
     role: "member",
   });
+  const [criminalInput, setCriminalInput] = useState("");
+  const [orgInput, setOrgInput] = useState("");
+  const [openCriminal, setOpenCriminal] = useState(false);
+  const [openOrg, setOpenOrg] = useState(false);
+  const criminalRef = useRef(null);
+  const orgRef = useRef(null);
+
+  const { data: criminalData } = useQuery({
+    queryKey: ["add-link-criminal-search", criminalInput],
+    queryFn: () => getCriminalByNameApi(criminalInput),
+    enabled: criminalInput.trim().length >= 2,
+    staleTime: 30_000,
+  });
+  const { data: orgData } = useQuery({
+    queryKey: ["add-link-org-search", orgInput],
+    queryFn: () => getOrganizationByNameApi(orgInput),
+    enabled: orgInput.trim().length >= 2,
+    staleTime: 30_000,
+  });
+
+  const criminalSuggestions = criminalData?.data || [];
+  const orgSuggestions = orgData?.data || [];
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (criminalRef.current && !criminalRef.current.contains(e.target)) setOpenCriminal(false);
+      if (orgRef.current && !orgRef.current.contains(e.target)) setOpenOrg(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   const set = (k, v) => setForm({ ...form, [k]: v });
   const inputCls =
@@ -47,26 +80,78 @@ function AddCriminalOrganization() {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className="text-xs text-slate-400 uppercase">Criminal ID</label>
-            <input
-              value={form.criminal_id}
-              onChange={(e) => set("criminal_id", e.target.value)}
-              placeholder="CRM-0000001"
-              className={inputCls}
-              required
-            />
+          <div ref={criminalRef}>
+            <label className="text-xs text-slate-400 uppercase">Criminal</label>
+            <div className="relative">
+              <input
+                value={criminalInput}
+                onChange={(e) => {
+                  set("criminal_id", "");
+                  setCriminalInput(e.target.value);
+                  setOpenCriminal(true);
+                }}
+                onFocus={() => criminalInput.trim().length >= 2 && setOpenCriminal(true)}
+                placeholder="Type criminal name..."
+                className={inputCls}
+                required
+              />
+              {openCriminal && !form.criminal_id && criminalSuggestions.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-white/10 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                  {criminalSuggestions.map((c) => (
+                    <button
+                      key={c.criminal_id}
+                      type="button"
+                      onClick={() => {
+                        set("criminal_id", c.criminal_id);
+                        setCriminalInput(`${c.full_name} (${c.criminal_id})`);
+                        setOpenCriminal(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/5 border-b border-white/5 last:border-0"
+                    >
+                      <span className="font-semibold text-slate-100">{c.full_name}</span>
+                      <span className="text-slate-400 text-xs ml-2">{c.criminal_id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="text-xs text-slate-400 uppercase">Organization ID</label>
-            <input
-              value={form.org_id}
-              onChange={(e) => set("org_id", e.target.value)}
-              placeholder="ORG-0000001"
-              className={inputCls}
-              required
-            />
+          <div ref={orgRef}>
+            <label className="text-xs text-slate-400 uppercase">Organization</label>
+            <div className="relative">
+              <input
+                value={orgInput}
+                onChange={(e) => {
+                  set("org_id", "");
+                  setOrgInput(e.target.value);
+                  setOpenOrg(true);
+                }}
+                onFocus={() => orgInput.trim().length >= 2 && setOpenOrg(true)}
+                placeholder="Type organization name..."
+                className={inputCls}
+                required
+              />
+              {openOrg && !form.org_id && orgSuggestions.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-white/10 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                  {orgSuggestions.map((o) => (
+                    <button
+                      key={o.org_id}
+                      type="button"
+                      onClick={() => {
+                        set("org_id", o.org_id);
+                        setOrgInput(`${o.name} (${o.org_id})`);
+                        setOpenOrg(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/5 border-b border-white/5 last:border-0"
+                    >
+                      <span className="font-semibold text-slate-100">{o.name}</span>
+                      <span className="text-slate-400 text-xs ml-2">{o.org_id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>

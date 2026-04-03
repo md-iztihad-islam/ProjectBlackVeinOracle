@@ -45,10 +45,21 @@ export default function ResponseToGD() {
     const r = gdReportData?.data || null;
 
     const { mutate: respondToGD, isPending, isSuccess, isError } = useMutation({
-        mutationFn: (responseData) => responseToGDReportApi({ gdId: gdId, responseData }),
+        mutationFn: async (responseData) => {
+            const res = await responseToGDReportApi({ gdId: gdId, responseData });
+            if (!res?.success) {
+                throw new Error(res?.message || "Failed to submit decision.");
+            }
+            return res;
+        },
         onSuccess: () => {
-            queryClient.invalidateQueries(["gdReportDetails", gdId]);
-            queryClient.invalidateQueries(["gdReportsByOfficer"]);
+            queryClient.invalidateQueries({ queryKey: ["gdReportDetails", gdId] });
+            queryClient.invalidateQueries({ queryKey: ["gdReportsByOfficer"] });
+            queryClient.invalidateQueries({ queryKey: ["myNotifications"] });
+            queryClient.invalidateQueries({ queryKey: ["myNotificationUnreadCount"] });
+            setTimeout(() => {
+                navigate("/officer/dashboard");
+            }, 350);
         },
     });
 
@@ -183,7 +194,7 @@ export default function ResponseToGD() {
                             disabled={isPending || isLoading}
                             className={`flex-[2] py-2.5 px-4 border border-transparent text-white rounded-lg text-sm font-medium shadow-sm transition-all ${
                                 isPending ? "opacity-60 cursor-not-allowed bg-gray-500" : 
-                                decision === "approved" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                                decision === "approved" ? "bg-green-500 hover:bg-green-500/90" : "bg-red-500 hover:bg-red-500/90"
                             }`}
                         >
                             {isPending ? "Submitting..." : `Submit ${decision === "approved" ? "Approval" : "Rejection"}`}

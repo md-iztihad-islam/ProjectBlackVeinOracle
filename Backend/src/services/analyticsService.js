@@ -2,7 +2,7 @@ import {
     getCriminalFullProfileRepository,
     getHighRiskNetworkRepository,
     getGdReportAnalyticsRepository,
-    getBailStatisticsRepository,
+    // getBailStatisticsRepository,
     getCriminalMovementHistoryRepository,
     getOrganizationThreatAnalysisRepository,
     getCustodyOverviewRepository,
@@ -10,12 +10,19 @@ import {
     getCellOccupancyDetailsRepository,
     getDashboardOverviewRepository,
     getCriminalsAboveAvgCasesRepository,
+    getCriminalOverviewRepository,
+    getCriminalByDistrictRepository,
+    getCrimeTypeDistributionRepository,
+    getCrimePeakByYearRepository,
+    getWantedByAreaRepository,
+    getCrimeYearsRepository,
     getCriminalRankingRepository,
     getFreeOrgMembersRepository,
     getMonthlyArrestTrendRepository,
     getThanaPerformanceRepository,
     getJailOccupancyDetailRepository,
     getOfficerWorkloadRepository,
+    getOfficerRankingRepository, 
     getDistrictCrimeStatsRepository,
     getAuditLogsRepository,
     recalculateAllRiskScoresRepository,
@@ -40,23 +47,23 @@ export const getHighRiskNetworkService = async () => {
     }
 };
 
-export const getGdReportAnalyticsService = async () => {
+export const getGdReportAnalyticsService = async (thanaId = null) => {
     try {
-        return await getGdReportAnalyticsRepository();
+        return await getGdReportAnalyticsRepository(thanaId);
     } catch (error) {
         console.log("Error at getGdReportAnalyticsService:", error);
         throw error;
     }
 };
 
-export const getBailStatisticsService = async () => {
-    try {
-        return await getBailStatisticsRepository();
-    } catch (error) {
-        console.log("Error at getBailStatisticsService:", error);
-        throw error;
-    }
-};
+// export const getBailStatisticsService = async () => {
+//     try {
+//         return await getBailStatisticsRepository();
+//     } catch (error) {
+//         console.log("Error at getBailStatisticsService:", error);
+//         throw error;
+//     }
+// };
 
 export const getCriminalMovementHistoryService = async (criminalId) => {
     try {
@@ -121,9 +128,63 @@ export const getCriminalsAboveAvgCasesService = async () => {
     }
 };
 
-export const getCriminalRankingService = async () => {
+export const getCriminalOverviewService = async (district, thanaId) => {
     try {
-        return await getCriminalRankingRepository();
+        return await getCriminalOverviewRepository(district, thanaId);
+    } catch (error) {
+        console.log("Error at getCriminalOverviewService:", error);
+        throw error;
+    }
+};
+
+export const getCriminalByDistrictService = async (district, thanaId) => {
+    try {
+        return await getCriminalByDistrictRepository(district, thanaId);
+    } catch (error) {
+        console.log("Error at getCriminalByDistrictService:", error);
+        throw error;
+    }
+};
+
+export const getCrimeTypeDistributionService = async (year, district, thanaId) => {
+    try {
+        return await getCrimeTypeDistributionRepository(year, district, thanaId);
+    } catch (error) {
+        console.log("Error at getCrimeTypeDistributionService:", error);
+        throw error;
+    }
+};
+
+export const getCrimePeakByYearService = async (year, district, thanaId) => {
+    try {
+        return await getCrimePeakByYearRepository(year, district, thanaId);
+    } catch (error) {
+        console.log("Error at getCrimePeakByYearService:", error);
+        throw error;
+    }
+};
+
+export const getWantedByAreaService = async (district, thanaId) => {
+    try {
+        return await getWantedByAreaRepository(district, thanaId);
+    } catch (error) {
+        console.log("Error at getWantedByAreaService:", error);
+        throw error;
+    }
+};
+
+export const getCrimeYearsService = async () => {
+    try {
+        return await getCrimeYearsRepository();
+    } catch (error) {
+        console.log("Error at getCrimeYearsService:", error);
+        throw error;
+    }
+};
+
+export const getCriminalRankingService = async (district, thanaId) => {
+    try {
+        return await getCriminalRankingRepository(district, thanaId);
     } catch (error) {
         console.log("Error at getCriminalRankingService:", error);
         throw error;
@@ -150,9 +211,9 @@ export const getMonthlyArrestTrendService = async () => {
 
 
 
-export const getThanaPerformanceService = async () => {
+export const getThanaPerformanceService = async (thanaId = null) => {
     try {
-        return await getThanaPerformanceRepository();
+        return await getThanaPerformanceRepository(thanaId);
     } catch (error) {
         console.log("Error at getThanaPerformanceService:", error);
         throw error;
@@ -168,11 +229,20 @@ export const getJailOccupancyDetailService = async () => {
     }
 };
 
-export const getOfficerWorkloadService = async () => {
+export const getOfficerWorkloadService = async (thanaId = null) => {
     try {
-        return await getOfficerWorkloadRepository();
+        return await getOfficerWorkloadRepository(thanaId);
     } catch (error) {
         console.log("Error at getOfficerWorkloadService:", error);
+        throw error;
+    }
+};
+
+export const getOfficerRankingService = async (thanaId = null) => {
+    try {
+        return await getOfficerRankingRepository(thanaId);
+    } catch (error) {
+        console.log("Error at getOfficerRankingService:", error);
         throw error;
     }
 };

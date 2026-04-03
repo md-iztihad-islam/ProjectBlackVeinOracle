@@ -9,7 +9,7 @@ router.post('/add-officer', isAuthenticated, requireRole("admin", "thana"), addO
 router.post('/signin-officer', signinOfficerController);
 router.post('/signout-officer', isAuthenticated, signoutOfficerController);
 router.get('/get-officers', isAuthenticated, requireRole("admin", "thana"), getAllOfficersController);
-router.get('/get-officer-by-id/:officerId', isAuthenticated, requireRole("admin", "thana", "officer"), getOfficerByIdController);
+router.get('/get-officer-by-id/:officerId', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getOfficerByIdController);
 router.get('/get-officers-by-thana/:thana_id', isAuthenticated, requireRole("admin", "thana"), getOfficersByThanaIdController);
 router.get('/get-officers-by-rank/:rankId', isAuthenticated, requireRole("admin", "thana"), getOfficersByRankController);
 router.put('/update-officer/:officerId', isAuthenticated, requireRole("admin", "thana"), updateOfficerController);

@@ -37,6 +37,7 @@ import UpdateJail from "@/pages/Dashboard/Admin/Jail/UpdateJail";
 import AddJail from "@/pages/Dashboard/Admin/Jail/AddJail";
 import AdminNotificationCenter from "@/pages/Dashboard/Admin/AdminNotificationCenter";
 import AdminAnalyticsOverview from "@/pages/Dashboard/Admin/AdminAnalyticsOverview";
+import CriminalAnalytics from "@/pages/Dashboard/Admin/Analytics/CriminalAnalytics";
 import JailDashBoard from "@/pages/Dashboard/Jail/JailDashboard";
 import JailAnalyticsOverview from "@/pages/Dashboard/Jail/JailAnalyticsOverview";
 import JailNotificationCenter from "@/pages/Dashboard/Jail/JailNotificationCenter";
@@ -94,6 +95,7 @@ import CriminalProfile from "@/pages/Dashboard/Officer/Arrest/CriminalProfile";
 import CaseFile from "@/pages/Dashboard/Officer/Arrest/CaseFile";
 import Organization from "@/pages/Dashboard/Officer/Arrest/Organization";
 import OfficerProfile from "@/pages/Dashboard/Officer/OfficerProfile";
+import OfficerNotificationCenter from "@/pages/Dashboard/Officer/OfficerNotificationCenter";
 import OfficerAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerAnalytics";
 import OfficerProfileAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerProfileAnalytics";
 
@@ -141,7 +143,7 @@ function Routing() {
       <Route path="/admin/dashboard/jaildashboard/jail-list" element={<JailList />} />
       <Route path="/admin/dashboard/jaildashboard/jail-list/update-jail/:jailId" element={<UpdateJail />} />
       <Route path="/admin/dashboard/notifications" element={<AdminNotificationCenter />} />
-      <Route path="/admin/dashboard/analytics" element={<AdminAnalyticsOverview />} />
+      <Route path="/admin/dashboard/analytics" element={<CriminalAnalytics />} />
 
 
       {/* Jail */}
@@ -195,6 +197,7 @@ function Routing() {
       {/* Officer */}
       <Route path="/officer/dashboard" element={<OfficerDashboard />} />
       <Route path="/officer/dashboard/profile" element={<OfficerProfile />} />
+      <Route path="/officer/dashboard/notifications" element={<OfficerNotificationCenter />} />
       <Route path="/officer/dashboard/arrest-records" element={<ArrestRecordList />} />
       <Route path="/officer/dashboard/update-arrest-record/:arrestId" element={<UpdateArrestRecord />} />
       <Route path="/officer/dashboard/arrest-record-details/:arrestId" element={<ArrestRecordDetails />} />
@@ -241,7 +244,7 @@ function Routing() {
       <Routes>
         {/* Admin modal routes */}
         <Route path="/admin/dashboard/notifications" element={<ModalShell onClose={closeModal}><AdminNotificationCenter /></ModalShell>} />
-        <Route path="/admin/dashboard/analytics" element={<ModalShell onClose={closeModal}><AdminAnalyticsOverview /></ModalShell>} />
+        <Route path="/admin/dashboard/analytics" element={<ModalShell onClose={closeModal}><CriminalAnalytics /></ModalShell>} />
         <Route path="/admin/dashboard/thanadashboard" element={<ModalShell onClose={closeModal}><AdminThanaDashBoard /></ModalShell>} />
         <Route path="/admin/dashboard/thanadashboard/add-thana" element={<ModalShell onClose={closeModal}><AddThana /></ModalShell>} />
         <Route path="/admin/dashboard/thanadashboard/thana-list" element={<ModalShell onClose={closeModal}><ThanaList /></ModalShell>} />
@@ -291,6 +294,11 @@ function Routing() {
         <Route path="/thana/update-location" element={<ModalShell onClose={closeModal}><UpdateLocation /></ModalShell>} />
         <Route path="/thana/gd/manage/:gdId" element={<ModalShell onClose={closeModal}><ManageGDStatus /></ModalShell>} />
         <Route path="/thana/transfer-history" element={<ModalShell onClose={closeModal}><TransferHistoryLookup /></ModalShell>} />
+
+        {/* Officer modal routes */}
+        <Route path="/analytics/officer" element={<ModalShell onClose={closeModal}><OfficerAnalytics /></ModalShell>} />
+        <Route path="/analytics/officer/profile/:officerId" element={<ModalShell onClose={closeModal}><OfficerProfileAnalytics /></ModalShell>} />
+        <Route path="/officer/dashboard/notifications" element={<ModalShell onClose={closeModal}><OfficerNotificationCenter /></ModalShell>} />
       </Routes>
     )}
     </>

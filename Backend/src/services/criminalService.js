@@ -1,4 +1,5 @@
 import { addCriminalRepository, getCriminalByIdRepository, getCriminalsByThanaIdRepository, getCriminalFullProfileRepository, getCriminalTimelineRepository, getCriminalCaseHistoryRepository, recalculateCriminalRiskRepository, getAllCriminalsRepository, updateCriminalRepository, deleteCriminalRepository, getCriminalsByStatusRepository, searchCriminalsRepository, getWantedCriminalsRepository, getCriminalsByAreaRepository, getCriminalByNameRepository } from "../repositories/criminalRepository.js"; 
+import { normalizeImageUrl } from "../utils/cloudinary.js";
 
 const VALID_GENDERS = ["male", "female", "other"];
 
@@ -26,6 +27,14 @@ const validateCriminalProfile = (criminalData, { requireImage = false } = {}) =>
 export const addCriminalService = async (criminalData) => {
     try {
         validateCriminalProfile(criminalData, { requireImage: true });
+
+        if (criminalData.image_url) {
+            criminalData.image_url = await normalizeImageUrl({
+                imageUrl: criminalData.image_url,
+                folder: "black-vein-oracle/criminals",
+            });
+        }
+
         const newCriminal = await addCriminalRepository(criminalData);
         return newCriminal;
     } catch (error) {
@@ -105,6 +114,14 @@ export const getAllCriminalsService = async () => {
 export const updateCriminalService = async (criminalId, data) => {
     try {
         validateCriminalProfile(data);
+
+        if (data.image_url) {
+            data.image_url = await normalizeImageUrl({
+                imageUrl: data.image_url,
+                folder: "black-vein-oracle/criminals",
+            });
+        }
+
         return await updateCriminalRepository(criminalId, data);
     } catch (error) {
         console.log('Error at updateCriminalService:', error);

@@ -264,7 +264,7 @@ export const respondToGeneralDairyController = async (req, res) => {
             });
         }
 
-        const updatedDairy = await respondToGeneralDairyService(dairyId, status);
+        const updatedDairy = await respondToGeneralDairyService(dairyId, status, officerId);
 
         if (!updatedDairy) {
             return res.status(400).json({

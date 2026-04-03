@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { findAvailableCell, getIncarcerationsByJail, transferCriminal } from "@/services/Incarceration/incarcerationApi";
@@ -18,6 +18,8 @@ export default function JailTransferCriminal() {
     reason: "",
   });
   const [cellLookupNote, setCellLookupNote] = useState("");
+  const [criminalQuery, setCriminalQuery] = useState("");
+  const [showCriminalSuggestions, setShowCriminalSuggestions] = useState(false);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -33,9 +35,28 @@ export default function JailTransferCriminal() {
     enabled: !!jailId,
   });
 
-  const jailInmates = Array.isArray(jailIncarcerationData?.data)
-    ? jailIncarcerationData.data.filter((i) => i?.criminal_id)
-    : [];
+  const jailInmates = useMemo(
+    () =>
+      Array.isArray(jailIncarcerationData?.data)
+        ? jailIncarcerationData.data.filter((i) => i?.criminal_id)
+        : [],
+    [jailIncarcerationData],
+  );
+
+  const inmateSuggestions = useMemo(() => {
+    const q = criminalQuery.trim().toLowerCase();
+    const list = jailInmates.filter((row) => {
+      if (!q) return true;
+      return (
+        String(row.criminal_name || "").toLowerCase().includes(q) ||
+        String(row.criminal_id || "").toLowerCase().includes(q) ||
+        String(row.arrest_id || "").toLowerCase().includes(q)
+      );
+    });
+    return list.slice(0, 8);
+  }, [criminalQuery, jailInmates]);
+
+  const selectedInmate = jailInmates.find((i) => i.criminal_id === form.criminalId) || null;
 
   const destinationJails = (Array.isArray(jailData?.data) ? jailData.data : []).filter(
     (j) => j?.jail_id && j.jail_id !== jailId
@@ -116,31 +137,44 @@ export default function JailTransferCriminal() {
             <input className={`${inputCls} opacity-70`} value={jailId} readOnly />
           </div>
 
-          <div>
-            <label className="text-xs text-slate-400 uppercase">Criminal ID</label>
+          <div className="md:col-span-2 relative">
+            <label className="text-xs text-slate-400 uppercase">Criminal (Name / ID / Arrest ID)</label>
             <input
               required
               className={inputCls}
-              placeholder="CRM-0000001"
-              value={form.criminalId}
-              onChange={(e) => set("criminalId", e.target.value)}
+              placeholder="Type criminal name..."
+              value={criminalQuery}
+              onFocus={() => setShowCriminalSuggestions(true)}
+              onChange={(e) => {
+                setCriminalQuery(e.target.value);
+                set("criminalId", "");
+                setShowCriminalSuggestions(true);
+              }}
             />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-400 uppercase">Pick Criminal</label>
-            <select
-              className={inputCls}
-              value={form.criminalId}
-              onChange={(e) => set("criminalId", e.target.value)}
-            >
-              <option value="">Select criminal</option>
-              {jailInmates.map((row) => (
-                <option key={`${row.incarceration_id}-${row.criminal_id}`} value={row.criminal_id}>
-                  {row.criminal_name || "Unknown"} ({row.criminal_id})
-                </option>
-              ))}
-            </select>
+            {showCriminalSuggestions && inmateSuggestions.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full bg-gray-900 border border-white/10 rounded-lg max-h-56 overflow-auto">
+                {inmateSuggestions.map((row) => (
+                  <button
+                    key={`${row.incarceration_id}-${row.criminal_id}-${row.arrest_id}`}
+                    type="button"
+                    onClick={() => {
+                      set("criminalId", row.criminal_id);
+                      setCriminalQuery(`${row.criminal_name || "Unknown"} (${row.criminal_id}) · ${row.arrest_id || "No arrest"}`);
+                      setShowCriminalSuggestions(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/5"
+                  >
+                    <span className="font-medium text-slate-100">{row.criminal_name || "Unknown"}</span>
+                    <span className="text-slate-400"> ({row.criminal_id}) · {row.arrest_id || "No arrest"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedInmate && (
+              <p className="text-xs text-emerald-300 mt-2">
+                Selected: {selectedInmate.criminal_name || "Unknown"} ({selectedInmate.criminal_id}) · Arrest: {selectedInmate.arrest_id || "N/A"}
+              </p>
+            )}
           </div>
 
           <div>

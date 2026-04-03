@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "@/helpers/axiosInstance";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import getOrganizationByNameApi from "@/services/Organization/getOrganizationByNameApi";
 
 function UpdateOrganization() {
   const navigate = useNavigate();
   const { orgId } = useParams();
   const [orgIdInput, setOrgIdInput] = useState(orgId || "");
+  const [orgSearchInput, setOrgSearchInput] = useState("");
+  const [orgOpen, setOrgOpen] = useState(false);
+  const orgRef = useRef(null);
   const [form, setForm] = useState({
     name: "",
     ideology: "",
@@ -16,6 +20,24 @@ function UpdateOrganization() {
   const targetOrgId = orgId || orgIdInput;
   const inputCls =
     "w-full bg-gray-800 border border-white/10 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50";
+
+  const { data: orgSearchData } = useQuery({
+    queryKey: ["organization-search-update", orgSearchInput],
+    queryFn: () => getOrganizationByNameApi(orgSearchInput),
+    enabled: !orgId && orgSearchInput.trim().length >= 2,
+    staleTime: 30_000,
+  });
+  const orgSuggestions = orgSearchData?.data || [];
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (orgRef.current && !orgRef.current.contains(e.target)) {
+        setOrgOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   const { data: existingOrg } = useQuery({
     queryKey: ["organizationById", targetOrgId],
@@ -73,15 +95,42 @@ function UpdateOrganization() {
           className="flex flex-col gap-4"
         >
           {!orgId && (
-            <div>
-              <label className="text-xs text-slate-400 uppercase">Organization ID</label>
-              <input
-                value={orgIdInput}
-                onChange={(e) => setOrgIdInput(e.target.value)}
-                placeholder="ORG-0000001"
-                className={inputCls}
-                required
-              />
+            <div ref={orgRef}>
+              <label className="text-xs text-slate-400 uppercase">Organization</label>
+              <div className="relative">
+                <input
+                  value={orgSearchInput}
+                  onChange={(e) => {
+                    setOrgIdInput("");
+                    setOrgSearchInput(e.target.value);
+                    setOrgOpen(true);
+                  }}
+                  onFocus={() => orgSearchInput.trim().length >= 2 && setOrgOpen(true)}
+                  placeholder="Type organization name..."
+                  className={inputCls}
+                  required
+                />
+                {orgOpen && !orgIdInput && orgSuggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-white/10 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                    {orgSuggestions.map((o) => (
+                      <button
+                        key={o.org_id}
+                        type="button"
+                        onClick={() => {
+                          setOrgIdInput(o.org_id);
+                          setOrgSearchInput(`${o.name} (${o.org_id})`);
+                          setOrgOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/5 border-b border-white/5 last:border-0"
+                      >
+                        <span className="font-semibold text-slate-100">{o.name}</span>
+                        <span className="text-slate-400 text-xs ml-2">{o.org_id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {orgIdInput && <p className="text-xs text-emerald-300 mt-1">Selected ID: {orgIdInput}</p>}
             </div>
           )}
           <div>

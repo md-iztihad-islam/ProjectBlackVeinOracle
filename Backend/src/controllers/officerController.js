@@ -317,9 +317,11 @@ export const getOfficerByIdController = async (req, res) => {
             });
         }
 
+        const { password, ...safeOfficer } = officer;
+
         return res.status(200).json({
             success: true,
-            data: officer
+            data: safeOfficer
         });
     } catch (error) {
         console.log('Error fetching officer by ID at getOfficerByIdController:', error);

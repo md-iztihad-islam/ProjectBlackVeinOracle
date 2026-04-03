@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import userStore from "@/state/userStore";
 import { addCaseFile } from "@/services/Thana/thanaApi";
+import getCriminalByNameApi from "@/services/Criminal/getCriminalByNameApi";
 
 const CASE_TYPE_OPTIONS = [
   { value: "theft", label: "Theft" },
@@ -31,6 +32,27 @@ function AddCaseFile() {
     status: "open",
     description: "",
   });
+  const [criminalInput, setCriminalInput] = useState("");
+  const [criminalOpen, setCriminalOpen] = useState(false);
+  const criminalRef = useRef(null);
+
+  const { data: criminalSearchData } = useQuery({
+    queryKey: ["case-file-criminal-search", criminalInput],
+    queryFn: () => getCriminalByNameApi(criminalInput),
+    enabled: criminalInput.trim().length >= 2,
+    staleTime: 30_000,
+  });
+  const criminalSuggestions = criminalSearchData?.data || [];
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (criminalRef.current && !criminalRef.current.contains(e.target)) {
+        setCriminalOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
@@ -83,15 +105,57 @@ function AddCaseFile() {
             />
           </div>
 
-          <div>
-            <label className="text-xs text-slate-400 uppercase">Criminal ID</label>
-            <input
-              value={form.criminal_id}
-              onChange={(e) => set("criminal_id", e.target.value)}
-              className={inputCls}
-              placeholder="e.g. CRM-0000001"
-              required
-            />
+          <div ref={criminalRef}>
+            <label className="text-xs text-slate-400 uppercase">Criminal</label>
+            <div className="relative">
+              <input
+                value={form.criminal_id ? criminalInput : criminalInput}
+                onChange={(e) => {
+                  set("criminal_id", "");
+                  setCriminalInput(e.target.value);
+                  setCriminalOpen(true);
+                }}
+                onFocus={() => criminalInput.trim().length >= 2 && setCriminalOpen(true)}
+                className={inputCls}
+                placeholder="Type criminal name..."
+                required
+              />
+              {form.criminal_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    set("criminal_id", "");
+                    setCriminalInput("");
+                    setCriminalOpen(false);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-base"
+                >
+                  ×
+                </button>
+              )}
+              {criminalOpen && !form.criminal_id && criminalSuggestions.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-white/10 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                  {criminalSuggestions.map((c) => (
+                    <button
+                      key={c.criminal_id}
+                      type="button"
+                      onClick={() => {
+                        set("criminal_id", c.criminal_id);
+                        setCriminalInput(`${c.full_name} (${c.criminal_id})`);
+                        setCriminalOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/5 border-b border-white/5 last:border-0"
+                    >
+                      <span className="font-semibold text-slate-100">{c.full_name}</span>
+                      <span className="text-slate-400 text-xs ml-2">{c.criminal_id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {form.criminal_id && (
+              <p className="text-xs text-emerald-300 mt-1">Selected ID: {form.criminal_id}</p>
+            )}
           </div>
 
           <div>

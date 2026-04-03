@@ -43,6 +43,7 @@ function AdminDashboard() {
   const { clearUser, user } = userStore();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("criminal");
   const [showAddThana, setShowAddThana] = useState(false);
   const [showAddJail, setShowAddJail] = useState(false);
   const [showAddRank, setShowAddRank] = useState(false);
@@ -95,13 +96,14 @@ function AdminDashboard() {
   const openAdminModal = (path) => {
     navigate(path, {
       state: {
+        modal: true,
         backgroundLocation: location,
       },
     });
   };
 
   useEffect(() => {
-    const id = users?.admin_id || users?.thana_id || users?.officer_id || users?.jail_id || users?.user_id;
+    const id = user?.admin_id || user?.thana_id || user?.officer_id || user?.jail_id || user?.user_id;
 
     if (String(id).startsWith("ADM")) return;
     if (String(id).startsWith("JAL")) {
@@ -178,19 +180,19 @@ function AdminDashboard() {
     queryKey: ["dashboardOverview"],
     queryFn: getDashboardOverview,
   });
-  const { data: districtStatsData } = useQuery({
+  const { data: _districtStatsData } = useQuery({
     queryKey: ["admin-district-stats"],
     queryFn: getDistrictCrimeStats,
   });
-  const { data: officerWorkloadData } = useQuery({
+  const { data: _officerWorkloadData } = useQuery({
     queryKey: ["admin-officer-workload"],
     queryFn: getOfficerWorkload,
   });
-  const { data: criminalRankingData } = useQuery({
+  const { data: _criminalRankingData } = useQuery({
     queryKey: ["admin-criminal-ranking"],
     queryFn: getCriminalRanking,
   });
-  const { data: thanaPerformanceData } = useQuery({
+  const { data: _thanaPerformanceData } = useQuery({
     queryKey: ["admin-thana-performance"],
     queryFn: getThanaPerformance,
   });
@@ -228,16 +230,18 @@ function AdminDashboard() {
   const criminalOrgLinks = criminalOrgLinksData?.data || [];
   const criminalRelations = criminalRelationsData?.data || [];
   const criminalLocationLinks = criminalLocationLinksData?.data || [];
-  const districtStats = districtStatsData?.data || [];
-  const officerWorkload = officerWorkloadData?.data || [];
-  const criminalRanking = criminalRankingData?.data || [];
-  const thanaPerformance = thanaPerformanceData?.data || [];
   const unreadNotificationCount = Number(
     unreadNotificationData?.data?.unread_count || 0,
   );
   const selectedCriminalFullProfile = selectedCriminalFullProfileData?.data || null;
   const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
   const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
+
+  const openCriminalProfileById = (criminalId) => {
+    if (!criminalId) return;
+    const fromList = criminals.find((c) => c.criminal_id === criminalId);
+    setSelectedCriminalProfile(fromList || { criminal_id: criminalId });
+  };
 
   // Mutations
   const addThanaMut = useMutation({
@@ -1118,15 +1122,56 @@ function AdminDashboard() {
           ])}
 
         {/* Criminal Relations */}
-        {activeTab === "criminal-relations" &&
-          renderTable(criminalRelations, [
-            { key: "relation_id", label: "Relation ID" },
-            { key: "criminal_id_1", label: "Criminal A ID" },
-            { key: "criminal_1_name", label: "Criminal A Name" },
-            { key: "criminal_id_2", label: "Criminal B ID" },
-            { key: "criminal_2_name", label: "Criminal B Name" },
-            { key: "relation_type", label: "Type" },
-          ])}
+        {activeTab === "criminal-relations" && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                  <th className="text-left p-3">Relation ID</th>
+                  <th className="text-left p-3">Criminal A ID</th>
+                  <th className="text-left p-3">Criminal A Name</th>
+                  <th className="text-left p-3">Criminal B ID</th>
+                  <th className="text-left p-3">Criminal B Name</th>
+                  <th className="text-left p-3">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {criminalRelations.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-slate-500">No data found</td>
+                  </tr>
+                ) : (
+                  criminalRelations.map((r, idx) => (
+                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02]">
+                      <td className="p-3 text-slate-200">{r?.relation_id ?? "—"}</td>
+                      <td className="p-3 text-slate-200">
+                        <button onClick={() => openCriminalProfileById(r?.criminal_id_1)} className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs">
+                          {r?.criminal_id_1 ?? "—"}
+                        </button>
+                      </td>
+                      <td className="p-3 text-slate-200">
+                        <button onClick={() => openCriminalProfileById(r?.criminal_id_1)} className="text-blue-300 hover:text-blue-200 hover:underline text-left">
+                          {r?.criminal_1_name ?? "—"}
+                        </button>
+                      </td>
+                      <td className="p-3 text-slate-200">
+                        <button onClick={() => openCriminalProfileById(r?.criminal_id_2)} className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs">
+                          {r?.criminal_id_2 ?? "—"}
+                        </button>
+                      </td>
+                      <td className="p-3 text-slate-200">
+                        <button onClick={() => openCriminalProfileById(r?.criminal_id_2)} className="text-blue-300 hover:text-blue-200 hover:underline text-left">
+                          {r?.criminal_2_name ?? "—"}
+                        </button>
+                      </td>
+                      <td className="p-3 text-slate-200">{r?.relation_type ?? "—"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Criminal Organization Links */}
         {activeTab === "criminal-org-links" &&
@@ -1155,63 +1200,59 @@ function AdminDashboard() {
         {/* Analytics */}
         {activeTab === "analytics" && (
           <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold mb-2">District Crime Stats</h2>
-              {renderTable(districtStats, [
-                { key: "district", label: "District" },
-                { key: "total_criminals", label: "Total Criminals" },
-                { key: "high_risk_criminals", label: "High Risk" },
-                { key: "total_cases", label: "Total Cases" },
-                { key: "open_cases", label: "Open Cases" },
-                { key: "total_arrests", label: "Arrests" },
-                { key: "active_thanas", label: "Active Thanas" },
-              ])}
-            </div>
+            <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-100">Analytics Hub</h2>
+                  <p className="text-sm text-slate-400 mt-1">Open the criminal analytics modal or jump to the officer analytics view.</p>
+                </div>
+                <button
+                  onClick={() => openAdminModal("/admin/dashboard/analytics")}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all"
+                >
+                  Open Criminal Analytics
+                </button>
+              </div>
 
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Officer Workload</h2>
-              {renderTable(officerWorkload, [
-                { key: "officer_id", label: "Officer ID" },
-                { key: "full_name", label: "Officer" },
-                { key: "badge_no", label: "Badge" },
-                { key: "rank_name", label: "Rank" },
-                { key: "thana_name", label: "Thana" },
-                { key: "assigned_gds", label: "Assigned GD" },
-                { key: "approved_gds", label: "Approved GD" },
-                { key: "total_workload", label: "Total Workload" },
-                { key: "workload_rank", label: "Rank" },
-              ])}
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <button
+                  onClick={() => {
+                    setActiveAnalyticsTab("criminal");
+                    openAdminModal("/admin/dashboard/analytics");
+                  }}
+                  className={`rounded-xl border px-4 py-4 text-left transition-all ${activeAnalyticsTab === "criminal" ? "bg-blue-600/15 border-blue-400/30 text-blue-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] font-bold">Criminal</p>
+                  <p className="text-sm text-slate-400 mt-1">Districts, crime types, peak years, wanted areas, rankings</p>
+                </button>
 
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Criminal Ranking</h2>
-              {renderTable(criminalRanking, [
-                { key: "criminal_id", label: "Criminal ID" },
-                { key: "full_name", label: "Name" },
-                { key: "status", label: "Status" },
-                { key: "arrest_count", label: "Arrests" },
-                { key: "case_count", label: "Case Count" },
-                { key: "overall_rank", label: "Overall Rank" },
-                { key: "status_rank", label: "Status Rank" },
-              ])}
-            </div>
+                <button
+                  onClick={() => {
+                    setActiveAnalyticsTab("officer");
+                    openAdminModal("/analytics/officer");
+                  }}
+                  className={`rounded-xl border px-4 py-4 text-left transition-all ${activeAnalyticsTab === "officer" ? "bg-blue-600/15 border-blue-400/30 text-blue-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] font-bold">Officer</p>
+                  <p className="text-sm text-slate-400 mt-1">Uses the existing officer analytics layout</p>
+                </button>
 
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Thana Performance</h2>
-              {renderTable(thanaPerformance, [
-                { key: "thana_id", label: "Thana ID" },
-                { key: "thana_name", label: "Thana" },
-                { key: "district", label: "District" },
-                { key: "officer_count", label: "Officers" },
-                { key: "total_cases", label: "Total Cases" },
-                { key: "closed_cases", label: "Closed Cases" },
-                { key: "case_closure_rate", label: "Case Closure %" },
-                { key: "total_gd_reports", label: "Total GD" },
-                { key: "approved_gds", label: "Approved GD" },
-                { key: "gd_approval_rate", label: "GD Approval %" },
-                { key: "criminals_registered", label: "Criminals" },
-                { key: "performance_rank", label: "Performance Rank" },
-              ])}
+                <button
+                  disabled
+                  className="rounded-xl border px-4 py-4 text-left bg-white/5 border-white/10 text-slate-500 cursor-not-allowed opacity-70"
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] font-bold">Thana</p>
+                  <p className="text-sm text-slate-500 mt-1">Coming soon</p>
+                </button>
+
+                <button
+                  disabled
+                  className="rounded-xl border px-4 py-4 text-left bg-white/5 border-white/10 text-slate-500 cursor-not-allowed opacity-70"
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] font-bold">Jail</p>
+                  <p className="text-sm text-slate-500 mt-1">Coming soon</p>
+                </button>
+              </div>
             </div>
           </div>
         )}

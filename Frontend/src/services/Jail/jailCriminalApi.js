@@ -12,3 +12,29 @@ export async function getCriminalFullProfileForJail(criminalId) {
     };
   }
 }
+
+export async function getCriminalTimelineForJail(criminalId) {
+  try {
+    const res = await axiosInstance.get(`/criminal/timeline/${criminalId}`);
+    return res.data;
+  } catch (error) {
+    return {
+      success: false,
+      message: error?.response?.data?.message || "Failed to fetch criminal timeline",
+      data: [],
+    };
+  }
+}
+
+export async function getCriminalCaseHistoryForJail(criminalId) {
+  try {
+    const res = await axiosInstance.get(`/criminal/case-history/${criminalId}`);
+    return res.data;
+  } catch (error) {
+    return {
+      success: false,
+      message: error?.response?.data?.message || "Failed to fetch criminal case history",
+      data: [],
+    };
+  }
+}

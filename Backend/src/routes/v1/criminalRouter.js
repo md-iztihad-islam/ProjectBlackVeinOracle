@@ -13,8 +13,8 @@ router.get('/get-criminal/:criminalid', isAuthenticated, requireRole("admin", "t
 router.get('/get-criminals-by-thana/:thanaId', isAuthenticated, requireRole("admin", "thana"), getCriminalsByThanaIdController);
 
 router.get('/profile/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getCriminalFullProfileController);
-router.get('/timeline/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getCriminalTimelineController);
-router.get('/case-history/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user"), getCriminalCaseHistoryController);
+router.get('/timeline/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user", "jail"), getCriminalTimelineController);
+router.get('/case-history/:id', isAuthenticated, requireRole("admin", "thana", "officer", "user", "jail"), getCriminalCaseHistoryController);
 router.put('/recalculate-risk/:id', isAuthenticated, requireRole("admin"), recalculateCriminalRiskController);
 
 router.get('/get-criminals', isAuthenticated, requireRole("admin", "thana", "officer"), getAllCriminalsController);

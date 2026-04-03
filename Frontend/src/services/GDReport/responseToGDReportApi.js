@@ -8,10 +8,7 @@ async function responseToGDReportApi({gdId, responseData}) {
         return response.data;
     } catch (error) {
         console.log("Error in responseToGDReportApi: ", error);
-        return {
-            success: false,
-            message: "Failed to submit response to GD report. Please try again later."
-        }
+        throw new Error(error?.response?.data?.message || "Failed to submit response to GD report. Please try again later.");
     }
 }
 

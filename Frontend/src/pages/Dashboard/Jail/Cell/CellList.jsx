@@ -1,7 +1,12 @@
 import deleteCellApi from "@/services/Cell/deleteCellApi";
 import getCellsByBlockApi from "@/services/Cell/getCellsByBlockApi";
 import { addIncarceration, getIncarcerationsByJail } from "@/services/Incarceration/incarcerationApi";
-import { getCriminalFullProfileForJail } from "@/services/Jail/jailCriminalApi";
+import {
+  getCriminalCaseHistoryForJail,
+  getCriminalFullProfileForJail,
+  getCriminalTimelineForJail,
+} from "@/services/Jail/jailCriminalApi";
+import { getAllArrestRecords } from "@/services/Officer/officerApi";
 import userStore from "@/state/userStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -24,6 +29,9 @@ export default function CellList() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [assignTarget, setAssignTarget] = useState(null);
   const [arrestIdInput, setArrestIdInput] = useState("");
+  const [arrestSearchInput, setArrestSearchInput] = useState("");
+  const [selectedArrestMeta, setSelectedArrestMeta] = useState(null);
+  const [showArrestSuggestions, setShowArrestSuggestions] = useState(false);
   const [search, setSearch]             = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedCellId, setSelectedCellId] = useState("");
@@ -41,8 +49,15 @@ export default function CellList() {
     enabled: !!jailId,
   });
 
-  const cells = cellData?.data || [];
+  const cells = Array.isArray(cellData?.data) ? cellData.data : [];
   const jailIncarcerations = Array.isArray(incarcerationData?.data) ? incarcerationData.data : [];
+
+  const { data: arrestData } = useQuery({
+    queryKey: ["jailCellAllArrestRecords"],
+    queryFn: getAllArrestRecords,
+    enabled: !!jailId,
+  });
+  const arrestRows = Array.isArray(arrestData?.data) ? arrestData.data : [];
 
   const { mutate: deleteCell, isLoading: deleteCellLoading } = useMutation({
     mutationFn: (cellId) => deleteCellApi(cellId),
@@ -91,13 +106,48 @@ export default function CellList() {
   const selectedCell = cells.find((c) => c.cell_id === selectedCellId) || filtered[0] || null;
   const selectedCellInmates = selectedCell ? (inmatesByCell[selectedCell.cell_id] || []) : [];
 
+  const activeArrestIds = (() => {
+    const s = new Set();
+    jailIncarcerations.forEach((row) => {
+      if (!row?.released_at && row?.arrest_id) s.add(row.arrest_id);
+    });
+    return s;
+  })();
+
+  const arrestSuggestions = (() => {
+    const q = arrestSearchInput.trim().toLowerCase();
+    return arrestRows
+      .filter((row) => {
+        if (!row?.arrest_id || activeArrestIds.has(row.arrest_id)) return false;
+        if (!q) return true;
+        return (
+          String(row.criminal_name || "").toLowerCase().includes(q) ||
+          String(row.criminal_id || "").toLowerCase().includes(q) ||
+          String(row.arrest_id || "").toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 10);
+  })();
+
   const { data: selectedCriminalFullProfileData, isLoading: isLoadingCriminalProfile } = useQuery({
     queryKey: ["jailCellCriminalFullProfile", selectedCriminalId],
     queryFn: () => getCriminalFullProfileForJail(selectedCriminalId),
     enabled: !!selectedCriminalId,
   });
+  const { data: selectedCriminalTimelineData } = useQuery({
+    queryKey: ["jailCellCriminalTimeline", selectedCriminalId],
+    queryFn: () => getCriminalTimelineForJail(selectedCriminalId),
+    enabled: !!selectedCriminalId,
+  });
+  const { data: selectedCriminalCaseHistoryData } = useQuery({
+    queryKey: ["jailCellCriminalCaseHistory", selectedCriminalId],
+    queryFn: () => getCriminalCaseHistoryForJail(selectedCriminalId),
+    enabled: !!selectedCriminalId,
+  });
 
   const selectedCriminalFullProfile = selectedCriminalFullProfileData?.data || null;
+  const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
+  const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
 
   const counts = {
     all: cells.length,
@@ -283,6 +333,9 @@ export default function CellList() {
                           onClick={() => {
                             setAssignTarget(cell);
                             setArrestIdInput("");
+                            setArrestSearchInput("");
+                            setSelectedArrestMeta(null);
+                            setShowArrestSuggestions(false);
                           }}
                           disabled={
                             cell.status === "maintenance" ||
@@ -308,13 +361,13 @@ export default function CellList() {
         </div>
       )}
 
-      {/* ── Cell Map & Inspector ── */}
+      {/* ── Cells Overview ── */}
       {!cellDataLoading && !cellDataError && filtered.length > 0 && (
-        <div className="mt-10 grid grid-cols-1 xl:grid-cols-3 gap-5">
-          <div className="xl:col-span-2 bg-slate-900/60 border border-slate-700 rounded-2xl p-5">
+        <div className="mt-10">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-black tracking-wider uppercase text-white">Cell Layout</h2>
-              <p className="text-[11px] text-slate-400">Select a cell to view details</p>
+              <h2 className="text-lg font-black tracking-wider uppercase text-white">Cells</h2>
+              <p className="text-[11px] text-slate-400">Select a cell to view inmates</p>
             </div>
 
             <div className="jail-cell-layout-panel rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
@@ -341,28 +394,25 @@ export default function CellList() {
                     </button>
                   );
                 })}
-                </div>
               </div>
             </div>
 
-          <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-5">
-            <h3 className="text-base font-black tracking-wider uppercase text-white mb-1">Cell Inspector</h3>
-            {!selectedCell ? (
-              <p className="text-sm text-slate-400">Select a cell from map to view details.</p>
-            ) : (
-              <>
-                <div className="text-sm text-slate-200 mb-3">
-                  <span className="font-bold text-slate-100">{selectedCell.cell_number}</span> · <span className="text-slate-300">{selectedCell.cell_id}</span>
-                </div>
-                <div className="text-[12px] text-slate-400 mb-3">
-                  Capacity: {selectedCell.capacity} · Occupancy: {selectedCell.number_of_people || 0}
-                </div>
-                <div className="border-t border-slate-700 pt-3">
+            <div className="mt-5 border-t border-slate-700 pt-4">
+              {!selectedCell ? (
+                <p className="text-sm text-slate-400">Select a cell from the list above to view details.</p>
+              ) : (
+                <>
+                  <div className="text-sm text-slate-200 mb-3">
+                    <span className="font-bold text-slate-100">{selectedCell.cell_number}</span> · <span className="text-slate-300">{selectedCell.cell_id}</span>
+                  </div>
+                  <div className="text-[12px] text-slate-400 mb-3">
+                    Capacity: {selectedCell.capacity} · Occupancy: {selectedCell.number_of_people || 0}
+                  </div>
                   <p className="text-[11px] uppercase tracking-widest text-slate-400 mb-2">Criminals in this cell</p>
                   {selectedCellInmates.length === 0 ? (
                     <p className="text-sm text-slate-400">No active inmate in this cell.</p>
                   ) : (
-                    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {selectedCellInmates.map((row) => (
                         <button
                           key={row.incarceration_id}
@@ -376,9 +426,9 @@ export default function CellList() {
                       ))}
                     </div>
                   )}
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -429,7 +479,7 @@ export default function CellList() {
               Assign to Cell
             </h2>
             <p className="text-[11px] text-slate-400 tracking-wider mb-4">
-              Enter the arrest ID from court order to admit into this cell.
+              Search by criminal name and select the matching arrest entry.
             </p>
 
             <div className="text-[11px] text-slate-400 bg-slate-900/60 border border-slate-800 px-4 py-3 mb-4 tracking-wider">
@@ -438,13 +488,46 @@ export default function CellList() {
               Jail: <span className="text-slate-100">{jailId || "—"}</span>
             </div>
 
-            <label className="text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-2 block">Arrest ID *</label>
-            <input
-              className="w-full rounded-xl bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 px-4 py-3 text-sm outline-none focus:border-blue-400/40"
-              placeholder="e.g. ARR-0000001"
-              value={arrestIdInput}
-              onChange={(e) => setArrestIdInput(e.target.value)}
-            />
+            <label className="text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-2 block">Criminal / Arrest *</label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 px-4 py-3 text-sm outline-none focus:border-blue-400/40"
+                placeholder="Type criminal name, criminal ID, or arrest ID"
+                value={arrestSearchInput}
+                onFocus={() => setShowArrestSuggestions(true)}
+                onChange={(e) => {
+                  setArrestSearchInput(e.target.value);
+                  setArrestIdInput("");
+                  setSelectedArrestMeta(null);
+                  setShowArrestSuggestions(true);
+                }}
+              />
+              {showArrestSuggestions && arrestSuggestions.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl max-h-56 overflow-auto">
+                  {arrestSuggestions.map((row) => (
+                    <button
+                      key={row.arrest_id}
+                      type="button"
+                      onClick={() => {
+                        setArrestIdInput(row.arrest_id);
+                        setSelectedArrestMeta(row);
+                        setArrestSearchInput(`${row.criminal_name || "Unknown"} (${row.criminal_id}) · ${row.arrest_id}`);
+                        setShowArrestSuggestions(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-white/5"
+                    >
+                      <span className="text-slate-100 font-medium">{row.criminal_name || "Unknown"}</span>
+                      <span className="text-slate-400"> ({row.criminal_id}) · {row.arrest_id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {selectedArrestMeta && (
+              <p className="text-xs text-emerald-300 mt-2">
+                Selected arrest: {selectedArrestMeta.arrest_id} · Criminal: {selectedArrestMeta.criminal_name || "Unknown"} ({selectedArrestMeta.criminal_id})
+              </p>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button
@@ -465,6 +548,9 @@ export default function CellList() {
                 onClick={() => {
                   setAssignTarget(null);
                   setArrestIdInput("");
+                  setArrestSearchInput("");
+                  setSelectedArrestMeta(null);
+                  setShowArrestSuggestions(false);
                 }}
                 className="rounded-xl border border-slate-600 bg-slate-900/70 text-slate-100 px-6 py-3 text-[12px] font-bold tracking-widest uppercase hover:border-blue-400/40 hover:text-blue-300 transition-all duration-150"
               >
@@ -494,26 +580,65 @@ export default function CellList() {
             ) : !selectedCriminalFullProfile ? (
               <p className="text-red-300">Could not load criminal details.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Info label="Criminal ID" value={selectedCriminalFullProfile.criminal_id} />
-                <Info label="Name" value={selectedCriminalFullProfile.full_name} />
-                <Info label="NID" value={selectedCriminalFullProfile.nid} />
-                <Info label="Status" value={selectedCriminalFullProfile.status} />
-                <Info label="Risk Level" value={selectedCriminalFullProfile.risk_level} />
-                <Info label="Age" value={displayValue(selectedCriminalFullProfile.age, "Adult")} />
-                <Info label="Gender" value={displayValue(selectedCriminalFullProfile.gender, "male")} />
-                <Info label="Registered Thana" value={displayValue(selectedCriminalFullProfile.registered_thana, "Demo Central Thana")} />
-                <Info label="Open Cases" value={displayValue(selectedCriminalFullProfile.open_cases, "0")} />
-                <Info label="Closed Cases" value={displayValue(selectedCriminalFullProfile.closed_cases, "0")} />
-                <Info label="Total Arrests" value={displayValue(selectedCriminalFullProfile.total_arrests, "1")} />
-                <Info label="Organizations" value={selectedCriminalFullProfile.organizations || "None"} />
-                <Info label="Aliases" value={displayValue(selectedCriminalFullProfile.aliases, "Not available")} />
-                <Info label="Nationality" value={displayValue(selectedCriminalFullProfile.nationality, "Bangladeshi")} />
-                <Info label="Father Name" value={displayValue(selectedCriminalFullProfile.father_name, "Md. Rahman")} />
-                <Info label="Mother Name" value={displayValue(selectedCriminalFullProfile.mother_name, "Amena Khatun")} />
-                <Info label="Permanent Address" value={displayValue(selectedCriminalFullProfile.permanent_address, "Not available")} />
-                <Info label="Current Address" value={displayValue(selectedCriminalFullProfile.current_address, "Not available")} />
-                <Info label="Identifying Marks" value={displayValue(selectedCriminalFullProfile.identifying_marks, "Not available")} />
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Info label="Criminal ID" value={selectedCriminalFullProfile.criminal_id} />
+                  <Info label="Name" value={selectedCriminalFullProfile.full_name} />
+                  <Info label="NID" value={selectedCriminalFullProfile.nid} />
+                  <Info label="Status" value={selectedCriminalFullProfile.status} />
+                  <Info label="Risk Level" value={selectedCriminalFullProfile.risk_level} />
+                  <Info label="Age" value={displayValue(selectedCriminalFullProfile.age, "Adult")} />
+                  <Info label="Gender" value={displayValue(selectedCriminalFullProfile.gender, "male")} />
+                  <Info label="Registered Thana" value={displayValue(selectedCriminalFullProfile.registered_thana, "Demo Central Thana")} />
+                  <Info label="Open Cases" value={displayValue(selectedCriminalFullProfile.open_cases, "0")} />
+                  <Info label="Closed Cases" value={displayValue(selectedCriminalFullProfile.closed_cases, "0")} />
+                  <Info label="Total Arrests" value={displayValue(selectedCriminalFullProfile.total_arrests, "1")} />
+                  <Info label="Organizations" value={selectedCriminalFullProfile.organizations || "None"} />
+                  <Info label="Aliases" value={displayValue(selectedCriminalFullProfile.aliases, "Not available")} />
+                  <Info label="Nationality" value={displayValue(selectedCriminalFullProfile.nationality, "Bangladeshi")} />
+                  <Info label="Father Name" value={displayValue(selectedCriminalFullProfile.father_name, "Md. Rahman")} />
+                  <Info label="Mother Name" value={displayValue(selectedCriminalFullProfile.mother_name, "Amena Khatun")} />
+                  <Info label="Permanent Address" value={displayValue(selectedCriminalFullProfile.permanent_address, "Not available")} />
+                  <Info label="Current Address" value={displayValue(selectedCriminalFullProfile.current_address, "Not available")} />
+                  <Info label="Identifying Marks" value={displayValue(selectedCriminalFullProfile.identifying_marks, "Not available")} />
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Legal History Timeline</p>
+                  <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                    {selectedCriminalTimeline.length === 0 ? (
+                      <p className="p-4 text-sm text-slate-400">No legal history found.</p>
+                    ) : (
+                      <ul className="divide-y divide-slate-800">
+                        {selectedCriminalTimeline.map((item, idx) => (
+                          <li key={`${item.event_type}-${item.event_date}-${idx}`} className="p-3">
+                            <p className="text-xs text-slate-500">{item.event_date ? new Date(item.event_date).toLocaleString() : "—"}</p>
+                            <p className="text-sm font-semibold text-slate-200 mt-1">{item.event_type}</p>
+                            <p className="text-sm text-slate-300 mt-1 whitespace-pre-wrap">{item.description}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Case Files</p>
+                  <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                    {selectedCriminalCaseHistory.length === 0 ? (
+                      <p className="p-4 text-sm text-slate-400">No case history found.</p>
+                    ) : (
+                      <ul className="divide-y divide-slate-800">
+                        {selectedCriminalCaseHistory.map((c) => (
+                          <li key={c.case_id} className="p-3">
+                            <p className="text-sm text-slate-200 font-semibold">Case #{c.case_id}: {c.case_title || "Untitled Case"}</p>
+                            <p className="text-xs text-slate-400 mt-1">{c.case_type} | {c.status} | Registered: {c.filed_at ? new Date(c.filed_at).toLocaleString() : "—"}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

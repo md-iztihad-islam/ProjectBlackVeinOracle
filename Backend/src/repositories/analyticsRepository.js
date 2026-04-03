@@ -64,7 +64,7 @@ export const getHighRiskNetworkRepository = async () => {
 
 
 // GD report analytics per thana 
-export const getGdReportAnalyticsRepository = async () => {
+export const getGdReportAnalyticsRepository = async (thanaId = null) => {
     try {
         const query = `
             SELECT 
@@ -79,10 +79,11 @@ export const getGdReportAnalyticsRepository = async () => {
                 ) AS approval_rate
             FROM gd_report g
             JOIN thana t ON g.thana_id = t.thana_id
+            WHERE ($1::text IS NULL OR g.thana_id = $1::text)
             GROUP BY t.thana_id, t.thana_name
             ORDER BY total_gd_reports DESC;
         `;
-        const result = await pool.query(query);
+        const result = await pool.query(query, [thanaId]);
         return result.rows;
     } catch (error) {
         console.log("Error at getGdReportAnalyticsRepository:", error);
@@ -311,24 +312,193 @@ export const getCriminalsAboveAvgCasesRepository = async () => {
 };
 
 
+export const getCriminalOverviewRepository = async (district = null, thanaId = null) => {
+    try {
+        const query = `
+            SELECT
+                COUNT(*)::INT AS total_criminals,
+                COUNT(*) FILTER (WHERE c.status = 'wanted')::INT AS wanted_criminals,
+                COUNT(*) FILTER (WHERE c.status = 'escaped')::INT AS escaped_criminals,
+                COUNT(*) FILTER (WHERE c.risk_level >= 7)::INT AS high_risk_criminals
+            FROM criminal c
+            LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
+            WHERE ($1::text IS NULL OR t.district = $1::text)
+              AND ($2::text IS NULL OR c.registered_thana_id = $2::text);
+        `;
+        const result = await pool.query(query, [district, thanaId]);
+        return result.rows[0] || {
+            total_criminals: 0,
+            wanted_criminals: 0,
+            escaped_criminals: 0,
+            high_risk_criminals: 0,
+        };
+    } catch (error) {
+        console.log("Error at getCriminalOverviewRepository:", error);
+        throw error;
+    }
+};
+
+
+export const getCriminalByDistrictRepository = async (district = null, thanaId = null) => {
+    try {
+        const query = `
+            SELECT
+                COALESCE(t.district, 'Unknown') AS district,
+                COUNT(*)::INT AS total_criminals
+            FROM criminal c
+            LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
+            WHERE ($1::text IS NULL OR t.district = $1::text)
+              AND ($2::text IS NULL OR c.registered_thana_id = $2::text)
+            GROUP BY COALESCE(t.district, 'Unknown')
+            ORDER BY total_criminals DESC;
+        `;
+        const result = await pool.query(query, [district, thanaId]);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getCriminalByDistrictRepository:", error);
+        throw error;
+    }
+};
+
+
+export const getCrimeTypeDistributionRepository = async (year = null, district = null, thanaId = null) => {
+    try {
+        const query = `
+            SELECT
+                cf.case_type,
+                COUNT(*)::INT AS total_cases
+            FROM case_file cf
+            JOIN thana t ON cf.thana_id = t.thana_id
+            WHERE EXTRACT(YEAR FROM cf.filed_at)::INT = COALESCE($1::INT, EXTRACT(YEAR FROM CURRENT_DATE)::INT)
+              AND ($2::text IS NULL OR t.district = $2::text)
+              AND ($3::text IS NULL OR cf.thana_id = $3::text)
+            GROUP BY cf.case_type
+            ORDER BY total_cases DESC;
+        `;
+        const result = await pool.query(query, [year, district, thanaId]);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getCrimeTypeDistributionRepository:", error);
+        throw error;
+    }
+};
+
+
+export const getCrimePeakByYearRepository = async (year = null, district = null, thanaId = null) => {
+    try {
+        const query = `
+            WITH yearly_counts AS (
+                SELECT
+                    cf.case_type,
+                    COUNT(*)::INT AS total_cases
+                FROM case_file cf
+                JOIN thana t ON cf.thana_id = t.thana_id
+                WHERE EXTRACT(YEAR FROM cf.filed_at)::INT = COALESCE($1::INT, EXTRACT(YEAR FROM CURRENT_DATE)::INT)
+                  AND ($2::text IS NULL OR t.district = $2::text)
+                  AND ($3::text IS NULL OR cf.thana_id = $3::text)
+                GROUP BY cf.case_type
+            ),
+            max_count AS (
+                SELECT MAX(total_cases) AS peak_cases FROM yearly_counts
+            )
+            SELECT
+                yc.case_type,
+                yc.total_cases,
+                (yc.total_cases = mc.peak_cases) AS is_peak
+            FROM yearly_counts yc
+            CROSS JOIN max_count mc
+            ORDER BY yc.total_cases DESC, yc.case_type ASC;
+        `;
+        const result = await pool.query(query, [year, district, thanaId]);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getCrimePeakByYearRepository:", error);
+        throw error;
+    }
+};
+
+
+export const getWantedByAreaRepository = async (district = null, thanaId = null) => {
+    try {
+        const query = `
+            WITH latest_location AS (
+                SELECT
+                    cl.criminal_id,
+                    l.district,
+                    l.zone,
+                    ROW_NUMBER() OVER (PARTITION BY cl.criminal_id ORDER BY cl.noted_at DESC) AS rn
+                FROM criminal_location cl
+                JOIN location l ON cl.location_id = l.location_id
+            )
+            SELECT
+                COALESCE(ll.district, t.district, 'Unknown') AS district,
+                COALESCE(ll.zone, 'Unknown') AS zone,
+                COUNT(*)::INT AS wanted_count
+            FROM criminal c
+            LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
+            LEFT JOIN latest_location ll ON ll.criminal_id = c.criminal_id AND ll.rn = 1
+            WHERE c.status IN ('wanted', 'escaped')
+              AND ($1::text IS NULL OR COALESCE(ll.district, t.district) = $1::text)
+              AND ($2::text IS NULL OR c.registered_thana_id = $2::text)
+            GROUP BY COALESCE(ll.district, t.district, 'Unknown'), COALESCE(ll.zone, 'Unknown')
+            ORDER BY wanted_count DESC, district ASC, zone ASC;
+        `;
+        const result = await pool.query(query, [district, thanaId]);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getWantedByAreaRepository:", error);
+        throw error;
+    }
+};
+
+
+export const getCrimeYearsRepository = async () => {
+    try {
+        const query = `
+            SELECT DISTINCT EXTRACT(YEAR FROM filed_at)::INT AS year
+            FROM case_file
+            ORDER BY year DESC;
+        `;
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getCrimeYearsRepository:", error);
+        throw error;
+    }
+};
+
+
 //criminal ranking
-export const getCriminalRankingRepository = async () => {
+export const getCriminalRankingRepository = async (district = null, thanaId = null) => {
     try {
         const query = `
             WITH criminal_stats AS (
-                SELECT c.criminal_id, c.full_name, c.status,
+                SELECT
+                    c.criminal_id,
+                    c.full_name,
+                    c.status,
+                    c.risk_level,
+                    t.thana_name,
+                    t.district,
                     COUNT(DISTINCT ar.arrest_id) AS arrest_count,
                     COUNT(DISTINCT cf.case_id) AS case_count
                 FROM criminal c
+                LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
                 LEFT JOIN arrest_record ar ON ar.criminal_id = c.criminal_id
                 LEFT JOIN case_file cf ON cf.criminal_id = c.criminal_id
-                GROUP BY c.criminal_id, c.full_name, c.status
-                HAVING COUNT(ar.arrest_id) > 0
+                WHERE ($1::text IS NULL OR t.district = $1::text)
+                  AND ($2::text IS NULL OR c.registered_thana_id = $2::text)
+                GROUP BY c.criminal_id, c.full_name, c.status, c.risk_level, t.thana_name, t.district
+                HAVING COUNT(DISTINCT ar.arrest_id) > 0 OR COUNT(DISTINCT cf.case_id) > 0
             )
-            SELECT *, ROW_NUMBER() OVER (ORDER BY arrest_count DESC) AS overall_rank,
-                RANK() OVER (PARTITION BY status ORDER BY case_count DESC) AS status_rank
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    ORDER BY (arrest_count * 2 + case_count + risk_level) DESC, risk_level DESC, full_name ASC
+                ) AS overall_rank,
+                RANK() OVER (PARTITION BY status ORDER BY case_count DESC, arrest_count DESC) AS status_rank
             FROM criminal_stats ORDER BY overall_rank`;
-        const result = await pool.query(query);
+        const result = await pool.query(query, [district, thanaId]);
         return result.rows;
     } catch (error) {
         console.log("Error at getCriminalRankingRepository:", error);
@@ -390,10 +560,15 @@ export const getMonthlyArrestTrendRepository = async () => {
 
 
 
-export const getThanaPerformanceRepository = async () => {
+export const getThanaPerformanceRepository = async (thanaId = null) => {
     try {
-        const query = `SELECT * FROM v_thana_performance ORDER BY performance_rank ASC`;
-        const result = await pool.query(query);
+        const query = `
+            SELECT *
+            FROM v_thana_performance
+            WHERE ($1::text IS NULL OR thana_id = $1::text)
+            ORDER BY performance_rank ASC
+        `;
+        const result = await pool.query(query, [thanaId]);
         return result.rows;
     } catch (error) {
         console.log("Error at getThanaPerformanceRepository:", error);
@@ -416,10 +591,23 @@ export const getJailOccupancyDetailRepository = async () => {
 
 
 
-export const getOfficerWorkloadRepository = async () => {
+export const getOfficerWorkloadRepository = async (thanaId = null) => {
     try {
-        const query = `SELECT * FROM v_officer_workload ORDER BY workload_rank ASC`;
-        const result = await pool.query(query);
+        const query = `
+            SELECT ow.*
+            FROM v_officer_workload ow
+            WHERE (
+                $1::text IS NULL
+                OR ow.thana_name = (
+                    SELECT t.thana_name
+                    FROM thana t
+                    WHERE t.thana_id = $1::text
+                    LIMIT 1
+                )
+            )
+            ORDER BY ow.total_workload DESC, ow.workload_rank ASC
+        `;
+        const result = await pool.query(query, [thanaId]);
         return result.rows;
     } catch (error) {
         console.log("Error at getOfficerWorkloadRepository:", error);
@@ -468,6 +656,52 @@ export const recalculateAllRiskScoresRepository = async () => {
         return { success: true };
     } catch (error) {
         console.log("Error at recalculateAllRiskScoresRepository:", error);
+        throw error;
+    }
+};
+
+
+export const getOfficerRankingRepository = async (thanaId = null) => {
+    try {
+        const query = `
+            WITH officer_stats AS (
+                SELECT
+                    o.officer_id,
+                    o.full_name,
+                    o.badge_no,
+                    o.rank_code,
+                    t.thana_id,
+                    t.thana_name,
+                    COUNT(DISTINCT gd.gd_id) FILTER (WHERE gd.assigned_officer_id = o.officer_id)::INT AS gd_report_count,
+                    (
+                        SELECT COUNT(*)::INT
+                        FROM arrest_record ar
+                        WHERE ar.thana_id = o.thana_id
+                    ) AS arrest_count
+                FROM officer o
+                JOIN thana t ON o.thana_id = t.thana_id
+                LEFT JOIN gd_report gd ON gd.assigned_officer_id = o.officer_id
+                WHERE ($1::text IS NULL OR o.thana_id = $1::text)
+                GROUP BY o.officer_id, o.full_name, o.badge_no, o.rank_code, t.thana_id, t.thana_name
+            )
+            SELECT
+                officer_id,
+                full_name,
+                badge_no,
+                rank_code,
+                thana_id,
+                thana_name,
+                arrest_count,
+                gd_report_count,
+                (2 * arrest_count + gd_report_count)::INT AS ranking_score,
+                DENSE_RANK() OVER (ORDER BY (2 * arrest_count + gd_report_count) DESC, full_name ASC) AS ranking_position
+            FROM officer_stats
+            ORDER BY ranking_position ASC, full_name ASC;
+        `;
+        const result = await pool.query(query, [thanaId]);
+        return result.rows;
+    } catch (error) {
+        console.log("Error at getOfficerRankingRepository:", error);
         throw error;
     }
 };

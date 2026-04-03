@@ -1,11 +1,14 @@
 import getGDReportByUserApi from "@/services/GDReport/getGDReportByUserApi";
+import getOfficerByIdApi from "@/services/Officer/getOfficerByIdApi";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 const STATUS_CONFIG = {
     submitted: { cls: "bg-blue-500/10 text-blue-400 border-blue-500/20",       dot: "bg-blue-400",    label: "Submitted" },
+    assigned:  { cls: "bg-violet-500/10 text-violet-400 border-violet-500/20", dot: "bg-violet-400",  label: "Assigned"  },
     pending:   { cls: "bg-amber-500/10 text-amber-400 border-amber-500/20",     dot: "bg-amber-400",   label: "Pending"   },
+    approved:  { cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", dot: "bg-emerald-400", label: "Approved"  },
     resolved:  { cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", dot: "bg-emerald-400", label: "Resolved"  },
     rejected:  { cls: "bg-red-500/10 text-red-400 border-red-500/20",           dot: "bg-red-400",     label: "Rejected"  },
 };
@@ -20,7 +23,7 @@ const formatDate = (iso) => {
     };
 };
 
-const FILTERS = ["All", "Submitted", "Pending", "Resolved", "Rejected"];
+const FILTERS = ["All", "Submitted", "Assigned", "Approved", "Rejected"];
 
 // ── Skeleton row ──
 const SkeletonRow = () => (
@@ -51,11 +54,20 @@ function GDReport() {
     const [activeFilter, setActiveFilter] = useState("All");
     const [search, setSearch] = useState("");
     const [expandedId, setExpandedId] = useState(null);
+    const [selectedOfficerId, setSelectedOfficerId] = useState(null);
 
     const { data: gdReports, isLoading } = useQuery({
         queryKey: ["gdReports"],
         queryFn: () => getGDReportByUserApi(),
     });
+
+    const { data: selectedOfficerData, isLoading: isOfficerLoading } = useQuery({
+        queryKey: ["officer-profile", selectedOfficerId],
+        queryFn: () => getOfficerByIdApi(selectedOfficerId),
+        enabled: !!selectedOfficerId,
+    });
+
+    const selectedOfficer = selectedOfficerData?.data || null;
 
     const gdData = gdReports?.data || [];
 
@@ -71,8 +83,8 @@ function GDReport() {
     const stats = [
         { label: "Total",    value: gdData.length,                                                              color: "text-slate-200",   bg: "bg-white/[0.03] border-white/[0.07]"      },
         { label: "Submitted",value: gdData.filter(r => r.status?.toLowerCase() === "submitted").length,         color: "text-blue-400",    bg: "bg-blue-500/[0.07] border-blue-500/20"    },
-        { label: "Pending",  value: gdData.filter(r => r.status?.toLowerCase() === "pending").length,           color: "text-amber-400",   bg: "bg-amber-500/[0.07] border-amber-500/20"  },
-        { label: "Resolved", value: gdData.filter(r => r.status?.toLowerCase() === "resolved").length,          color: "text-emerald-400", bg: "bg-emerald-500/[0.07] border-emerald-500/20"},
+        { label: "Assigned", value: gdData.filter(r => r.status?.toLowerCase() === "assigned").length,          color: "text-violet-400",  bg: "bg-violet-500/[0.07] border-violet-500/20"},
+        { label: "Approved", value: gdData.filter(r => ["approved", "resolved"].includes(r.status?.toLowerCase())).length, color: "text-emerald-400", bg: "bg-emerald-500/[0.07] border-emerald-500/20"},
         { label: "Rejected", value: gdData.filter(r => r.status?.toLowerCase() === "rejected").length,          color: "text-red-400",     bg: "bg-red-500/[0.07] border-red-500/20"      },
     ];
 
@@ -301,7 +313,21 @@ function GDReport() {
                                                         { label: "Thana ID",     value: report.thana_id,              mono: true  },
                                                         { label: "User ID",      value: report.user_id,               mono: true  },
                                                         { label: "Submitted At", value: `${date} at ${time}`,                     },
-                                                        { label: "Assigned Officer", value: report.assigned_officer_id ?? "Unassigned" },
+                                                        {
+                                                            label: "Assigned Officer",
+                                                            value: report.assigned_officer_id ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedOfficerId(report.assigned_officer_id);
+                                                                    }}
+                                                                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                                                >
+                                                                    {report.assigned_officer_id} (View profile)
+                                                                </button>
+                                                            ) : "Unassigned"
+                                                        },
                                                         { label: "Approved By",  value: report.approved_by_officer_id ?? "Pending approval" },
                                                     ].map(f => (
                                                         <div key={f.label} className="flex flex-col gap-1 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
@@ -333,6 +359,56 @@ function GDReport() {
                     )}
                 </div>
             </div>
+
+            {selectedOfficerId && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedOfficerId(null)}>
+                    <div className="w-full max-w-lg bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl p-5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base font-semibold text-slate-100">Assigned Officer Profile</h3>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedOfficerId(null)}
+                                className="text-slate-400 hover:text-slate-200"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {isOfficerLoading ? (
+                            <p className="text-sm text-slate-400">Loading officer details...</p>
+                        ) : !selectedOfficer ? (
+                            <p className="text-sm text-red-300">Failed to load officer details.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Officer ID</p>
+                                    <p className="text-sm text-slate-200 font-mono">{selectedOfficer.officer_id}</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Name</p>
+                                    <p className="text-sm text-slate-200">{selectedOfficer.full_name || "—"}</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Badge No</p>
+                                    <p className="text-sm text-slate-200">{selectedOfficer.badge_no || "—"}</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Rank</p>
+                                    <p className="text-sm text-slate-200">{selectedOfficer.rank_name || selectedOfficer.rank_code || "—"}</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07] sm:col-span-2">
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Contact</p>
+                                    <p className="text-sm text-slate-200">{selectedOfficer.phone || "—"} {selectedOfficer.email ? `• ${selectedOfficer.email}` : ""}</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07] sm:col-span-2">
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Thana</p>
+                                    <p className="text-sm text-slate-200">{selectedOfficer?.thana?.thana_name || selectedOfficer.thana_id || "—"}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

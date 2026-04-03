@@ -98,7 +98,7 @@ export default function JailAnalyticsOverview() {
 
         <section className="mb-8">
           <h2 className="text-lg font-semibold mb-3">Block-wise Occupancy</h2>
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-x-auto">
+          <div className="bg-gray-900/80 border border-white/10 rounded-xl overflow-x-auto shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
             {cellOccLoading ? (
               <p className="p-6 text-slate-400">Loading block occupancy...</p>
             ) : blockRows.length === 0 ? (
@@ -118,8 +118,8 @@ export default function JailAnalyticsOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {blockRows.map((r) => (
-                    <tr key={r.block_id} className="border-b border-white/5">
+                  {blockRows.map((r, idx) => (
+                    <tr key={r.block_id} className={`border-b border-white/5 hover:bg-blue-500/[0.06] ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
                       <td className="p-3">
                         <div className="font-medium text-slate-100">{r.block_name}</div>
                         <div className="text-xs text-slate-400 font-mono">{r.block_id}</div>
@@ -141,7 +141,7 @@ export default function JailAnalyticsOverview() {
 
         <section className="mb-8">
           <h2 className="text-lg font-semibold mb-3">Inmates Due for Bail (This Jail)</h2>
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-x-auto">
+          <div className="bg-gray-900/80 border border-white/10 rounded-xl overflow-x-auto shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
             {dueLoading ? (
               <p className="p-6 text-slate-400">Loading due-for-bail list...</p>
             ) : dueRows.length === 0 ? (
@@ -159,8 +159,8 @@ export default function JailAnalyticsOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dueRows.map((r) => (
-                    <tr key={`${r.arrest_id}-${r.criminal_id}`} className="border-b border-white/5">
+                  {dueRows.map((r, idx) => (
+                    <tr key={`${r.arrest_id}-${r.criminal_id}`} className={`border-b border-white/5 hover:bg-blue-500/[0.06] ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
                       <td className="p-3">
                         <div className="font-medium text-slate-100">{r.full_name}</div>
                         <div className="text-xs text-slate-400 font-mono">{r.criminal_id}</div>
@@ -180,7 +180,7 @@ export default function JailAnalyticsOverview() {
 
         <section>
           <h2 className="text-lg font-semibold mb-3">National Custody Snapshot</h2>
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-x-auto">
+          <div className="bg-gray-900/80 border border-white/10 rounded-xl overflow-x-auto shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
             {custodyLoading ? (
               <p className="p-6 text-slate-400">Loading custody snapshot...</p>
             ) : custodyRows.length === 0 ? (
@@ -196,8 +196,8 @@ export default function JailAnalyticsOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {custodyRows.map((r) => (
-                    <tr key={r.status} className="border-b border-white/5">
+                  {custodyRows.map((r, idx) => (
+                    <tr key={r.status} className={`border-b border-white/5 hover:bg-blue-500/[0.06] ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
                       <td className="p-3 capitalize">{String(r.status || "").replaceAll("_", " ")}</td>
                       <td className="p-3">{r.total_count}</td>
                       <td className="p-3">{r.percentage}%</td>
@@ -216,8 +216,8 @@ export default function JailAnalyticsOverview() {
 
 function StatCard({ label, value, accent = false }) {
   return (
-    <div className="bg-gray-900/80 border border-white/10 rounded-xl p-4">
-      <p className="text-xs uppercase text-slate-400">{label}</p>
+    <div className="bg-gradient-to-br from-gray-900/90 to-slate-900/70 border border-white/10 rounded-xl p-4">
+      <p className="text-xs uppercase tracking-widest text-slate-400">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${accent ? "text-blue-300" : "text-slate-100"}`}>{value}</p>
     </div>
   );
