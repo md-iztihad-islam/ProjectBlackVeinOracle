@@ -1,0 +1,89 @@
+Create a **professional, high-impact final evaluation slide deck** for our project:
+
+# Project Name
+BLACK VEIN ORACLE — Bangladesh Jail & Criminal Intelligence Management System
+
+# Audience
+University project evaluation board (faculty panel).
+
+# Presentation Goal
+Demonstrate that this is a complete, real-world, multi-role national safety platform with integrated workflows, not a basic CRUD app.
+
+# Tone and Style
+- Confident, formal, concise.
+- No fluff, no generic startup buzzwords.
+- Dark-modern visual style (law-enforcement + intelligence dashboard feel).
+- Use clean icons, flow diagrams, role maps, process arrows, and endpoint maps.
+- Keep text short on slides; use presenter cues in small notes sections.
+
+# Mandatory Slide Structure (do not skip)
+1. Title slide
+2. Problem statement in current manual system
+3. Project purpose and mission
+4. Why this system is more complex than typical student apps (e-commerce/messenger comparison)
+5. System architecture (Frontend/Backend/DB/Auth)
+6. Role-based model (Admin, Thana, Officer, Jail, User)
+7. End-to-end workflow overview (User GD → Thana → Officer → Arrest/Custody → Jail → Transfer/Bail → Notifications/Analytics)
+8. Core modules summary (table or matrix)
+9. User module deep dive + demo flow
+10. Thana module deep dive + demo flow
+11. Officer module deep dive + demo flow
+12. Jail module deep dive + demo flow
+13. Admin module deep dive + demo flow
+14. Criminal intelligence graph features (relations/org/location links)
+15. Custody logistics features (cell blocks, cells, occupancy, incarceration)
+16. Transfer workflow and transfer history
+17. Notification engine and unread center
+18. Analytics engine and strategic dashboards
+19. Security and access control (JWT cookie + middleware + role gates)
+20. Database intelligence (SQL triggers, views, functions)
+21. API surface overview (domain-wise endpoint grouping)
+22. “Where exact code exists” slide (router/controller/service/repository mapping)
+23. Performance, reliability, and operational readiness points
+24. Uniqueness in country context (clear claim, non-overstated legal phrasing)
+25. Demo script slide (step-by-step order for live evaluation)
+26. Viva Q&A quick response slide (likely faculty questions)
+27. Closing impact statement
+28. Thank you + backup slides index
+
+# Non-Negotiable Content Requirements
+- Include ALL backend domains:
+  Admin, User, Thana, Officer, Rank, Location, Criminal, Organization,
+  Criminal-Organization, Criminal Relation, Criminal Location,
+  GD Report, Case File, Jail, Cell Block, Cell,
+  Arrest Record, Incarceration, Bail Record, Analytics, Notification.
+- Include exact implementation pattern:
+  Route → Controller → Service → Repository → PostgreSQL.
+- Mention that DB-level logic also exists in SQL schema (functions/triggers/views).
+- Include dedicated slide for notification pipeline and escape alert behavior.
+- Include dedicated slide for “Criminals by Area” and “Wanted Criminals” user intelligence views.
+- Include dedicated slide for Admin Add Jail capability inside Admin Dashboard.
+- Include dedicated slide that explains single-session cookie behavior and role-auth dependency.
+
+# Visual Requirements
+- Use at least:
+  - 2 architecture diagrams
+  - 2 process flow diagrams
+  - 2 matrix/tables
+  - 2 comparison visuals
+  - 1 endpoint map visual
+- Add compact badges for each role and each subsystem.
+- Use consistent color coding:
+  - Admin = red
+  - Thana = blue
+  - Officer = green
+  - Jail = orange
+  - User = cyan
+
+# Slide Density Rule
+- Max 6 bullets per slide.
+- Max 12 words per bullet on main slides.
+- Put technical expansion in presenter notes.
+
+# Deliverables
+- A polished 16:9 slide deck.
+- Clear section dividers.
+- Speaker-note suggestions per slide.
+- Backup appendix slides with full endpoint grouping.
+
+Now generate the deck completely with this structure and include no missing module.
