@@ -174,7 +174,7 @@ export default function GDDetails() {
                         {/* Action Buttons */}
                         <div className="flex justify-end gap-4">
                             <button
-                                onClick={() => navigate("/officer/dashboard/gd-list")}
+                                onClick={() => navigate(-1)}
                                 className="py-2.5 px-6 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
                             >
                                 Back to List

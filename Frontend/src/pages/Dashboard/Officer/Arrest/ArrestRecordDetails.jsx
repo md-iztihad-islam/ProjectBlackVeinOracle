@@ -110,7 +110,7 @@ export default function ArrestRecordDetails() {
 
                 {/* Back Navigation */}
                 <button
-                    onClick={() => navigate('/officer/dashboard/arrest-records')}
+                    onClick={() => navigate(-1)}
                     className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-6 group"
                 >
                     <svg className="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -294,23 +294,6 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className={`checkbox checkbox-sm ${accentClasses.border}`}
-                />
-                <span className="text-base-content/70">Remember me</span>
-              </label>
-              <button
-                type="button"
-                className={`${accentClasses.text} hover:underline font-medium`}
-              >
-                Forgot password?
-              </button>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -357,17 +340,7 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        {/* Help Text */}
-        <div className="mt-6 text-center text-sm text-base-content/50">
-          <p>
-            Having trouble logging in?{" "}
-            <button
-              className={`${accentClasses.text} hover:underline font-medium`}
-            >
-              Contact Support
-            </button>
-          </p>
-        </div>
+        
       </div>
 
       <style jsx>{`

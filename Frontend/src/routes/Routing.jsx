@@ -19,7 +19,6 @@ import WantedCriminals from "@/pages/Dashboard/User/WantedCriminals";
 import CriminalsByArea from "@/pages/Dashboard/User/CriminalsByArea";
 import UserNotificationCenter from "@/pages/Dashboard/User/UserNotificationCenter";
 import OfficerDashboard from "@/pages/Dashboard/Officer/OfficerDashboard";
-import GDList from "@/pages/Dashboard/Officer/GDPart/GDList";
 import GDDetails from "@/pages/Dashboard/Officer/GDPart/GDDetails";
 import AdminThanaDashBoard from "@/pages/Dashboard/Admin/Thana/AdminThanaDashBoard";
 import AddThana from "@/pages/Dashboard/Admin/Thana/AddThana";
@@ -206,7 +205,6 @@ function Routing() {
       <Route path="/officer/dashboard/arrest-record-details/:arrestId/add-bail" element={<AddBailRecord />} />
       <Route path="/officer/dashboard/arrest-records/:arrestId/update-bail/:bailId" element={<UpdateBailRecord />} />
       <Route path="/officer/dashboard/arrest-records/:arrestId/bail-record-details/:bailId" element={<BailRecordDetails />} />
-      <Route path="/officer/dashboard/gd-list" element={<GDList />} />
       <Route path="/officer/dashboard/gd-list/:dairyId" element={<GDDetails />} />
       <Route path="/officer/respond-gd/:gdId" element={<ResponseToGD />} />
       <Route path="/officer/dashboard/criminal-profile/:criminalId" element={<CriminalProfile />} />

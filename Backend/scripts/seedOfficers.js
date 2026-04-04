@@ -1,6 +1,47 @@
 import pool from '../src/config/dbConnection.js';
 import bcrypt from 'bcryptjs';
 
+const maleFirstNames = [
+    'Md', 'Abdul', 'Abdur', 'Syed', 'Mohammad', 'Sajid', 'Arif', 'Tariqul', 'Kamal', 'Zakir',
+    'Naim', 'Imran', 'Rafiq', 'Shakil', 'Mahbub', 'Rashed', 'Masud', 'Jahid', 'Fahim', 'Nayeem',
+    'Ashraful', 'Saiful', 'Mizan', 'Rana', 'Sabbir', 'Jubayer', 'Shuvo', 'Parvez', 'Ehsan', 'Tanvir',
+    'Tareq', 'Iqbal', 'Momin', 'Abbas', 'Anis', 'Babul', 'Faruk', 'Golam', 'Habib', 'Iftekhar',
+    'Jahangir', 'Kawsar', 'Mamun', 'Nazmul', 'Omar', 'Partho', 'Roni', 'Suman', 'Tipu', 'Yasin'
+];
+const femaleFirstNames = [
+    'Sultana', 'Nasrin', 'Farhana', 'Ayesha', 'Roksana', 'Jannat', 'Shirin', 'Nusrat', 'Mim', 'Tasnim',
+    'Mithila', 'Sanjida', 'Tania', 'Sabrina', 'Sharmin', 'Jahanara', 'Muniya', 'Rumana', 'Rupa', 'Tanjila',
+    'Shahana', 'Samira', 'Anika', 'Sadia', 'Maliha', 'Nazia', 'Nafisa', 'Saima', 'Tahmina', 'Purnima',
+    'Rina', 'Sumaiya', 'Ishrat', 'Lubna', 'Hasina', 'Papia', 'Razia', 'Sheuly', 'Momena', 'Selina'
+];
+const lastNames = [
+    'Hossain', 'Rahman', 'Islam', 'Akter', 'Begum', 'Khan', 'Ahmed', 'Ali', 'Sarkar', 'Reza',
+    'Chowdhury', 'Bhuiyan', 'Miah', 'Uddin', 'Karim', 'Hasan', 'Mahmud', 'Jamal', 'Kabir', 'Siddique',
+    'Azad', 'Bhuiya', 'Das', 'Dey', 'Haque', 'Jalil', 'Khaled', 'Mannan', 'Mollik', 'Munshi',
+    'Naser', 'Noor', 'Quader', 'Rashid', 'Riyad', 'Saha', 'Sikder', 'Talukder', 'Ullah', 'Zaman'
+];
+
+const randomNid = () => {
+    // 17-digit numeric string (common NID format)
+    let nid = '';
+    for (let i = 0; i < 17; i++) {
+        nid += Math.floor(Math.random() * 10).toString();
+    }
+    return nid;
+};
+
+const randomBirthDate = () => {
+    // Officers age range: 22 - 58
+    const startYear = 1968;
+    const endYear = 2002;
+    const year = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
+    const month = Math.floor(Math.random() * 12) + 1;
+    const day = Math.floor(Math.random() * 28) + 1;
+    const mm = month.toString().padStart(2, '0');
+    const dd = day.toString().padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
+};
+
 const generateOfficers = async () => {
     // Get all thana IDs from database
     const thanasResult = await pool.query('SELECT thana_id FROM thana ORDER BY thana_id');
@@ -11,46 +52,54 @@ const generateOfficers = async () => {
         process.exit(1);
     }
     
-    const ranks = [
-        'constable', 'si', 'inspector', 'oc',
-        'dsp', 'addl_sp', 'sp', 'ac', 'dc', 'addl_dc',
-        'jc', 'dig', 'addl_dig', 'addl_cp', 'cp', 'ig'
-    ];
-
-    const firstNames = ['Md.', 'Abdur', 'Syed', 'Sultana', 'Nasrin', 'Farhana', 'Arif', 'Tariqul', 'Kamal', 'Zakir'];
-    const lastNames = ['Hossain', 'Rahman', 'Islam', 'Akter', 'Begum', 'Khan', 'Ahmed', 'Ali', 'Sarkar', 'Reza'];
-    
     const officers = [];
+    let badgeCounter = 100000;
 
-    for (let i = 1; i <= 300; i++) {
-        // Distribute officers across thanas
-        const thana_id = thanas[(i - 1) % thanas.length];
-        
-        // Pick names and rank
-        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-        const fullName = `${firstName} ${lastName} ${i}`;
-        
-        // Logical rank distribution: higher index = higher rank (roughly)
-        let rank_code;
-        if (i === 1) rank_code = 'constable';
-        else if (i < 50) rank_code = 'constable';
-        else if (i < 100) rank_code = 'si';
-        else if (i < 150) rank_code = 'inspector';
-        else if (i < 200) rank_code = 'oc';
-        else if (i < 250) rank_code = 'dsp';
-        else rank_code = 'sp';
+    for (const thanaId of thanas) {
+        // 10 officers per thana: 7 male, 3 female
+        const genderPlan = [
+            'male', 'male', 'male', 'male', 'male', 'male', 'male',
+            'female', 'female', 'female'
+        ];
 
-        officers.push({
-            badge_no: `BP-${100000 + i}`,
-            full_name: fullName,
-            rank_code: rank_code,
-            thana_id: thana_id,
-            phone: `017${Math.floor(10000000 + Math.random() * 90000000)}`.substring(0, 11),
-            email: `officer${i}@police.gov.bd`,
-            image_url: `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=random`,
-            password: 'Officer@123'
-        });
+        // Rank distribution per thana (10 total)
+        const rankPlan = [
+            'oc',
+            'inspector', 'inspector',
+            'si', 'si',
+            'constable', 'constable', 'constable', 'constable', 'constable'
+        ];
+
+        for (let i = 0; i < 10; i++) {
+            const gender = genderPlan[i];
+            const firstNamePool = gender === 'female' ? femaleFirstNames : maleFirstNames;
+            const firstName = firstNamePool[Math.floor(Math.random() * firstNamePool.length)];
+            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            const fullName = `${firstName} ${lastName}`;
+            const fatherFirst = maleFirstNames[Math.floor(Math.random() * maleFirstNames.length)];
+            const fatherLast = lastNames[Math.floor(Math.random() * lastNames.length)];
+            const motherFirst = femaleFirstNames[Math.floor(Math.random() * femaleFirstNames.length)];
+            const motherLast = lastNames[Math.floor(Math.random() * lastNames.length)];
+            const fatherName = `${fatherFirst} ${fatherLast}`;
+            const motherName = `${motherFirst} ${motherLast}`;
+            const emailLocal = fullName.toLowerCase().replace(/[^a-z]/g, '');
+
+            officers.push({
+                badge_no: `BP-${badgeCounter++}`,
+                full_name: fullName,
+                rank_code: rankPlan[i],
+                thana_id: thanaId,
+                phone: `01${Math.floor(300000000 + Math.random() * 699999999)}`.substring(0, 11),
+                email: `${emailLocal}${badgeCounter}@police.gov.bd`,
+                image_url: `https://randomuser.me/api/portraits/${gender === 'female' ? 'women' : 'men'}/${Math.floor(Math.random() * 90)}.jpg`,
+                gender,
+                nid_number: randomNid(),
+                father_name: fatherName,
+                mother_name: motherName,
+                birth_date: randomBirthDate(),
+                password: 'officer@123'
+            });
+        }
     }
     return officers;
 };
@@ -67,13 +116,51 @@ const seedOfficers = async () => {
         const existingCount = existingResult.rows[0].count;
         
         if (existingCount > 0) {
-            console.log(`⏭️  Found ${existingCount} existing officers. Skipping insert.\n`);
+            console.log(`🔁 Found ${existingCount} existing officers. Updating extra fields...\n`);
+
+            const officersResult = await pool.query(
+                'SELECT officer_id, full_name, gender FROM officer ORDER BY officer_id'
+            );
+
+            let updatedCount = 0;
+            for (const row of officersResult.rows) {
+                const gender = row.gender === 'female' ? 'female' : 'male';
+                const fatherFirst = maleFirstNames[Math.floor(Math.random() * maleFirstNames.length)];
+                const fatherLast = lastNames[Math.floor(Math.random() * lastNames.length)];
+                const motherFirst = femaleFirstNames[Math.floor(Math.random() * femaleFirstNames.length)];
+                const motherLast = lastNames[Math.floor(Math.random() * lastNames.length)];
+                const fatherName = `${fatherFirst} ${fatherLast}`;
+                const motherName = `${motherFirst} ${motherLast}`;
+                const nidNumber = randomNid();
+                const birthDate = randomBirthDate();
+                const imageUrl = `https://randomuser.me/api/portraits/${gender === 'female' ? 'women' : 'men'}/${Math.floor(Math.random() * 90)}.jpg`;
+
+                await pool.query(
+                    `
+                        UPDATE officer
+                        SET nid_number = $1,
+                            father_name = $2,
+                            mother_name = $3,
+                            birth_date = $4,
+                            image_url = $5
+                        WHERE officer_id = $6
+                    `,
+                    [nidNumber, fatherName, motherName, birthDate, imageUrl, row.officer_id]
+                );
+
+                updatedCount++;
+                if (updatedCount % 100 === 0) {
+                    console.log(`✅ Updated ${updatedCount} officers...`);
+                }
+            }
+
+            console.log(`\n✅ Updated ${updatedCount} officers with new fields.`);
             console.log('═══════════════════════════════════════════════\n');
             process.exit(0);
         }
         
         // Step 2: Generate officers
-        console.log('🏗️  Generating 300 officers...\n');
+        console.log('🏗️  Generating 10 officers per thana...\n');
         const officersData = await generateOfficers();
         
         // Step 3: Insert officers
@@ -88,8 +175,11 @@ const seedOfficers = async () => {
                 const hashedPassword = await bcrypt.hash(officer.password, saltRounds);
                 
                 const query = `
-                    INSERT INTO officer (badge_no, full_name, rank_code, thana_id, phone, email, image_url, password)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    INSERT INTO officer (
+                        badge_no, full_name, rank_code, thana_id, phone, email, image_url,
+                        nid_number, father_name, mother_name, birth_date, gender, password
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     RETURNING officer_id, badge_no, full_name, rank_code
                 `;
                 
@@ -101,6 +191,11 @@ const seedOfficers = async () => {
                     officer.phone,
                     officer.email,
                     officer.image_url,
+                    officer.nid_number,
+                    officer.father_name,
+                    officer.mother_name,
+                    officer.birth_date,
+                    officer.gender,
                     hashedPassword
                 ]);
                 
@@ -157,8 +252,8 @@ const seedOfficers = async () => {
         });
         
         console.log('\n🔐 LOGIN CREDENTIALS:');
-        console.log('   Email: officer[1-300]@police.gov.bd');
-        console.log('   Password: Officer@123');
+        console.log('   Email: officername@police.gov.bd');
+        console.log('   Password: officer@123');
         
         console.log('\n═══════════════════════════════════════════════');
         console.log('✅ Officers seeding completed successfully!');

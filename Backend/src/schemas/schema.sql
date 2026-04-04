@@ -1,5 +1,3 @@
---update by Rayyan
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS id_sequences (
