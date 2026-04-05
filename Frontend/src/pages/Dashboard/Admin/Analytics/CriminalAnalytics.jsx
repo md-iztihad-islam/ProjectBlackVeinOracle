@@ -368,6 +368,7 @@ export default function CriminalAnalytics() {
 
   const overview = overviewData?.data || {};
   const districtRows = districtData?.data || [];
+  const topDistrictRows = districtRows.slice(0, 10);
   const typeRows = (typeData?.data || []).map((r) => ({
     ...r,
     label: capitalizeWords(r.case_type),
@@ -377,6 +378,15 @@ export default function CriminalAnalytics() {
   const peakCrimes = peakRows.filter((r) => r.is_peak);
   const wantedRows = wantedData?.data || [];
   const rankingRows = rankingData?.data || [];
+  const statusRows = [
+    { key: "in_custody", label: "In Custody", value: Number(overview.in_custody_criminals || 0), color: "bg-blue-600" },
+    { key: "wanted", label: "Wanted", value: Number(overview.wanted_criminals || 0), color: "bg-red-600" },
+    { key: "on_bail", label: "On Bail", value: Number(overview.on_bail_criminals || 0), color: "bg-emerald-600" },
+    { key: "released", label: "Released", value: Number(overview.released_criminals || 0), color: "bg-violet-600" },
+    { key: "escaped", label: "Escaped", value: Number(overview.escaped_criminals || 0), color: "bg-amber-600" },
+    { key: "unknown", label: "Unknown", value: Number(overview.unknown_criminals || 0), color: "bg-slate-500" },
+  ];
+  const totalStatusCount = statusRows.reduce((sum, s) => sum + s.value, 0);
 
   const selectedCriminalFullProfile = selectedCriminalFullProfileData?.data || null;
   const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
@@ -446,9 +456,9 @@ export default function CriminalAnalytics() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
-                    {profileCriminal?.image_url ? (
+                      {(profileCriminal?.image_url || selectedCriminal?.image_url) ? (
                       <img
-                        src={profileCriminal.image_url}
+                          src={profileCriminal?.image_url || selectedCriminal?.image_url}
                         alt={profileCriminal.full_name}
                         className="w-full h-full rounded-full object-cover"
                       />
@@ -652,10 +662,16 @@ export default function CriminalAnalytics() {
           >
             Officer
           </button>
-          <button className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-500 text-sm font-semibold cursor-not-allowed opacity-70">
+          <button
+            onClick={() => navigate("/analytics/thana", { state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location } })}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
             Thana
           </button>
-          <button className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-500 text-sm font-semibold cursor-not-allowed opacity-70">
+          <button
+            onClick={() => navigate("/analytics/jail", { state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location } })}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
             Jail
           </button>
         </div>
@@ -710,16 +726,42 @@ export default function CriminalAnalytics() {
         <KPICard label="High Risk" value={fmt(overview.high_risk_criminals)} colorClass="text-violet-700" icon="⚠️" />
       </div>
 
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <h3 className="text-sm font-bold text-slate-800">Criminals by Status</h3>
+          <p className="text-xs text-slate-400">Across custody, wanted, bail and release states</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {statusRows.map((row) => {
+            const percent = totalStatusCount > 0 ? Math.round((row.value / totalStatusCount) * 100) : 0;
+            return (
+              <div key={row.key} className="rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-slate-700">{row.label}</p>
+                  <p className="text-sm font-bold text-slate-900">{fmt(row.value)}</p>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div className={`${row.color} h-full rounded-full`} style={{ width: `${percent}%` }} />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">{percent}% of tracked criminals</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Criminals by District" subtitle="Useful for hotspot monitoring and resource planning">
+        <ChartCard title="Criminals by District" subtitle="District-wise criminal distribution">
           {isDistrictLoading ? (
             <div className="h-full flex items-center justify-center text-sm text-slate-400">Loading...</div>
+          ) : topDistrictRows.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-slate-500">No district data found for this filter.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={districtRows} margin={{ top: 10, right: 12, left: 0, bottom: 10 }}>
+              <BarChart layout="vertical" data={topDistrictRows} margin={{ top: 8, right: 14, left: 14, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="district" tick={{ fontSize: 11 }} interval={0} angle={-18} textAnchor="end" height={58} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="district" width={96} tick={{ fontSize: 11 }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="total_criminals" fill="#2563eb" radius={[6, 6, 0, 0]} name="Criminals" />
               </BarChart>
@@ -750,12 +792,12 @@ export default function CriminalAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Wanted Criminals by Area" subtitle="Latest location zone-wise grouping">
+        <ChartCard title="Wanted Criminals by Area" subtitle="Top 5 locations by wanted count">
           {isWantedLoading ? (
             <div className="h-full flex items-center justify-center text-sm text-slate-400">Loading...</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={wantedRows.slice(0, 12)} margin={{ top: 10, right: 12, left: 0, bottom: 10 }}>
+              <BarChart data={wantedRows.slice(0, 5)} margin={{ top: 10, right: 12, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis
                   dataKey="zone"

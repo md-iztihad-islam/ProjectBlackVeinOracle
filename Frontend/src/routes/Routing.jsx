@@ -98,6 +98,7 @@ import OfficerNotificationCenter from "@/pages/Dashboard/Officer/OfficerNotifica
 import OfficerAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerAnalytics";
 import OfficerProfileAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerProfileAnalytics";
 import ThanaAnalytics from "@/pages/Dashboard/Admin/Analytics/ThanaAnalytics";
+import JailAnalytics from "@/pages/Dashboard/Admin/Analytics/JailAnalytics";
 
 
 
@@ -215,6 +216,7 @@ function Routing() {
       <Route path="/analytics/officer" element={<OfficerAnalytics />} />
       <Route path="/analytics/officer/profile/:officerId" element={<OfficerProfileAnalytics />} />
       <Route path="/analytics/thana" element={<ThanaAnalytics />} />
+      <Route path="/analytics/jail" element={<JailAnalytics />} />
 
       {/* User */}
       <Route path="/user-registration" element={<RegisterUser />} />
@@ -298,6 +300,8 @@ function Routing() {
         {/* Officer modal routes */}
         <Route path="/analytics/officer" element={<ModalShell onClose={closeModal}><OfficerAnalytics /></ModalShell>} />
         <Route path="/analytics/officer/profile/:officerId" element={<ModalShell onClose={closeModal}><OfficerProfileAnalytics /></ModalShell>} />
+        <Route path="/analytics/thana" element={<ModalShell onClose={closeModal}><ThanaAnalytics /></ModalShell>} />
+        <Route path="/analytics/jail" element={<ModalShell onClose={closeModal}><JailAnalytics /></ModalShell>} />
         <Route path="/officer/dashboard/notifications" element={<ModalShell onClose={closeModal}><OfficerNotificationCenter /></ModalShell>} />
       </Routes>
     )}

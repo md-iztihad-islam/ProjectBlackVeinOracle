@@ -32,6 +32,7 @@ import {
   getDistrictCrimeStats,
   getOfficerWorkload,
   getThanaPerformance,
+  getAdminJailDetails,
 } from "@/services/Analytics/analyticsApi";
 import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
@@ -58,9 +59,19 @@ function AdminDashboard() {
   const [selectedJailDistrict, setSelectedJailDistrict] = useState("");
   const [selectedGdDistrict, setSelectedGdDistrict] = useState("");
   const [selectedGdThanaId, setSelectedGdThanaId] = useState("");
+  const [gdTypeSort, setGdTypeSort] = useState("none");
+  const [caseTypeSort, setCaseTypeSort] = useState("none");
+  const [thanaSearch, setThanaSearch] = useState("");
+  const [officerSearch, setOfficerSearch] = useState("");
+  const [criminalSearch, setCriminalSearch] = useState("");
+  const [jailSearch, setJailSearch] = useState("");
   const [selectedGDReport, setSelectedGDReport] = useState(null);
   const [selectedOfficerProfile, setSelectedOfficerProfile] = useState(null);
   const [selectedCriminalProfile, setSelectedCriminalProfile] = useState(null);
+  const [expandedOfficerImage, setExpandedOfficerImage] = useState(null);
+  const [expandedCriminalImage, setExpandedCriminalImage] = useState(null);
+  const [selectedJailId, setSelectedJailId] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Form states
   const [thanaForm, setThanaForm] = useState({
@@ -215,6 +226,12 @@ function AdminDashboard() {
     queryKey: ["admin-criminal-case-history", selectedCriminalId],
     queryFn: () => getCriminalCaseHistory(selectedCriminalId),
     enabled: Boolean(selectedCriminalId),
+  });
+
+  const { data: selectedJailDetailsData, isLoading: selectedJailDetailsLoading } = useQuery({
+    queryKey: ["admin-jail-details-inline", selectedJailId],
+    queryFn: () => getAdminJailDetails(selectedJailId),
+    enabled: Boolean(selectedJailId),
   });
 
   const thanas = thanasData?.data || [];
@@ -401,18 +418,60 @@ function AdminDashboard() {
 
   const criminalsForSelectedThana = criminals
     .filter((c) => selectedCriminalThanaId && c?.registered_thana_id === selectedCriminalThanaId)
+    .filter((c) => {
+      const q = criminalSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        String(c.full_name || "").toLowerCase().includes(q) ||
+        String(c.criminal_id || "").toLowerCase().includes(q)
+      );
+    })
     .map((c) => ({
       ...c,
       registered_thana_name: thanaById[c.registered_thana_id]?.thana_name || c.thana_name || "—",
       district: thanaById[c.registered_thana_id]?.district || "—",
     }));
 
-  const jailsByDistrict = jails.filter(
-    (j) => !selectedJailDistrict || j?.district === selectedJailDistrict
-  );
+  const officersForSelectedThana = officers
+    .filter((o) => selectedOfficerThanaId && o?.thana_id === selectedOfficerThanaId)
+    .filter((o) => {
+      const q = officerSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        String(o.full_name || "").toLowerCase().includes(q) ||
+        String(o.officer_id || "").toLowerCase().includes(q)
+      );
+    })
+    .map((o) => ({
+      ...o,
+      thana_name: thanaById[o.thana_id]?.thana_name || "—",
+      district: thanaById[o.thana_id]?.district || "—",
+      zone: thanaById[o.thana_id]?.zone || "—",
+    }));
+
+  const jailsByDistrict = jails
+    .filter((j) => !selectedJailDistrict || j?.district === selectedJailDistrict)
+    .filter((j) => {
+      const q = jailSearch.trim().toLowerCase();
+      if (!selectedJailDistrict) return true;
+      if (!q) return true;
+      return (
+        String(j.jail_name || "").toLowerCase().includes(q) ||
+        String(j.jail_id || "").toLowerCase().includes(q)
+      );
+    });
 
   const thanasBySelectedDistrict = thanas
     .filter((t) => !selectedThanaDistrict || t?.district === selectedThanaDistrict)
+    .filter((t) => {
+      const q = thanaSearch.trim().toLowerCase();
+      if (!selectedThanaDistrict) return true;
+      if (!q) return true;
+      return (
+        String(t.thana_name || "").toLowerCase().includes(q) ||
+        String(t.thana_id || "").toLowerCase().includes(q)
+      );
+    })
     .sort((a, b) => String(a?.thana_name || "").localeCompare(String(b?.thana_name || "")));
 
   const thanaOptionsByGdDistrict = thanas.filter(
@@ -425,20 +484,29 @@ function AdminDashboard() {
       ...g,
       thana_name: thanaById[g.thana_id]?.thana_name || g.thana_name || g.thana_id,
       district: thanaById[g.thana_id]?.district || "—",
-    }));
+    }))
+    .sort((a, b) => {
+      if (gdTypeSort === "none") return 0;
+      const av = String(a?.gd_type || "").toLowerCase();
+      const bv = String(b?.gd_type || "").toLowerCase();
+      return gdTypeSort === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
 
-  const officersForSelectedThana = officers
-    .filter((o) => selectedOfficerThanaId && o?.thana_id === selectedOfficerThanaId)
-    .map((o) => ({
-      ...o,
-      thana_name: thanaById[o.thana_id]?.thana_name || "—",
-      district: thanaById[o.thana_id]?.district || "—",
-      zone: thanaById[o.thana_id]?.zone || "—",
-    }));
+  const selectedJailDetails = selectedJailDetailsData?.data || null;
 
-  const caseFilesForSelectedThana = allCaseFiles.filter(
-    (c) => c?.thana_id && c.thana_id === selectedCaseThanaId
-  );
+  const thanaSuggestions = thanasBySelectedDistrict.slice(0, 12).map((t) => t.thana_name).filter(Boolean);
+  const officerSuggestions = officersForSelectedThana.slice(0, 12).map((o) => o.full_name).filter(Boolean);
+  const criminalSuggestions = criminalsForSelectedThana.slice(0, 12).map((c) => c.full_name).filter(Boolean);
+  const jailSuggestions = jailsByDistrict.slice(0, 12).map((j) => j.jail_name).filter(Boolean);
+
+  const caseFilesForSelectedThana = allCaseFiles
+    .filter((c) => c?.thana_id && c.thana_id === selectedCaseThanaId)
+    .sort((a, b) => {
+      if (caseTypeSort === "none") return 0;
+      const av = String(a?.case_type || "").toLowerCase();
+      const bv = String(b?.case_type || "").toLowerCase();
+      return caseTypeSort === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
 
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200">
@@ -673,6 +741,23 @@ function AdminDashboard() {
                   </option>
                 ))}
               </select>
+              {selectedThanaDistrict && (
+                <div className="mt-3">
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Search thana</label>
+                  <input
+                    value={thanaSearch}
+                    onChange={(e) => setThanaSearch(e.target.value)}
+                    placeholder="Type thana name..."
+                    list="admin-thana-search-suggestions"
+                    className={`${inputCls} max-w-md`}
+                  />
+                  <datalist id="admin-thana-search-suggestions">
+                    {thanaSuggestions.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
@@ -762,6 +847,23 @@ function AdminDashboard() {
                   ))}
                 </select>
               </div>
+              {selectedOfficerThanaId && (
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Search officer (selected thana)</label>
+                  <input
+                    value={officerSearch}
+                    onChange={(e) => setOfficerSearch(e.target.value)}
+                    placeholder="Type officer name or ID..."
+                    list="admin-officer-search-suggestions"
+                    className={inputCls}
+                  />
+                  <datalist id="admin-officer-search-suggestions">
+                    {officerSuggestions.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
@@ -800,13 +902,24 @@ function AdminDashboard() {
                         <td className="p-3 font-mono text-xs">{o.officer_id}</td>
                         <td className="p-3">
                           {o.image_url ? (
-                            <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+                            <button
+                              type="button"
+                              className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedOfficerImage({
+                                  src: o.image_url,
+                                  name: o.full_name || o.officer_id || "Officer",
+                                });
+                              }}
+                              aria-label="Expand officer photo"
+                            >
                               <img
                                 src={o.image_url}
                                 alt={o.full_name}
                                 className="w-full h-full rounded-full object-cover"
                               />
-                            </div>
+                            </button>
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
                               N/A
@@ -865,6 +978,23 @@ function AdminDashboard() {
                   ))}
                 </select>
               </div>
+              {selectedCriminalThanaId && (
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Search criminal (selected thana)</label>
+                  <input
+                    value={criminalSearch}
+                    onChange={(e) => setCriminalSearch(e.target.value)}
+                    placeholder="Type criminal name or ID..."
+                    list="admin-criminal-search-suggestions"
+                    className={inputCls}
+                  />
+                  <datalist id="admin-criminal-search-suggestions">
+                    {criminalSuggestions.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
@@ -906,13 +1036,24 @@ function AdminDashboard() {
                         <td className="p-3 font-mono text-xs">{c.criminal_id}</td>
                         <td className="p-3">
                           {c.image_url ? (
-                            <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                            <button
+                              type="button"
+                              className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedCriminalImage({
+                                  src: c.image_url,
+                                  name: c.full_name || c.criminal_id || "Criminal",
+                                });
+                              }}
+                              aria-label="Expand criminal photo"
+                            >
                               <img
                                 src={c.image_url}
                                 alt={c.full_name}
                                 className="w-full h-full rounded-full object-cover"
                               />
-                            </div>
+                            </button>
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
                               N/A
@@ -1064,6 +1205,23 @@ function AdminDashboard() {
                   </option>
                 ))}
               </select>
+              {selectedJailDistrict && (
+                <div className="mt-3">
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Search jail</label>
+                  <input
+                    value={jailSearch}
+                    onChange={(e) => setJailSearch(e.target.value)}
+                    placeholder="Type jail name..."
+                    list="admin-jail-search-suggestions"
+                    className={`${inputCls} max-w-md`}
+                  />
+                  <datalist id="admin-jail-search-suggestions">
+                    {jailSuggestions.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
@@ -1081,7 +1239,8 @@ function AdminDashboard() {
                   {jailsByDistrict.map((j) => (
                     <tr
                       key={j.jail_id}
-                      className="border-b border-white/5 hover:bg-white/[0.02]"
+                      className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                      onClick={() => setSelectedJailId(j.jail_id)}
                     >
                       <td className="p-3 font-mono text-xs">{j.jail_id}</td>
                       <td className="p-3 font-medium">{j.jail_name}</td>
@@ -1238,19 +1397,25 @@ function AdminDashboard() {
                 </button>
 
                 <button
-                  disabled
-                  className="rounded-xl border px-4 py-4 text-left bg-white/5 border-white/10 text-slate-500 cursor-not-allowed opacity-70"
+                  onClick={() => {
+                    setActiveAnalyticsTab("thana");
+                    openAdminModal("/analytics/thana");
+                  }}
+                  className={`rounded-xl border px-4 py-4 text-left transition-all ${activeAnalyticsTab === "thana" ? "bg-blue-600/15 border-blue-400/30 text-blue-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
                 >
                   <p className="text-xs uppercase tracking-[0.2em] font-bold">Thana</p>
-                  <p className="text-sm text-slate-500 mt-1">Coming soon</p>
+                  <p className="text-sm text-slate-400 mt-1">Open thana analytics in modal</p>
                 </button>
 
                 <button
-                  disabled
-                  className="rounded-xl border px-4 py-4 text-left bg-white/5 border-white/10 text-slate-500 cursor-not-allowed opacity-70"
+                  onClick={() => {
+                    setActiveAnalyticsTab("jail");
+                    openAdminModal("/analytics/jail");
+                  }}
+                  className={`rounded-xl border px-4 py-4 text-left transition-all ${activeAnalyticsTab === "jail" ? "bg-blue-600/15 border-blue-400/30 text-blue-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
                 >
                   <p className="text-xs uppercase tracking-[0.2em] font-bold">Jail</p>
-                  <p className="text-sm text-slate-500 mt-1">Coming soon</p>
+                  <p className="text-sm text-slate-400 mt-1">Open jail analytics in modal</p>
                 </button>
               </div>
             </div>
@@ -1295,6 +1460,20 @@ function AdminDashboard() {
                   ))}
                 </select>
               </div>
+              {selectedCaseDistrict && selectedCaseThanaId && (
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Sort by case type</label>
+                  <select
+                    value={caseTypeSort}
+                    onChange={(e) => setCaseTypeSort(e.target.value)}
+                    className={`${inputCls} max-w-xs`}
+                  >
+                    <option value="none">Default order</option>
+                    <option value="asc">Type A-Z</option>
+                    <option value="desc">Type Z-A</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
@@ -1465,7 +1644,7 @@ function AdminDashboard() {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.user_id} className="border-b border-white/5">
+                  <tr key={u.user_id} className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer" onClick={() => setSelectedUser(u)}>
                     <td className="p-3 font-mono text-xs">{u.user_id}</td>
                     <td className="p-3">{u.full_name}</td>
                     <td className="p-3 text-slate-400">{u.email}</td>
@@ -1522,6 +1701,20 @@ function AdminDashboard() {
                   ))}
                 </select>
               </div>
+              {selectedGdDistrict && selectedGdThanaId && (
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Sort by GD type</label>
+                  <select
+                    value={gdTypeSort}
+                    onChange={(e) => setGdTypeSort(e.target.value)}
+                    className={`${inputCls} max-w-xs`}
+                  >
+                    <option value="none">Default order</option>
+                    <option value="asc">Type A-Z</option>
+                    <option value="desc">Type Z-A</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
@@ -1665,6 +1858,7 @@ function AdminDashboard() {
               <Info label="Thana" value={selectedGDReport.thana_name || selectedGDReport.thana_id || "—"} />
               <Info label="Thana ID" value={selectedGDReport.thana_id || "—"} mono />
               <Info label="District" value={selectedGDReport.district || "—"} />
+              <Info label="Incident Location" value={selectedGDReport.incident_location || "—"} />
               <Info label="Assigned Officer" value={selectedGDReport.assigned_officer_id || "—"} mono />
               <Info label="Approved By" value={selectedGDReport.approved_by_officer_id || "—"} mono />
             </div>
@@ -1674,6 +1868,99 @@ function AdminDashboard() {
               <div className="bg-gray-800 border border-white/5 rounded-lg p-3 text-sm text-slate-300 whitespace-pre-wrap">
                 {selectedGDReport.description || "No description provided."}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedJailId && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedJailId("")}
+        >
+          <div
+            className="w-full max-w-3xl bg-gray-900 border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">Jail Details</p>
+                <h3 className="text-xl font-bold text-slate-100 mt-1">
+                  {selectedJailDetails?.jail?.jail_name || selectedJailId}
+                </h3>
+              </div>
+              <button onClick={() => setSelectedJailId("")} className="text-slate-400 hover:text-slate-200 text-sm">
+                Close
+              </button>
+            </div>
+
+            {selectedJailDetailsLoading ? (
+              <p className="text-sm text-slate-400">Loading jail details...</p>
+            ) : !selectedJailDetails?.jail ? (
+              <p className="text-sm text-slate-400">No details found.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+                  <Info label="Jail ID" value={selectedJailDetails.jail.jail_id} mono />
+                  <Info label="District" value={selectedJailDetails.jail.district} />
+                  <Info label="Zone" value={selectedJailDetails.jail.zone} />
+                  <Info label="Address" value={selectedJailDetails.jail.address} />
+                  <Info label="Capacity" value={selectedJailDetails.jail.capacity} />
+                  <Info label="Email" value={selectedJailDetails.jail.email} />
+                  <Info label="Total Blocks" value={selectedJailDetails.summary?.total_blocks ?? 0} />
+                  <Info label="Total Cells" value={selectedJailDetails.summary?.total_cells ?? 0} />
+                  <Info label="Total Criminals" value={selectedJailDetails.summary?.total_criminals ?? 0} />
+                  <Info label="Cell Capacity" value={selectedJailDetails.summary?.total_cell_capacity ?? 0} />
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Active Criminal List</p>
+                  <div className="bg-gray-800 border border-white/5 rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                    {(selectedJailDetails.criminals || []).length === 0 ? (
+                      <p className="p-4 text-sm text-slate-400">No active criminals in this jail.</p>
+                    ) : (
+                      <ul className="divide-y divide-white/5">
+                        {selectedJailDetails.criminals.map((c) => (
+                          <li key={c.incarceration_id} className="p-3 text-sm text-slate-200">
+                            {c.full_name} <span className="text-slate-400">({c.criminal_id})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedUser(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">User Details</p>
+                <h3 className="text-xl font-bold text-slate-100 mt-1">{selectedUser.full_name || "Unknown User"}</h3>
+              </div>
+              <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-200 text-sm">
+                Close
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <Info label="User ID" value={selectedUser.user_id} mono />
+              <Info label="NID" value={selectedUser.nid_number} mono />
+              <Info label="Email" value={selectedUser.email} />
+              <Info label="Phone" value={selectedUser.phone} />
+              <Info label="Gender" value={selectedUser.gender} />
+              <Info label="Birth Date" value={selectedUser.birth_date ? new Date(selectedUser.birth_date).toLocaleDateString() : "—"} />
+              <Info label="Address" value={selectedUser.address} />
             </div>
           </div>
         </div>
@@ -1692,11 +1979,24 @@ function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
                   {selectedOfficerProfile.image_url ? (
-                    <img
-                      src={selectedOfficerProfile.image_url}
-                      alt={selectedOfficerProfile.full_name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                    <button
+                      type="button"
+                      className="w-full h-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedOfficerImage({
+                          src: selectedOfficerProfile.image_url,
+                          name: selectedOfficerProfile.full_name || selectedOfficerProfile.officer_id || "Officer",
+                        });
+                      }}
+                      aria-label="Expand officer photo"
+                    >
+                      <img
+                        src={selectedOfficerProfile.image_url}
+                        alt={selectedOfficerProfile.full_name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    </button>
                   ) : (
                     <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
                       N/A
@@ -1754,12 +2054,25 @@ function AdminDashboard() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
-                  {selectedCriminalProfile.image_url ? (
-                    <img
-                      src={selectedCriminalProfile.image_url}
-                      alt={selectedCriminalProfile.full_name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                  {(selectedCriminalProfile.image_url || selectedCriminalFullProfile?.image_url) ? (
+                    <button
+                      type="button"
+                      className="w-full h-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedCriminalImage({
+                          src: selectedCriminalProfile.image_url || selectedCriminalFullProfile?.image_url,
+                          name: selectedCriminalProfile.full_name || selectedCriminalProfile.criminal_id || "Criminal",
+                        });
+                      }}
+                      aria-label="Expand criminal photo"
+                    >
+                      <img
+                        src={selectedCriminalProfile.image_url || selectedCriminalFullProfile?.image_url}
+                        alt={selectedCriminalProfile.full_name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    </button>
                   ) : (
                     <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
                       N/A
@@ -1894,6 +2207,50 @@ function AdminDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {expandedCriminalImage?.src && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+          onClick={() => setExpandedCriminalImage(null)}
+        >
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={expandedCriminalImage.src}
+              alt={expandedCriminalImage.name || "Criminal"}
+              className="w-full max-h-[85vh] object-contain rounded-xl border border-white/10"
+            />
+            <button
+              type="button"
+              onClick={() => setExpandedCriminalImage(null)}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm text-slate-200"
+            >
+              Close image
+            </button>
+          </div>
+        </div>
+      )}
+
+      {expandedOfficerImage?.src && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+          onClick={() => setExpandedOfficerImage(null)}
+        >
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={expandedOfficerImage.src}
+              alt={expandedOfficerImage.name || "Officer"}
+              className="w-full max-h-[85vh] object-contain rounded-xl border border-white/10"
+            />
+            <button
+              type="button"
+              onClick={() => setExpandedOfficerImage(null)}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm text-slate-200"
+            >
+              Close image
+            </button>
           </div>
         </div>
       )}

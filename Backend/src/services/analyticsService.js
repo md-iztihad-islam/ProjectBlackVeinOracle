@@ -24,6 +24,8 @@ import {
     getOfficerWorkloadRepository,
     getOfficerRankingRepository, 
     getDistrictCrimeStatsRepository,
+    getAdminJailOverviewRepository,
+    getAdminJailDetailsRepository,
     getAuditLogsRepository,
     recalculateAllRiskScoresRepository,
 } from "../repositories/analyticsRepository.js";
@@ -252,6 +254,24 @@ export const getDistrictCrimeStatsService = async (district) => {
         return await getDistrictCrimeStatsRepository(district);
     } catch (error) {
         console.log("Error at getDistrictCrimeStatsService:", error);
+        throw error;
+    }
+};
+
+export const getAdminJailOverviewService = async (limit = 10) => {
+    try {
+        return await getAdminJailOverviewRepository(limit);
+    } catch (error) {
+        console.log("Error at getAdminJailOverviewService:", error);
+        throw error;
+    }
+};
+
+export const getAdminJailDetailsService = async (jailId) => {
+    try {
+        return await getAdminJailDetailsRepository(jailId);
+    } catch (error) {
+        console.log("Error at getAdminJailDetailsService:", error);
         throw error;
     }
 };

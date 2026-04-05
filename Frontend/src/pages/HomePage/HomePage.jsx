@@ -152,6 +152,21 @@ function HomePage() {
               View Documentation
             </Button>
           </div>
+
+          <div className="mt-6 mx-auto max-w-2xl rounded-xl border border-primary/20 bg-card/70 p-4 text-sm">
+            <p className="text-muted-foreground">
+              Are you a citizen?{" "}
+              <Link to="/user-signin" className="text-primary font-semibold hover:underline">
+                Log in here
+              </Link>
+              .{" "}
+              Don&apos;t have an account?{" "}
+              <Link to="/user-registration" className="text-primary font-semibold hover:underline">
+                Register here
+              </Link>
+              .
+            </p>
+          </div>
         </motion.div>
 
         {/* Floating alert */}

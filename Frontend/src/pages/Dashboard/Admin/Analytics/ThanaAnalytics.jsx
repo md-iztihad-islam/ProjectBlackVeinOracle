@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 import getThanaAnalyticsApi from "@/services/Thana/getThanaAnalyticsApi";
 import getThanaByNameApi from "@/services/Thana/getThanaByNameApi";
 import {
@@ -401,13 +402,15 @@ function ThanaCard({ item }) {
           <div style={{ fontWeight: 700, fontSize: 15, color: "#0F172A" }}>{thana.thana_name}</div>
           <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{thana.district}</div>
         </div>
-        <div style={{
-          fontSize: 11, padding: "3px 10px", borderRadius: 20, flexShrink: 0, marginLeft: 8,
-          background: thana.head_officer ? "#DCFCE7" : "#FEE2E2",
-          color: thana.head_officer ? "#166534" : "#991B1B", fontWeight: 600,
-        }}>
-          {thana.head_officer ? thana.head_officer.full_name : "No Head Officer"}
-        </div>
+        {thana.head_officer && (
+          <div style={{
+            fontSize: 11, padding: "3px 10px", borderRadius: 20, flexShrink: 0, marginLeft: 8,
+            background: "#DCFCE7",
+            color: "#166534", fontWeight: 600,
+          }}>
+            {thana.head_officer.full_name}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
@@ -577,8 +580,10 @@ function FiltersPanel({ filters, onChange, onReset, onApply, isBusy, selectedTha
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ThanaAnalytics() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [draftFilters,     setDraftFilters]     = useState({});
-  const [committedFilters, setCommittedFilters] = useState(null);
+  const [committedFilters, setCommittedFilters] = useState({});
   const [selectedThana,    setSelectedThana]    = useState(null);
   const [activeTab,        setActiveTab]        = useState("overview");
 
@@ -605,7 +610,7 @@ export default function ThanaAnalytics() {
   const { data: response, isLoading, isFetching, isError } = useQuery({
     queryKey: ["thanaAnalytics", committedFilters],
     queryFn:  () => getThanaAnalyticsApi(committedFilters ?? {}),
-    enabled:  committedFilters !== null,
+    enabled:  true,
     staleTime: 60_000,
   });
 
@@ -656,41 +661,84 @@ export default function ThanaAnalytics() {
     { key: "thanas",    label: "Thanas"     },
   ];
 
+  const handleBack = () => {
+    if (location.state?.modal) {
+      const bg = location.state?.backgroundLocation;
+      if (bg?.pathname) {
+        navigate(
+          {
+            pathname: bg.pathname,
+            search: bg.search || "",
+            hash: bg.hash || "",
+          },
+          { replace: true },
+        );
+        return;
+      }
+      navigate("/admin/dashboard", { replace: true });
+      return;
+    }
+    navigate("/admin/dashboard");
+  };
+
   return (
-    <div style={{ background: "#F8FAFC", minHeight: "100vh", fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
+    <div className="space-y-6 bg-slate-950/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 md:p-6 shadow-2xl shadow-slate-950/20">
 
-      {/* ── Header ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "20px 32px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.4px" }}>
-              🏛️ Thana Analytics
-            </h1>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
-              {hasData && rows.length > 0
-                ? `${fmt(summary.total_thanas)} stations loaded`
-                : "Apply filters and click Get Analytics to load data"}
-            </p>
-          </div>
-
-          {hasData && rows.length > 0 && (
-            <div style={{ display: "flex", gap: 24, fontSize: 13, flexWrap: "wrap" }}>
-              {[
-                { label: "Avg. Case Closure", value: pct(summary.average_case_closure_rate),                    color: C.green },
-                { label: "Avg. GD Approval",  value: pct(summary.average_gd_approval_rate),                     color: C.teal  },
-                { label: "Avg. Risk Level",   value: Number(summary.average_criminal_risk_level ?? 0).toFixed(1), color: C.red  },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ textAlign: "center" }}>
-                  <div style={{ fontWeight: 700, color, fontSize: 18 }}>{value}</div>
-                  <div style={{ color: "#64748B" }}>{label}</div>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-blue-300 font-bold">Admin Analytics</p>
+          <h1 className="text-2xl font-bold text-slate-100 mt-1">Thana Analytics</h1>
+          <p className="text-sm text-slate-400 mt-1">Station-level operations, risk and performance analytics.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
+            Back to Dashboard
+          </button>
+          <button
+            onClick={() => navigate("/admin/dashboard/analytics", { state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location } })}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
+            Criminal
+          </button>
+          <button
+            onClick={() => navigate("/analytics/officer", { state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location } })}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
+            Officer
+          </button>
+          <button className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">Thana</button>
+          <button
+            onClick={() => navigate("/analytics/jail", { state: { modal: true, backgroundLocation: location.state?.backgroundLocation || location } })}
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm font-semibold transition-all"
+          >
+            Jail
+          </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 24px" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 space-y-6">
+
+        {hasData && rows.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm px-5 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
+                <p className="text-slate-500 text-xs">Avg. Case Closure</p>
+                <p className="font-bold text-green-700 mt-0.5">{pct(summary.average_case_closure_rate)}</p>
+              </div>
+              <div className="rounded-lg bg-teal-50 border border-teal-200 px-3 py-2">
+                <p className="text-slate-500 text-xs">Avg. GD Approval</p>
+                <p className="font-bold text-teal-700 mt-0.5">{pct(summary.average_gd_approval_rate)}</p>
+              </div>
+              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                <p className="text-slate-500 text-xs">Avg. Risk Level</p>
+                <p className="font-bold text-red-700 mt-0.5">{Number(summary.average_criminal_risk_level ?? 0).toFixed(1)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Filters ── */}
         <FiltersPanel
@@ -702,17 +750,6 @@ export default function ThanaAnalytics() {
           selectedThana={selectedThana}
           onThanaChange={handleThanaChange}
         />
-
-        {/* ── Never fetched ── */}
-        {committedFilters === null && (
-          <div style={{ textAlign: "center", padding: "80px 24px" }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>📊</div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#475569" }}>No data loaded yet</div>
-            <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 6 }}>
-              Select your filters above and click <strong style={{ color: C.blue }}>Get Analytics</strong>.
-            </div>
-          </div>
-        )}
 
         {/* ── Loading ── */}
         {isBusy && committedFilters !== null && (

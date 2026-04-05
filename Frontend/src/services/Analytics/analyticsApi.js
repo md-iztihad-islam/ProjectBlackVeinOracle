@@ -119,3 +119,15 @@ export const getCellOccupancyDetails = (jailId) =>
     success: false,
     data: [],
   });
+
+export const getAdminJailOverview = (params = {}) =>
+  safe(() => axiosInstance.get("/analytics/admin-jail-overview", { params: buildParams(params) }), {
+    success: false,
+    data: {},
+  });
+
+export const getAdminJailDetails = (jailId) =>
+  safe(() => axiosInstance.get(`/analytics/admin-jail-details/${jailId}`), {
+    success: false,
+    data: null,
+  });

@@ -24,6 +24,8 @@ import {
     getOfficerWorkloadService,
     getOfficerRankingService,
     getDistrictCrimeStatsService,
+    getAdminJailOverviewService,
+    getAdminJailDetailsService,
     getAuditLogsService,
     recalculateAllRiskScoresService,
 } from "../services/analyticsService.js";
@@ -305,6 +307,31 @@ export const getDistrictCrimeStatsController = async (req, res) => {
         return res.status(200).json({ success: true, data });
     } catch (error) {
         console.log("Error at getDistrictCrimeStatsController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getAdminJailOverviewController = async (req, res) => {
+    try {
+        const limit = req.query.limit ? Number(req.query.limit) : 10;
+        const data = await getAdminJailOverviewService(limit);
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getAdminJailOverviewController:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export const getAdminJailDetailsController = async (req, res) => {
+    try {
+        const { jailId } = req.params;
+        const data = await getAdminJailDetailsService(jailId);
+        if (!data?.jail) {
+            return res.status(404).json({ success: false, message: "Jail not found" });
+        }
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        console.log("Error at getAdminJailDetailsController:", error);
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

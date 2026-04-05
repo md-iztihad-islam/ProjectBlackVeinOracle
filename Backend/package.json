@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node --watch src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed:jail-demo": "node scripts/seedJailFeatureDemo.js"
+    "seed:jail-demo": "node scripts/seedJailFeatureDemo.js",
+    "rebalance:criminal-statuses": "node scripts/rebalanceCriminalStatuses.js"
   },
   "keywords": [],
   "author": "",

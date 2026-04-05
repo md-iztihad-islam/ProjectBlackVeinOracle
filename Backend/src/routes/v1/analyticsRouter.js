@@ -25,6 +25,8 @@ import {
   getOfficerWorkloadController,
   getOfficerRankingController,
   getDistrictCrimeStatsController,
+  getAdminJailOverviewController,
+  getAdminJailDetailsController,
   getAuditLogsController,
   recalculateAllRiskScoresController,
 } from '../../controllers/analyticsController.js';
@@ -61,6 +63,8 @@ router.get('/jail-occupancy-detail', isAuthenticated, requireRole("admin", "jail
 router.get('/officer-workload', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getOfficerWorkloadController);
 router.get('/officer-ranking', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getOfficerRankingController);
 router.get('/district-crime-stats', isAuthenticated, requireRole("admin", "thana", "officer", "jail"), getDistrictCrimeStatsController);
+router.get('/admin-jail-overview', isAuthenticated, requireRole("admin"), getAdminJailOverviewController);
+router.get('/admin-jail-details/:jailId', isAuthenticated, requireRole("admin"), getAdminJailDetailsController);
 
 
 router.get('/audit-logs', isAuthenticated, requireRole("admin"), getAuditLogsController);

@@ -34,7 +34,14 @@ const identifyingMarks = [
   'Tattoo on left wrist',
   'Mole on right cheek'
 ];
-const statuses = ['in_custody', 'on_bail', 'released', 'escaped', 'unknown', 'wanted'];
+const statusPool = [
+  ...Array(70).fill('in_custody'),
+  ...Array(10).fill('on_bail'),
+  ...Array(8).fill('released'),
+  ...Array(6).fill('wanted'),
+  ...Array(4).fill('escaped'),
+  ...Array(2).fill('unknown'),
+];
 
 const randomNid = () => {
   let nid = '';
@@ -99,7 +106,7 @@ const seedCriminals = async () => {
         const fatherName = buildName('male');
         const motherName = buildName('female');
         const alias = pick(aliasNames);
-        const status = pick(statuses);
+        const status = pick(statusPool);
         const riskLevel = Math.floor(Math.random() * 10) + 1;
         const imageUrl = `https://randomuser.me/api/portraits/${gender === 'female' ? 'women' : 'men'}/${Math.floor(Math.random() * 90)}.jpg`;
         const permanentAddress = `${thana.thana_name}, ${thana.district}`;

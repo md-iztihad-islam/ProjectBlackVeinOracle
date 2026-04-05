@@ -28,6 +28,11 @@ function ThanaDashboard() {
   const [selectedCaseFile, setSelectedCaseFile] = useState(null);
   const [selectedOfficer, setSelectedOfficer] = useState(null);
   const [selectedCriminal, setSelectedCriminal] = useState(null);
+  const [selectedGDReport, setSelectedGDReport] = useState(null);
+  const [gdTypeSort, setGdTypeSort] = useState("none");
+  const [caseTypeSort, setCaseTypeSort] = useState("none");
+  const [expandedOfficerImage, setExpandedOfficerImage] = useState(null);
+  const [expandedCriminalImage, setExpandedCriminalImage] = useState(null);
 
   const handleSignout = async () => {
     await thanaSignoutApi();
@@ -120,6 +125,20 @@ function ThanaDashboard() {
   const selectedCriminalProfile = selectedCriminalProfileData?.data || null;
   const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
   const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
+
+  const sortedCases = [...cases].sort((a, b) => {
+    if (caseTypeSort === "none") return 0;
+    const av = String(a?.case_type || "").toLowerCase();
+    const bv = String(b?.case_type || "").toLowerCase();
+    return caseTypeSort === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+
+  const sortedGdReports = [...gdReports].sort((a, b) => {
+    if (gdTypeSort === "none") return 0;
+    const av = String(a?.gd_type || "").toLowerCase();
+    const bv = String(b?.gd_type || "").toLowerCase();
+    return gdTypeSort === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
 
   const statusColor = (s) => {
     const c = {
@@ -334,13 +353,24 @@ function ThanaDashboard() {
                     <td className="p-3 font-mono text-xs">{c.criminal_id}</td>
                     <td className="p-3">
                       {c.image_url ? (
-                        <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
+                        <button
+                          type="button"
+                          className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCriminalImage({
+                              src: c.image_url,
+                              name: c.full_name || c.criminal_id || "Criminal",
+                            });
+                          }}
+                          aria-label="Expand criminal photo"
+                        >
                           <img
                             src={c.image_url}
                             alt={c.full_name}
                             className="w-full h-full rounded-full object-cover"
                           />
-                        </div>
+                        </button>
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
                           N/A
@@ -409,13 +439,24 @@ function ThanaDashboard() {
                     <td className="p-3 font-mono text-xs">{o.officer_id}</td>
                     <td className="p-3">
                       {o.image_url ? (
-                        <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
+                        <button
+                          type="button"
+                          className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedOfficerImage({
+                              src: o.image_url,
+                              name: o.full_name || o.officer_id || "Officer",
+                            });
+                          }}
+                          aria-label="Expand officer photo"
+                        >
                           <img
                             src={o.image_url}
                             alt={o.full_name}
                             className="w-full h-full rounded-full object-cover"
                           />
-                        </div>
+                        </button>
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-400">
                           N/A
@@ -454,7 +495,21 @@ function ThanaDashboard() {
 
         {/* Cases Tab */}
         {activeTab === "cases" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+          <div className="space-y-3">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Sort by case type</label>
+              <select
+                value={caseTypeSort}
+                onChange={(e) => setCaseTypeSort(e.target.value)}
+                className="w-full max-w-xs bg-gray-900 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">Default order</option>
+                <option value="asc">Type A-Z</option>
+                <option value="desc">Type Z-A</option>
+              </select>
+            </div>
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
@@ -468,7 +523,7 @@ function ThanaDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {cases.map((c) => (
+                {sortedCases.map((c) => (
                   <tr
                     key={c.case_id}
                     className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
@@ -501,7 +556,7 @@ function ThanaDashboard() {
                     </td>
                   </tr>
                 ))}
-                {cases.length === 0 && (
+                {sortedCases.length === 0 && (
                   <tr>
                     <td colSpan={7} className="p-6 text-center text-slate-500">
                       No case files found
@@ -511,11 +566,26 @@ function ThanaDashboard() {
               </tbody>
             </table>
           </div>
+          </div>
         )}
 
         {/* GD Reports Tab */}
         {activeTab === "gd" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+          <div className="space-y-3">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Sort by GD type</label>
+              <select
+                value={gdTypeSort}
+                onChange={(e) => setGdTypeSort(e.target.value)}
+                className="w-full max-w-xs bg-gray-900 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">Default order</option>
+                <option value="asc">Type A-Z</option>
+                <option value="desc">Type Z-A</option>
+              </select>
+            </div>
+
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
@@ -528,8 +598,8 @@ function ThanaDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {gdReports.map((g) => (
-                  <tr key={g.gd_id} className="border-b border-white/5">
+                {sortedGdReports.map((g) => (
+                  <tr key={g.gd_id} className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer" onClick={() => setSelectedGDReport(g)}>
                     <td className="p-3 font-mono text-xs">{g.gd_id}</td>
                     <td className="p-3 text-xs capitalize">
                       {g.gd_type?.replace("_", " ") || "—"}
@@ -549,7 +619,10 @@ function ThanaDashboard() {
                     </td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => openThanaModal(`/thana/gd/manage/${g.gd_id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openThanaModal(`/thana/gd/manage/${g.gd_id}`);
+                        }}
                         className="text-blue-400 hover:text-blue-300 text-xs"
                       >
                         Manage
@@ -557,7 +630,7 @@ function ThanaDashboard() {
                     </td>
                   </tr>
                 ))}
-                {gdReports.length === 0 && (
+                {sortedGdReports.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-slate-500">
                       No GD reports
@@ -566,6 +639,7 @@ function ThanaDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         )}
 
@@ -798,6 +872,52 @@ function ThanaDashboard() {
         </div>
       )}
 
+      {selectedGDReport && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedGDReport(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 border border-white/10 rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">GD Details</p>
+                <h3 className="text-xl font-bold text-slate-100 mt-1">GD #{selectedGDReport.gd_id}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedGDReport(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+              <Info label="GD ID" value={selectedGDReport.gd_id} mono />
+              <Info label="Type" value={selectedGDReport.gd_type?.replace("_", " ")} />
+              <Info label="Status" value={selectedGDReport.status} />
+              <Info
+                label="Submitted At"
+                value={selectedGDReport.submitted_at ? new Date(selectedGDReport.submitted_at).toLocaleString() : "—"}
+              />
+              <Info label="Thana ID" value={selectedGDReport.thana_id || "—"} mono />
+              <Info label="Assigned Officer" value={selectedGDReport.assigned_officer_id || "—"} mono />
+              <Info label="Approved By" value={selectedGDReport.approved_by_officer_id || "—"} mono />
+              <Info label="Incident Location" value={selectedGDReport.incident_location || "—"} />
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Description</p>
+              <div className="bg-gray-800 border border-white/5 rounded-lg p-3 text-sm text-slate-300 whitespace-pre-wrap">
+                {selectedGDReport.description || "No description provided."}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedOfficer && (
         <div
           className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
@@ -811,11 +931,24 @@ function ThanaDashboard() {
               <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-600">
                   {selectedOfficer.image_url ? (
-                    <img
-                      src={selectedOfficer.image_url}
-                      alt={selectedOfficer.full_name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                    <button
+                      type="button"
+                      className="w-full h-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedOfficerImage({
+                          src: selectedOfficer.image_url,
+                          name: selectedOfficer.full_name || selectedOfficer.officer_id || "Officer",
+                        });
+                      }}
+                      aria-label="Expand officer photo"
+                    >
+                      <img
+                        src={selectedOfficer.image_url}
+                        alt={selectedOfficer.full_name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    </button>
                   ) : (
                     <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
                       N/A
@@ -867,12 +1000,25 @@ function ThanaDashboard() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-red-400 via-amber-300 to-red-600">
-                  {selectedCriminal.image_url ? (
-                    <img
-                      src={selectedCriminal.image_url}
-                      alt={selectedCriminal.full_name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                  {(selectedCriminal.image_url || selectedCriminalProfile?.image_url) ? (
+                    <button
+                      type="button"
+                      className="w-full h-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedCriminalImage({
+                          src: selectedCriminal.image_url || selectedCriminalProfile?.image_url,
+                          name: selectedCriminal.full_name || selectedCriminal.criminal_id || "Criminal",
+                        });
+                      }}
+                      aria-label="Expand criminal photo"
+                    >
+                      <img
+                        src={selectedCriminal.image_url || selectedCriminalProfile?.image_url}
+                        alt={selectedCriminal.full_name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    </button>
                   ) : (
                     <div className="w-full h-full rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[11px] text-slate-400">
                       N/A
@@ -998,6 +1144,50 @@ function ThanaDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {expandedCriminalImage?.src && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+          onClick={() => setExpandedCriminalImage(null)}
+        >
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={expandedCriminalImage.src}
+              alt={expandedCriminalImage.name || "Criminal"}
+              className="w-full max-h-[85vh] object-contain rounded-xl border border-white/10"
+            />
+            <button
+              type="button"
+              onClick={() => setExpandedCriminalImage(null)}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm text-slate-200"
+            >
+              Close image
+            </button>
+          </div>
+        </div>
+      )}
+
+      {expandedOfficerImage?.src && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+          onClick={() => setExpandedOfficerImage(null)}
+        >
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={expandedOfficerImage.src}
+              alt={expandedOfficerImage.name || "Officer"}
+              className="w-full max-h-[85vh] object-contain rounded-xl border border-white/10"
+            />
+            <button
+              type="button"
+              onClick={() => setExpandedOfficerImage(null)}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm text-slate-200"
+            >
+              Close image
+            </button>
           </div>
         </div>
       )}

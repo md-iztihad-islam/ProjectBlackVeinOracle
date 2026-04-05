@@ -317,8 +317,12 @@ export const getCriminalOverviewRepository = async (district = null, thanaId = n
         const query = `
             SELECT
                 COUNT(*)::INT AS total_criminals,
+                COUNT(*) FILTER (WHERE c.status = 'in_custody')::INT AS in_custody_criminals,
+                COUNT(*) FILTER (WHERE c.status = 'on_bail')::INT AS on_bail_criminals,
+                COUNT(*) FILTER (WHERE c.status = 'released')::INT AS released_criminals,
                 COUNT(*) FILTER (WHERE c.status = 'wanted')::INT AS wanted_criminals,
                 COUNT(*) FILTER (WHERE c.status = 'escaped')::INT AS escaped_criminals,
+                COUNT(*) FILTER (WHERE c.status = 'unknown')::INT AS unknown_criminals,
                 COUNT(*) FILTER (WHERE c.risk_level >= 7)::INT AS high_risk_criminals
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
@@ -328,8 +332,12 @@ export const getCriminalOverviewRepository = async (district = null, thanaId = n
         const result = await pool.query(query, [district, thanaId]);
         return result.rows[0] || {
             total_criminals: 0,
+            in_custody_criminals: 0,
+            on_bail_criminals: 0,
+            released_criminals: 0,
             wanted_criminals: 0,
             escaped_criminals: 0,
+            unknown_criminals: 0,
             high_risk_criminals: 0,
         };
     } catch (error) {
@@ -431,16 +439,52 @@ export const getWantedByAreaRepository = async (district = null, thanaId = null)
                 JOIN location l ON cl.location_id = l.location_id
             )
             SELECT
-                COALESCE(ll.district, t.district, 'Unknown') AS district,
-                COALESCE(ll.zone, 'Unknown') AS zone,
+                COALESCE(
+                    CASE
+                        WHEN ll.district IS NULL OR TRIM(ll.district) = '' OR LOWER(TRIM(ll.district)) = 'unknown' THEN NULL
+                        ELSE ll.district
+                    END,
+                    t.district,
+                    'Registered District'
+                ) AS district,
+                COALESCE(
+                    CASE
+                        WHEN ll.zone IS NULL OR TRIM(ll.zone) = '' OR LOWER(TRIM(ll.zone)) = 'unknown' THEN NULL
+                        ELSE ll.zone
+                    END,
+                    t.thana_name,
+                    'Registered Thana'
+                ) AS zone,
                 COUNT(*)::INT AS wanted_count
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
             LEFT JOIN latest_location ll ON ll.criminal_id = c.criminal_id AND ll.rn = 1
             WHERE c.status IN ('wanted', 'escaped')
-              AND ($1::text IS NULL OR COALESCE(ll.district, t.district) = $1::text)
+              AND ($1::text IS NULL OR COALESCE(
+                    CASE
+                        WHEN ll.district IS NULL OR TRIM(ll.district) = '' OR LOWER(TRIM(ll.district)) = 'unknown' THEN NULL
+                        ELSE ll.district
+                    END,
+                    t.district
+                ) = $1::text)
               AND ($2::text IS NULL OR c.registered_thana_id = $2::text)
-            GROUP BY COALESCE(ll.district, t.district, 'Unknown'), COALESCE(ll.zone, 'Unknown')
+            GROUP BY
+                COALESCE(
+                    CASE
+                        WHEN ll.district IS NULL OR TRIM(ll.district) = '' OR LOWER(TRIM(ll.district)) = 'unknown' THEN NULL
+                        ELSE ll.district
+                    END,
+                    t.district,
+                    'Registered District'
+                ),
+                COALESCE(
+                    CASE
+                        WHEN ll.zone IS NULL OR TRIM(ll.zone) = '' OR LOWER(TRIM(ll.zone)) = 'unknown' THEN NULL
+                        ELSE ll.zone
+                    END,
+                    t.thana_name,
+                    'Registered Thana'
+                )
             ORDER BY wanted_count DESC, district ASC, zone ASC;
         `;
         const result = await pool.query(query, [district, thanaId]);
@@ -702,6 +746,164 @@ export const getOfficerRankingRepository = async (thanaId = null) => {
         return result.rows;
     } catch (error) {
         console.log("Error at getOfficerRankingRepository:", error);
+        throw error;
+    }
+};
+
+export const getAdminJailOverviewRepository = async (limit = 10) => {
+    try {
+        const districtQuery = `
+            SELECT j.district, COUNT(*)::INT AS total_jails
+            FROM jail j
+            GROUP BY j.district
+            ORDER BY total_jails DESC, j.district ASC
+            LIMIT $1;
+        `;
+
+        const topCriminalsQuery = `
+            SELECT
+                j.jail_id,
+                j.jail_name,
+                j.district,
+                COUNT(i.incarceration_id)::INT AS active_criminals
+            FROM jail j
+            LEFT JOIN incarceration i
+                ON i.jail_id = j.jail_id
+               AND i.released_at IS NULL
+            GROUP BY j.jail_id, j.jail_name, j.district
+            ORDER BY active_criminals DESC, j.jail_name ASC
+            LIMIT 10;
+        `;
+
+        const topVacancyQuery = `
+            SELECT
+                j.jail_id,
+                j.jail_name,
+                j.district,
+                COALESCE(SUM(c.capacity), 0)::INT AS total_capacity,
+                COALESCE(SUM(c.number_of_people), 0)::INT AS total_occupants,
+                GREATEST(COALESCE(SUM(c.capacity), 0) - COALESCE(SUM(c.number_of_people), 0), 0)::INT AS vacancy
+            FROM jail j
+            LEFT JOIN cell_block cb ON cb.jail_id = j.jail_id
+            LEFT JOIN cell c ON c.block_id = cb.block_id
+            GROUP BY j.jail_id, j.jail_name, j.district
+            ORDER BY vacancy DESC, j.jail_name ASC
+            LIMIT 10;
+        `;
+
+        const topOccupancyQuery = `
+            SELECT
+                j.jail_id,
+                j.jail_name,
+                j.district,
+                COALESCE(SUM(c.capacity), 0)::INT AS total_capacity,
+                COALESCE(SUM(c.number_of_people), 0)::INT AS total_occupants,
+                CASE
+                    WHEN COALESCE(SUM(c.capacity), 0) = 0 THEN 0
+                    ELSE ROUND((COALESCE(SUM(c.number_of_people), 0) * 100.0 / SUM(c.capacity))::numeric, 2)
+                END AS occupancy_percentage
+            FROM jail j
+            LEFT JOIN cell_block cb ON cb.jail_id = j.jail_id
+            LEFT JOIN cell c ON c.block_id = cb.block_id
+            GROUP BY j.jail_id, j.jail_name, j.district
+            ORDER BY occupancy_percentage DESC, j.jail_name ASC
+            LIMIT 10;
+        `;
+
+        const [districtRes, criminalsRes, vacancyRes, occupancyRes] = await Promise.all([
+            pool.query(districtQuery, [limit]),
+            pool.query(topCriminalsQuery),
+            pool.query(topVacancyQuery),
+            pool.query(topOccupancyQuery),
+        ]);
+
+        return {
+            jails_by_district: districtRes.rows,
+            top_jails_by_criminals: criminalsRes.rows,
+            top_jails_by_vacancy: vacancyRes.rows,
+            top_jails_by_occupancy: occupancyRes.rows,
+        };
+    } catch (error) {
+        console.log("Error at getAdminJailOverviewRepository:", error);
+        throw error;
+    }
+};
+
+export const getAdminJailDetailsRepository = async (jailId) => {
+    try {
+        const jailQuery = `
+            SELECT j.jail_id, j.jail_name, j.district, j.zone, j.address, j.capacity, j.email
+            FROM jail j
+            WHERE j.jail_id = $1;
+        `;
+
+        const summaryQuery = `
+            SELECT
+                COUNT(DISTINCT cb.block_id)::INT AS total_blocks,
+                COUNT(DISTINCT c.cell_id)::INT AS total_cells,
+                COALESCE(SUM(c.number_of_people), 0)::INT AS total_criminals,
+                COALESCE(SUM(c.capacity), 0)::INT AS total_cell_capacity
+            FROM jail j
+            LEFT JOIN cell_block cb ON cb.jail_id = j.jail_id
+            LEFT JOIN cell c ON c.block_id = cb.block_id
+            WHERE j.jail_id = $1;
+        `;
+
+        const locationsQuery = `
+            SELECT DISTINCT l.location_id, l.district, l.zone, l.address
+            FROM incarceration i
+            JOIN arrest_record ar ON ar.arrest_id = i.arrest_id
+            JOIN criminal_location cl ON cl.criminal_id = ar.criminal_id
+            JOIN location l ON l.location_id = cl.location_id
+            WHERE i.jail_id = $1
+              AND i.released_at IS NULL
+            ORDER BY l.district ASC, l.zone ASC, l.address ASC
+            LIMIT 30;
+        `;
+
+        const criminalsQuery = `
+            SELECT
+                c.criminal_id,
+                c.full_name,
+                c.status,
+                c.risk_level,
+                i.incarceration_id,
+                i.admitted_at,
+                ar.arrest_id,
+                cb.block_id,
+                cb.block_name,
+                ce.cell_id,
+                ce.cell_number
+            FROM incarceration i
+            JOIN arrest_record ar ON ar.arrest_id = i.arrest_id
+            JOIN criminal c ON c.criminal_id = ar.criminal_id
+            LEFT JOIN cell ce ON ce.cell_id = i.cell_id
+            LEFT JOIN cell_block cb ON cb.block_id = ce.block_id
+            WHERE i.jail_id = $1
+              AND i.released_at IS NULL
+            ORDER BY i.admitted_at DESC;
+        `;
+
+        const [jailRes, summaryRes, locationsRes, criminalsRes] = await Promise.all([
+            pool.query(jailQuery, [jailId]),
+            pool.query(summaryQuery, [jailId]),
+            pool.query(locationsQuery, [jailId]),
+            pool.query(criminalsQuery, [jailId]),
+        ]);
+
+        return {
+            jail: jailRes.rows[0] || null,
+            summary: summaryRes.rows[0] || {
+                total_blocks: 0,
+                total_cells: 0,
+                total_criminals: 0,
+                total_cell_capacity: 0,
+            },
+            locations: locationsRes.rows,
+            criminals: criminalsRes.rows,
+        };
+    } catch (error) {
+        console.log("Error at getAdminJailDetailsRepository:", error);
         throw error;
     }
 };
