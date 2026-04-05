@@ -1,8 +1,9 @@
 import getGDReportByUserApi from "@/services/GDReport/getGDReportByUserApi";
 import { userSignoutApi } from "@/services/authServices/signoutApi";
 import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
+import { autoTriggerSosAlert } from "@/services/SOS/sosApi";
 import userStore from "@/state/userStore";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -46,8 +47,91 @@ const SectionLabel = ({ children }) => (
 // ─── Main Component ───────────────────────────────────────────────────────────
 function UserDashboard() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { user, clearUser } = userStore();
     const [signingOut, setSigningOut] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
+    const [sosNotice, setSosNotice] = useState("");
+
+    const { mutate: triggerSos, isPending: isTriggeringSos } = useMutation({
+        mutationFn: autoTriggerSosAlert,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["userSosAlerts"] });
+            setSosNotice("SOS alert sent. Stay safe, support is being coordinated.");
+        },
+        onError: () => {
+            setSosNotice("SOS failed to send. Please retry immediately.");
+        },
+    });
+
+    const extractDistrict = (addressObj = {}) => {
+        return (
+            addressObj.state_district ||
+            addressObj.county ||
+            addressObj.city_district ||
+            addressObj.city ||
+            addressObj.state ||
+            ""
+        );
+    };
+
+    const handleOneTapSos = () => {
+        if (isLocating || isTriggeringSos) return;
+        if (!navigator.geolocation) {
+            setSosNotice("GPS is not supported in this browser.");
+            return;
+        }
+
+        setIsLocating(true);
+        setSosNotice("Detecting your location and sending SOS...");
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const latitude = Number(position.coords.latitude);
+                const longitude = Number(position.coords.longitude);
+
+                try {
+                    let district = "";
+                    let detectedAddress = "";
+
+                    const reverseRes = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`
+                    );
+
+                    if (reverseRes.ok) {
+                        const reverseData = await reverseRes.json();
+                        district = extractDistrict(reverseData?.address || {});
+                        detectedAddress = reverseData?.display_name || "";
+                    }
+
+                    triggerSos({
+                        district,
+                        detected_address: detectedAddress,
+                        latitude,
+                        longitude,
+                    });
+                } catch {
+                    triggerSos({
+                        district: "",
+                        detected_address: "",
+                        latitude,
+                        longitude,
+                    });
+                } finally {
+                    setIsLocating(false);
+                }
+            },
+            () => {
+                setIsLocating(false);
+                setSosNotice("Location permission denied. Allow GPS access and tap SOS again.");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+            }
+        );
+    };
 
     const handleSignout = async () => {
         setSigningOut(true);
@@ -186,6 +270,20 @@ function UserDashboard() {
                     {/* Right controls */}
                     <div className="flex items-center gap-2.5">
                         <button
+                            onClick={handleOneTapSos}
+                            disabled={isLocating || isTriggeringSos}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/15 border border-red-400/40 text-red-300 hover:bg-red-500/25 transition-all disabled:opacity-60"
+                        >
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-400" />
+                            </span>
+                            <span className="text-xs font-semibold tracking-wide">
+                                {isLocating ? "Locating..." : isTriggeringSos ? "Sending..." : "SOS"}
+                            </span>
+                        </button>
+
+                        <button
                             onClick={() => navigate("/user/dashboard/notifications")}
                             className="relative flex items-center justify-center w-10 h-10 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] rounded-xl transition-all"
                             aria-label="Notifications"
@@ -242,6 +340,9 @@ function UserDashboard() {
                         </span>
                     </h1>
                     <p className="text-sm text-slate-500">Here's an overview of your GD portal activity.</p>
+                    {sosNotice && (
+                        <p className="text-xs text-red-300 mt-1">{sosNotice}</p>
+                    )}
                 </div>
 
                 {/* ── Stats grid ── */}

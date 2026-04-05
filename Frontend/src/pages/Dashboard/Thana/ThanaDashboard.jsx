@@ -195,6 +195,20 @@ function ThanaDashboard() {
     assignOfficer({ sosId: alertId, officer_id });
   };
 
+  const buildMapEmbedUrl = (latitude, longitude) => {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+    const delta = 0.0018;
+    const left = lon - delta;
+    const right = lon + delta;
+    const bottom = lat - delta;
+    const top = lat + delta;
+
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lon}`;
+  };
+
   const playUrgentAlarm = () => {
     if (!audioUnlockedRef.current) {
       pendingAlarmRef.current = true;
@@ -370,8 +384,24 @@ function ThanaDashboard() {
                       <p className="text-xs text-slate-600 mt-1">
                         {alert.description || "No description provided."}
                       </p>
+                      {Number.isFinite(Number(alert.latitude)) && Number.isFinite(Number(alert.longitude)) && (
+                        <p className="text-xs text-slate-600 mt-1">
+                          Coordinates: {Number(alert.latitude).toFixed(6)}, {Number(alert.longitude).toFixed(6)}
+                        </p>
+                      )}
                       {alert.detected_address && (
                         <p className="text-xs text-slate-600 mt-1">Location: {alert.detected_address}</p>
+                      )}
+                      {buildMapEmbedUrl(alert.latitude, alert.longitude) && (
+                        <div className="mt-2 overflow-hidden rounded-md border border-slate-200">
+                          <iframe
+                            title={`sos-map-${alert.sos_id}`}
+                            src={buildMapEmbedUrl(alert.latitude, alert.longitude)}
+                            className="w-full h-40"
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        </div>
                       )}
                       <p className="text-[11px] text-slate-500 mt-1">
                         {new Date(alert.created_at).toLocaleString()} • Status: {alert.status}

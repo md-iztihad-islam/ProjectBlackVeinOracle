@@ -387,7 +387,9 @@ export default function OfficerDashboard() {
     },
   });
   const unreadNotificationCount = Number(unreadNotificationData?.data?.unread_count || 0);
-  const sosAlerts = sosAlertsData?.data || [];
+  const sosAlerts = (sosAlertsData?.data || []).filter(
+    (alert) => !thanaId || String(alert?.thana_id || "") === String(thanaId)
+  );
   const pendingGDs    = gdReports.filter(r => r.status === "submitted" || r.status === "assigned");
   const inCustody     = arrestRecords.filter(r => r.custody_status === "in_custody");
   const gdCounts      = gdReports.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
@@ -435,6 +437,15 @@ export default function OfficerDashboard() {
     setTimeout(() => {
       audioContext.close().catch(() => {});
     }, 5400);
+  };
+
+  const buildMapEmbedUrl = (latitude, longitude) => {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+    // Use explicit high zoom to avoid broad-area fallback and keep dispatch focus tight.
+    return `https://maps.google.com/maps?q=${lat},${lon}&z=20&output=embed`;
   };
 
   useEffect(() => {
@@ -589,8 +600,24 @@ export default function OfficerDashboard() {
                     </p>
                     <p className="text-xs text-slate-600 mt-1">{alert.user_phone || "No phone"} • {alert.user_address || "No address"}</p>
                     <p className="text-xs text-slate-600 mt-1">{alert.description || "No description provided."}</p>
+                    {Number.isFinite(Number(alert.latitude)) && Number.isFinite(Number(alert.longitude)) && (
+                      <p className="text-xs text-slate-600 mt-1">
+                        Coordinates: {Number(alert.latitude).toFixed(6)}, {Number(alert.longitude).toFixed(6)}
+                      </p>
+                    )}
                     {alert.detected_address && (
                       <p className="text-xs text-slate-600 mt-1">Location: {alert.detected_address}</p>
+                    )}
+                    {buildMapEmbedUrl(alert.latitude, alert.longitude) && (
+                      <div className="mt-2 overflow-hidden rounded-md border border-slate-200">
+                        <iframe
+                          title={`officer-sos-map-${alert.sos_id}`}
+                          src={buildMapEmbedUrl(alert.latitude, alert.longitude)}
+                          className="w-full h-40"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      </div>
                     )}
                     <p className="text-[11px] text-slate-500 mt-1">
                       {alert.thana_name} • {new Date(alert.created_at).toLocaleString()} • {alert.status}

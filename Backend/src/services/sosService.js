@@ -3,10 +3,10 @@ import {
   addNotificationRepository,
   assignOfficerToSosRepository,
   createSosAlertRepository,
-  createSosAlertWithGpsRepository,
+  createSosAlertsForDistrictRepository,
   ensureSosSchemaRepository,
   getDistrictThanaOptionsRepository,
-  getOneThanaByDistrictRepository,
+  getThanasByDistrictRepository,
   getSosAlertsForOfficerRepository,
   getSosAlertsForThanaRepository,
   getSosAlertsForUserRepository,
@@ -59,16 +59,18 @@ export const autoTriggerSosService = async ({
     throw new Error("Unable to detect district from GPS location");
   }
 
-  const thana = await getOneThanaByDistrictRepository(normalizedDistrict);
+  const thanas = await getThanasByDistrictRepository(normalizedDistrict);
 
-  if (!thana) {
+  if (!thanas.length) {
     throw new Error(`No thana found for detected district: ${normalizedDistrict}`);
   }
 
-  const alert = await createSosAlertWithGpsRepository({
+  const thanaIds = thanas.map((thana) => thana.thana_id);
+
+  const alerts = await createSosAlertsForDistrictRepository({
     userId,
     district: normalizedDistrict,
-    thanaId: thana.thana_id,
+    thanaIds,
     description,
     imageUrl,
     latitude,
@@ -78,14 +80,27 @@ export const autoTriggerSosService = async ({
 
   const locationHint = detectedAddress || `Lat ${latitude}, Lon ${longitude}`;
 
-  await addNotificationRepository({
-    targetRole: "thana",
-    targetId: thana.thana_id,
-    title: "SOS Emergency Alert",
-    message: `SOS from ${user.full_name} (${user.user_id}) at ${locationHint}. Contact: ${user.phone || "N/A"}.`,
-  });
+  await Promise.all(
+    thanaIds.map((thanaId) =>
+      addNotificationRepository({
+        targetRole: "thana",
+        targetId: thanaId,
+        title: "SOS Emergency Alert",
+        message: `SOS from ${user.full_name} (${user.user_id}) at ${locationHint}. Contact: ${user.phone || "N/A"}.`,
+      })
+    )
+  );
 
-  return alert;
+  return {
+    broadcast_count: alerts.length,
+    district: normalizedDistrict,
+    location: {
+      latitude,
+      longitude,
+      detected_address: detectedAddress || null,
+    },
+    alerts,
+  };
 };
 
 export const triggerSosService = async ({ userId, district, thanaId, description, imageUrl }) => {

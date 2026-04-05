@@ -1,11 +1,5 @@
 import userStore from "@/state/userStore";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-    autoTriggerSosAlert,
-    getMySosAlerts,
-} from "@/services/SOS/sosApi";
 
 const InfoField = ({ label, value, mono, locked }) => (
     <div className="group relative flex flex-col gap-1.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.10] hover:bg-white/[0.04] transition-all duration-300">
@@ -31,110 +25,7 @@ const InfoField = ({ label, value, mono, locked }) => (
 
 function UserProfile() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const { user } = userStore();
-    const [isLocating, setIsLocating] = useState(false);
-    const [sosNotice, setSosNotice] = useState("");
-
-    const { data: mySosAlertsData } = useQuery({
-        queryKey: ["userSosAlerts"],
-        queryFn: getMySosAlerts,
-        enabled: Boolean(user?.user_id),
-        refetchInterval: 5000,
-    });
-
-    const mySosAlerts = mySosAlertsData?.data || [];
-
-    const latestSos = mySosAlerts[0] || null;
-
-    const { mutate: triggerSos, isPending: isTriggeringSos } = useMutation({
-        mutationFn: autoTriggerSosAlert,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["userSosAlerts"] });
-            setSosNotice("SOS alert sent. Stay safe, support is being coordinated.");
-        },
-        onError: () => {
-            setSosNotice("SOS failed to send. Please retry immediately.");
-        },
-    });
-
-    const extractDistrict = (addressObj = {}) => {
-        return (
-            addressObj.state_district ||
-            addressObj.county ||
-            addressObj.city_district ||
-            addressObj.city ||
-            addressObj.state ||
-            ""
-        );
-    };
-
-    const handleOneTapSos = () => {
-        if (isLocating || isTriggeringSos) return;
-        if (!navigator.geolocation) {
-            setSosNotice("GPS is not supported in this browser.");
-            return;
-        }
-
-        setIsLocating(true);
-        setSosNotice("Detecting your location and sending SOS...");
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const latitude = Number(position.coords.latitude);
-                const longitude = Number(position.coords.longitude);
-
-                try {
-                    let district = "";
-                    let detectedAddress = "";
-
-                    const reverseRes = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`
-                    );
-
-                    if (reverseRes.ok) {
-                        const reverseData = await reverseRes.json();
-                        district = extractDistrict(reverseData?.address || {});
-                        detectedAddress = reverseData?.display_name || "";
-                    }
-
-                    triggerSos({
-                        district,
-                        detected_address: detectedAddress,
-                        latitude,
-                        longitude,
-                    });
-                } catch {
-                    // Send with raw GPS even if reverse geocoding fails.
-                    triggerSos({
-                        district: "",
-                        detected_address: "",
-                        latitude,
-                        longitude,
-                    });
-                } finally {
-                    setIsLocating(false);
-                }
-            },
-            () => {
-                setIsLocating(false);
-                setSosNotice("Location permission denied. Allow GPS access and tap SOS again.");
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0,
-            }
-        );
-    };
-
-    const sosStatusLabel = {
-        triggered: "Alert Triggered",
-        assigned: "Officer Assigned",
-        acknowledged: "Officer Acknowledged",
-        resolved: "Resolved",
-        cancelled: "Cancelled",
-    };
 
     const lockedFields = [
         { label: "User ID",    value: user?.user_id,    mono: true, locked: true },
@@ -179,24 +70,9 @@ function UserProfile() {
                         <span className="text-sm font-medium hidden sm:block">Dashboard</span>
                     </button>
 
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={handleOneTapSos}
-                            disabled={isLocating || isTriggeringSos}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-400/40 text-red-300 hover:bg-red-500/25 transition-all"
-                        >
-                            <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-400" />
-                            </span>
-                            <span className="text-xs font-semibold tracking-wide">
-                                {isLocating ? "Locating..." : isTriggeringSos ? "Sending..." : "SOS"}
-                            </span>
-                        </button>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-xs text-slate-500">Active</span>
-                        </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs text-slate-500">Active</span>
                     </div>
                 </nav>
 
@@ -316,49 +192,6 @@ function UserProfile() {
                                     <InfoField key={f.label} {...f} />
                                 ))}
                             </div>
-                        </div>
-
-                        {/* Activity strip */}
-                        <div className="bg-red-500/[0.05] border border-red-500/[0.2] rounded-2xl p-5 flex flex-col gap-3">
-                            <div className="flex items-center justify-between gap-2">
-                                <div>
-                                    <p className="text-xs tracking-[0.12em] uppercase text-red-300/90">Emergency Support</p>
-                                    <p className="text-sm text-slate-300 mt-1">Use SOS for immediate danger and monitor officer assignment here.</p>
-                                </div>
-                                <button
-                                    onClick={handleOneTapSos}
-                                    disabled={isLocating || isTriggeringSos}
-                                    className="px-3 py-2 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-400 transition"
-                                >
-                                    {isLocating ? "Locating..." : isTriggeringSos ? "Sending..." : "One-Tap SOS"}
-                                </button>
-                            </div>
-
-                            {sosNotice && (
-                                <p className="text-xs text-red-200">{sosNotice}</p>
-                            )}
-
-                            {latestSos ? (
-                                <div className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-200">
-                                    <p className="font-semibold text-red-200">
-                                        {sosStatusLabel[latestSos.status] || latestSos.status}
-                                    </p>
-                                    <p className="text-xs text-slate-400 mt-1">
-                                        Alert #{latestSos.sos_id} • {latestSos.thana_name} • {new Date(latestSos.created_at).toLocaleString()}
-                                    </p>
-                                    {latestSos.detected_address && (
-                                        <p className="text-xs text-slate-400 mt-1">Location: {latestSos.detected_address}</p>
-                                    )}
-                                    {latestSos.assigned_officer_id && (
-                                        <p className="text-xs text-emerald-300 mt-2">
-                                            Assigned Officer: {latestSos.assigned_officer_name || latestSos.assigned_officer_id}
-                                            {latestSos.assigned_officer_phone ? ` (${latestSos.assigned_officer_phone})` : ""}
-                                        </p>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="text-xs text-slate-400">No recent SOS activity.</p>
-                            )}
                         </div>
 
                         <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 flex items-center justify-between gap-4">

@@ -155,6 +155,21 @@ export const getOneThanaByDistrictRepository = async (district) => {
   return result.rows[0] || null;
 };
 
+export const getThanasByDistrictRepository = async (district) => {
+  const query = `
+    SELECT thana_id, thana_name, district
+    FROM thana
+    WHERE
+      regexp_replace(lower(district), '[^a-z]', '', 'g') = regexp_replace(lower($1), '[^a-z]', '', 'g')
+      OR lower(district) LIKE '%' || lower($1) || '%'
+      OR lower($1) LIKE '%' || lower(district) || '%'
+    ORDER BY thana_name ASC;
+  `;
+
+  const result = await pool.query(query, [district]);
+  return result.rows;
+};
+
 export const getAnyThanaRepository = async () => {
   const query = `
     SELECT thana_id, thana_name, district
@@ -165,6 +180,55 @@ export const getAnyThanaRepository = async () => {
 
   const result = await pool.query(query);
   return result.rows[0] || null;
+};
+
+export const createSosAlertsForDistrictRepository = async ({
+  userId,
+  district,
+  thanaIds,
+  description,
+  imageUrl,
+  latitude,
+  longitude,
+  detectedAddress,
+}) => {
+  if (!Array.isArray(thanaIds) || thanaIds.length === 0) {
+    return [];
+  }
+
+  const values = [];
+  const rowPlaceholders = thanaIds.map((thanaId, index) => {
+    const base = index * 8;
+    values.push(
+      userId,
+      district,
+      thanaId,
+      description || null,
+      imageUrl || null,
+      latitude ?? null,
+      longitude ?? null,
+      detectedAddress || null,
+    );
+    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8})`;
+  });
+
+  const query = `
+    INSERT INTO sos_alert (
+      user_id,
+      district,
+      thana_id,
+      description,
+      image_url,
+      latitude,
+      longitude,
+      detected_address
+    )
+    VALUES ${rowPlaceholders.join(", ")}
+    RETURNING *;
+  `;
+
+  const result = await pool.query(query, values);
+  return result.rows;
 };
 
 export const addNotificationRepository = async ({ targetRole, targetId, title, message }) => {
@@ -222,7 +286,17 @@ export const getSosAlertsForUserRepository = async (userId) => {
     JOIN thana t ON t.thana_id = sa.thana_id
     LEFT JOIN officer o ON o.officer_id = sa.assigned_officer_id
     WHERE sa.user_id = $1
-    ORDER BY sa.created_at DESC
+    ORDER BY
+      CASE sa.status
+        WHEN 'assigned' THEN 1
+        WHEN 'triggered' THEN 2
+        WHEN 'acknowledged' THEN 3
+        WHEN 'resolved' THEN 4
+        WHEN 'cancelled' THEN 5
+        ELSE 6
+      END,
+      COALESCE(sa.updated_at, sa.created_at) DESC,
+      sa.created_at DESC
     LIMIT 20;
   `;
 
