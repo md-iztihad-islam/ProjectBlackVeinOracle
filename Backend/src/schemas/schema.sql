@@ -7,24 +7,6 @@ CREATE TABLE IF NOT EXISTS id_sequences (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO id_sequences (prefix, current_value) VALUES
-    ('ADM', 0),
-    ('USR', 0),
-    ('OFC', 0),
-    ('THN', 0),
-    ('CRM', 0),
-    ('ORG', 0),
-    ('CFS', 0),
-    ('JAL', 0),
-    ('ARS', 0),
-    ('INC', 0),
-    ('BAL', 0),
-    ('GDR', 0),
-    ('LOC', 0),
-    ('CLB', 0),
-    ('CEL', 0)
-ON CONFLICT DO NOTHING;
-
 CREATE OR REPLACE FUNCTION generate_prefixed_id(prefix TEXT)
 RETURNS TEXT AS $$
 DECLARE
@@ -69,13 +51,6 @@ CREATE TABLE IF NOT EXISTS rank(
     level INT NOT NULL UNIQUE CHECK (level >=1)
 );
 
-INSERT INTO rank (rank_code, rank_name, level) VALUES
-	('constable', 'Constable', 1),
-	('si', 'Sub-Inspector', 2),
-	('inspector', 'Inspector', 3),
-	('oc', 'Officer-in-Charge', 4)
-ON CONFLICT DO NOTHING;
-
 CREATE TABLE IF NOT EXISTS officer(
     officer_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('OFC'),
     badge_no VARCHAR(20) UNIQUE NOT NULL,
@@ -93,30 +68,6 @@ CREATE TABLE IF NOT EXISTS officer(
     password VARCHAR(255) NOT NULL
 );
 
-ALTER TABLE officer ADD COLUMN IF NOT EXISTS gender VARCHAR(16);
-
-DO $$
-BEGIN
-    UPDATE officer
-    SET gender = LOWER(TRIM(gender))
-    WHERE gender IS NOT NULL;
-
-    UPDATE officer
-    SET gender = CASE
-        WHEN gender IN ('1', 'm', 'man') THEN 'male'
-        WHEN gender IN ('2', 'f', 'woman') THEN 'female'
-        WHEN gender IN ('0', '3', 'o', 'unknown', 'n/a', 'na') THEN 'other'
-        ELSE gender
-    END
-    WHERE gender IS NOT NULL;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'officer_gender_check'
-    ) THEN
-        ALTER TABLE officer
-            ADD CONSTRAINT officer_gender_check CHECK (gender IN ('male','female','other') OR gender IS NULL);
-    END IF;
-END $$;
 
 CREATE TABLE IF NOT EXISTS location(
     location_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('LOC'),
@@ -136,32 +87,6 @@ CREATE TABLE IF NOT EXISTS "user"(
     gender VARCHAR(16) CHECK (gender IN ('male','female','other')),
     password VARCHAR(255) NOT NULL
 );
-
-ALTER TABLE "user" ADD COLUMN IF NOT EXISTS birth_date DATE;
-ALTER TABLE "user" ADD COLUMN IF NOT EXISTS gender VARCHAR(16);
-
-DO $$
-BEGIN
-    UPDATE "user"
-    SET gender = LOWER(TRIM(gender))
-    WHERE gender IS NOT NULL;
-
-    UPDATE "user"
-    SET gender = CASE
-        WHEN gender IN ('1', 'm', 'man') THEN 'male'
-        WHEN gender IN ('2', 'f', 'woman') THEN 'female'
-        WHEN gender IN ('0', '3', 'o', 'unknown', 'n/a', 'na') THEN 'other'
-        ELSE gender
-    END
-    WHERE gender IS NOT NULL;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'user_gender_check'
-    ) THEN
-        ALTER TABLE "user"
-            ADD CONSTRAINT user_gender_check CHECK (gender IN ('male','female','other') OR gender IS NULL);
-    END IF;
-END $$;
 
 CREATE TABLE IF NOT EXISTS gd_report(
     gd_id BIGSERIAL PRIMARY KEY,
@@ -195,29 +120,6 @@ CREATE TABLE IF NOT EXISTS criminal(
     current_address TEXT,
     identifying_marks TEXT
 );
-
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS image_url TEXT;
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS father_name VARCHAR(100);
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS mother_name VARCHAR(100);
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS birth_date DATE;
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS gender VARCHAR(16);
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS aliases TEXT;
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS nationality VARCHAR(60);
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS permanent_address TEXT;
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS current_address TEXT;
-ALTER TABLE criminal ADD COLUMN IF NOT EXISTS identifying_marks TEXT;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_constraint
-        WHERE conname = 'criminal_gender_check'
-    ) THEN
-        ALTER TABLE criminal
-            ADD CONSTRAINT criminal_gender_check CHECK (gender IN ('male','female','other') OR gender IS NULL);
-    END IF;
-END $$;
 
 CREATE TABLE IF NOT EXISTS organization(
     org_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('ORG'),
@@ -257,23 +159,6 @@ CREATE TABLE IF NOT EXISTS case_file(
     filed_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     description TEXT
 );
-
--- Legacy compatibility for existing databases that still have case_number and no case_title
-ALTER TABLE case_file ADD COLUMN IF NOT EXISTS case_title TEXT;
-UPDATE case_file
-SET case_title = COALESCE(NULLIF(TRIM(case_title), ''), 'Untitled Case')
-WHERE case_title IS NULL OR TRIM(case_title) = '';
-ALTER TABLE case_file ALTER COLUMN case_title SET NOT NULL;
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'case_file' AND column_name = 'case_number'
-    ) THEN
-        ALTER TABLE case_file ALTER COLUMN case_number DROP NOT NULL;
-    END IF;
-END $$;
 
 CREATE TABLE IF NOT EXISTS jail(
     jail_id TEXT PRIMARY KEY DEFAULT generate_prefixed_id('JAL'),
@@ -339,10 +224,6 @@ CREATE TABLE IF NOT EXISTS criminal_location (
     location_id TEXT NOT NULL REFERENCES location(location_id),
     noted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-ALTER TABLE thana
-    ADD CONSTRAINT fk_thana_head_officer
-    FOREIGN KEY (head_officer_id) REFERENCES officer(officer_id);
 
 -- ki ki change ta log korar jonno table
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -976,19 +857,6 @@ EXCEPTION
 END;
 $$;
 
-
-
-
-
--- const query = `CALL proc_transfer_criminal($1, $2, $3, $4, $5, $6)`;
--- await pool.query(query, [
---   criminalId,
---   fromJailId,
---   toJailId,
---   toCellId,
---   reason,
---   authorizedBy,
--- ]);
 
 
 

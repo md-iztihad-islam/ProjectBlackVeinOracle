@@ -99,6 +99,7 @@ import OfficerAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerAnalytics
 import OfficerProfileAnalytics from "@/pages/Dashboard/Admin/Analytics/OfficerProfileAnalytics";
 import ThanaAnalytics from "@/pages/Dashboard/Admin/Analytics/ThanaAnalytics";
 import JailAnalytics from "@/pages/Dashboard/Admin/Analytics/JailAnalytics";
+import ProtectedRoute from "@/helpers/ProtectedRoute";
 
 
 
@@ -126,118 +127,109 @@ function Routing() {
       <Route path="/access/jail-register" element={<JailRegistrationPage />} />
 
       {/* Admin */}
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/admin/dashboard/thanadashboard" element={<AdminThanaDashBoard />} />
-      <Route path="/admin/dashboard/thanadashboard/add-thana" element={<AddThana />} />
-      <Route path="/admin/dashboard/thanadashboard/thana-list" element={<ThanaList />} />
-      <Route path="/admin/dashboard/thanadashboard/thana-list/update-thana/:thana_id" element={<UpdateThana />} />
-      <Route path="/admin/dashboard/thanadashboard/thana-list/thana-head/:thana_id" element={<AssignThanaHead />} />
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard/thanadashboard" element={<AdminThanaDashBoard />} />
+        <Route path="/admin/dashboard/thanadashboard/add-thana" element={<AddThana />} />
+        <Route path="/admin/dashboard/thanadashboard/thana-list" element={<ThanaList />} />
+        <Route path="/admin/dashboard/thanadashboard/thana-list/update-thana/:thana_id" element={<UpdateThana />} />
+        <Route path="/admin/dashboard/thanadashboard/thana-list/thana-head/:thana_id" element={<AssignThanaHead />} />
 
-      <Route path="/admin/dashboard/rankdashboard" element={<RankAdminDashboard />} />
-      <Route path="/admin/dashboard/rankdashboard/add-rank" element={<AddRank />} />
-      <Route path="/admin/dashboard/rankdashboard/rank-list" element={<RankList />} />
-      <Route path="/admin/dashboard/rankdashboard/rank-list/update-rank/:rankId" element={<UpdateRank />} />
-      <Route path="/admin/dashboard/rankdashboard/rank-list/assign-rank/:rankId" element={<AssignRank />} />
+        <Route path="/admin/dashboard/rankdashboard" element={<RankAdminDashboard />} />
+        <Route path="/admin/dashboard/rankdashboard/add-rank" element={<AddRank />} />
+        <Route path="/admin/dashboard/rankdashboard/rank-list" element={<RankList />} />
+        <Route path="/admin/dashboard/rankdashboard/rank-list/update-rank/:rankId" element={<UpdateRank />} />
+        <Route path="/admin/dashboard/rankdashboard/rank-list/assign-rank/:rankId" element={<AssignRank />} />
 
-      <Route path="/admin/dashboard/jaildashboard" element={<JailAdminDashboard />} />
-      <Route path="/admin/dashboard/jaildashboard/add-jail" element={<AddJail />} />
-      <Route path="/admin/dashboard/jaildashboard/jail-list" element={<JailList />} />
-      <Route path="/admin/dashboard/jaildashboard/jail-list/update-jail/:jailId" element={<UpdateJail />} />
-      <Route path="/admin/dashboard/notifications" element={<AdminNotificationCenter />} />
-      <Route path="/admin/dashboard/analytics" element={<CriminalAnalytics />} />
-
+        <Route path="/admin/dashboard/jaildashboard" element={<JailAdminDashboard />} />
+        <Route path="/admin/dashboard/jaildashboard/add-jail" element={<AddJail />} />
+        <Route path="/admin/dashboard/jaildashboard/jail-list" element={<JailList />} />
+        <Route path="/admin/dashboard/jaildashboard/jail-list/update-jail/:jailId" element={<UpdateJail />} />
+        <Route path="/admin/dashboard/notifications" element={<AdminNotificationCenter />} />
+        <Route path="/admin/dashboard/analytics" element={<CriminalAnalytics />} />
+      </Route>
 
       {/* Jail */}
-      <Route path="/jail/dashboard" element={<JailDashBoard />} />
-      <Route path="/jail/dashboard/analytics" element={<JailAnalyticsOverview />} />
-      <Route path="/jail/dashboard/notifications" element={<JailNotificationCenter />} />
-      <Route path="/jail/dashboard/transfer-criminal" element={<JailTransferCriminal />} />
-      <Route path="/jail/dashboard/transfer-history" element={<JailTransferHistoryLookup />} />
-      <Route path="/jail/dashboard/cell-block-list" element={<CellBlockList />} />
-      <Route path="/jail/dashboard/add-cell-block" element={<AddCellBlock />} />
-      <Route path="/jail/dashboard/cell-block-list/update-cell-block/:cellBlockId" element={<UpdateCellBlock />} />
-
-      <Route path="/jail/dashboard/cellblock/:blockId/cells" element={<CellList />} />
-      <Route path="/jail/dashboard/cellblock/:blockId/addcell" element={<AddCell />} />
-      <Route path="/jail/dashboard/cell/update/:cellId" element={<UpdateCell />} />
+      <Route element={<ProtectedRoute allowedRoles={["jail"]} />}>
+        <Route path="/jail/dashboard" element={<JailDashBoard />} />
+        <Route path="/jail/dashboard/analytics" element={<JailAnalyticsOverview />} />
+        <Route path="/jail/dashboard/notifications" element={<JailNotificationCenter />} />
+        <Route path="/jail/dashboard/transfer-criminal" element={<JailTransferCriminal />} />
+        <Route path="/jail/dashboard/transfer-history" element={<JailTransferHistoryLookup />} />
+        <Route path="/jail/dashboard/cell-block-list" element={<CellBlockList />} />
+        <Route path="/jail/dashboard/add-cell-block" element={<AddCellBlock />} />
+        <Route path="/jail/dashboard/cell-block-list/update-cell-block/:cellBlockId" element={<UpdateCellBlock />} />
+        <Route path="/jail/dashboard/cellblock/:blockId/cells" element={<CellList />} />
+        <Route path="/jail/dashboard/cellblock/:blockId/addcell" element={<AddCell />} />
+        <Route path="/jail/dashboard/cell/update/:cellId" element={<UpdateCell />} />
+      </Route>
 
       {/* Thana */}
-      
-      <Route path="/thana/dashboard" element={<ThanaDashboard />} />
-      <Route path="/thana/add-criminal" element={<AddCriminal />} />
-      <Route
-        path="/thana/update-criminal/:criminalId"
-        element={<UpdateCriminal />}
-      />
-      <Route path="/thana/add-case-file" element={<AddCaseFile />} />
-      <Route
-        path="/thana/update-case-file/:caseId"
-        element={<UpdateCaseFile />}
-      />
-      <Route path="/thana/add-officer" element={<AddOfficer />} />
-      <Route
-        path="/thana/update-officer/:officerId"
-        element={<UpdateOfficer />}
-      />
-      <Route path="/thana/add-location" element={<AddLocation />} />
-      <Route path="/thana/update-location/:locationId" element={<UpdateLocation />} />
-      <Route path="/thana/add-organization" element={<AddOrganization />} />
-      <Route path="/thana/update-organization" element={<UpdateOrganization />} />
-      <Route path="/thana/update-organization/:orgId" element={<UpdateOrganization />} />
-      <Route path="/thana/add-criminal-relation" element={<AddCriminalRelation />} />
-      <Route path="/thana/add-criminal-location" element={<AddCriminalLocation />} />
-      <Route path="/thana/add-criminal-organization" element={<AddCriminalOrganization />} />
-      <Route path="/thana/update-criminal-organization" element={<UpdateCriminalOrganization />} />
-      <Route path="/thana/update-criminal-relation" element={<UpdateCriminalRelation />} />
-      <Route path="/thana/update-location" element={<UpdateLocation />} />
-      <Route path="/thana/gd/manage/:gdId" element={<ManageGDStatus />} />
-      <Route path="/thana/notifications" element={<NotificationCenter />} />
-      <Route path="/thana/analytics-overview" element={<AnalyticsOverview />} />
-      <Route path="/thana/transfer-history" element={<TransferHistoryLookup />} />
+      <Route element={<ProtectedRoute allowedRoles={["thana"]} />}>
+        <Route path="/thana/dashboard" element={<ThanaDashboard />} />
+        <Route path="/thana/add-criminal" element={<AddCriminal />} />
+        <Route path="/thana/update-criminal/:criminalId" element={<UpdateCriminal />} />
+        <Route path="/thana/add-case-file" element={<AddCaseFile />} />
+        <Route path="/thana/update-case-file/:caseId" element={<UpdateCaseFile />} />
+        <Route path="/thana/add-officer" element={<AddOfficer />} />
+        <Route path="/thana/update-officer/:officerId" element={<UpdateOfficer />} />
+        <Route path="/thana/add-location" element={<AddLocation />} />
+        <Route path="/thana/update-location/:locationId" element={<UpdateLocation />} />
+        <Route path="/thana/add-organization" element={<AddOrganization />} />
+        <Route path="/thana/update-organization" element={<UpdateOrganization />} />
+        <Route path="/thana/update-organization/:orgId" element={<UpdateOrganization />} />
+        <Route path="/thana/add-criminal-relation" element={<AddCriminalRelation />} />
+        <Route path="/thana/add-criminal-location" element={<AddCriminalLocation />} />
+        <Route path="/thana/add-criminal-organization" element={<AddCriminalOrganization />} />
+        <Route path="/thana/update-criminal-organization" element={<UpdateCriminalOrganization />} />
+        <Route path="/thana/update-criminal-relation" element={<UpdateCriminalRelation />} />
+        <Route path="/thana/update-location" element={<UpdateLocation />} />
+        <Route path="/thana/gd/manage/:gdId" element={<ManageGDStatus />} />
+        <Route path="/thana/notifications" element={<NotificationCenter />} />
+        <Route path="/thana/analytics-overview" element={<AnalyticsOverview />} />
+        <Route path="/thana/transfer-history" element={<TransferHistoryLookup />} />
+      </Route>
 
       {/* Officer */}
-      <Route path="/officer/dashboard" element={<OfficerDashboard />} />
-      <Route path="/officer/dashboard/profile" element={<OfficerProfile />} />
-      <Route path="/officer/dashboard/notifications" element={<OfficerNotificationCenter />} />
-      <Route path="/officer/dashboard/arrest-records" element={<ArrestRecordList />} />
-      <Route path="/officer/dashboard/update-arrest-record/:arrestId" element={<UpdateArrestRecord />} />
-      <Route path="/officer/dashboard/arrest-record-details/:arrestId" element={<ArrestRecordDetails />} />
-      <Route path="/officer/dashboard/add-arrest-record" element={<AddArrestRecord />} />
-      <Route path="/officer/dashboard/arrest-record-details/:arrestId/add-bail" element={<AddBailRecord />} />
-      <Route path="/officer/dashboard/arrest-records/:arrestId/update-bail/:bailId" element={<UpdateBailRecord />} />
-      <Route path="/officer/dashboard/arrest-records/:arrestId/bail-record-details/:bailId" element={<BailRecordDetails />} />
-      <Route path="/officer/dashboard/gd-list/:dairyId" element={<GDDetails />} />
-      <Route path="/officer/respond-gd/:gdId" element={<ResponseToGD />} />
-      <Route path="/officer/dashboard/criminal-profile/:criminalId" element={<CriminalProfile />} />
-      <Route path="/officer/dashboard/criminal-profile/:criminalId/case-file/:caseId" element={<CaseFile />} />
-      <Route path="/officer/dashboard/criminal-profile/:criminalId/organization/:orgId" element={<Organization />} />
+      <Route element={<ProtectedRoute allowedRoles={["officer"]} />}>
+        <Route path="/officer/dashboard" element={<OfficerDashboard />} />
+        <Route path="/officer/dashboard/profile" element={<OfficerProfile />} />
+        <Route path="/officer/dashboard/notifications" element={<OfficerNotificationCenter />} />
+        <Route path="/officer/dashboard/arrest-records" element={<ArrestRecordList />} />
+        <Route path="/officer/dashboard/update-arrest-record/:arrestId" element={<UpdateArrestRecord />} />
+        <Route path="/officer/dashboard/arrest-record-details/:arrestId" element={<ArrestRecordDetails />} />
+        <Route path="/officer/dashboard/add-arrest-record" element={<AddArrestRecord />} />
+        <Route path="/officer/dashboard/arrest-record-details/:arrestId/add-bail" element={<AddBailRecord />} />
+        <Route path="/officer/dashboard/arrest-records/:arrestId/update-bail/:bailId" element={<UpdateBailRecord />} />
+        <Route path="/officer/dashboard/arrest-records/:arrestId/bail-record-details/:bailId" element={<BailRecordDetails />} />
+        <Route path="/officer/dashboard/gd-list/:dairyId" element={<GDDetails />} />
+        <Route path="/officer/respond-gd/:gdId" element={<ResponseToGD />} />
+        <Route path="/officer/dashboard/criminal-profile/:criminalId" element={<CriminalProfile />} />
+        <Route path="/officer/dashboard/criminal-profile/:criminalId/case-file/:caseId" element={<CaseFile />} />
+        <Route path="/officer/dashboard/criminal-profile/:criminalId/organization/:orgId" element={<Organization />} />
+      </Route>
 
       {/* Analytics */}
-      <Route path="/analytics/officer" element={<OfficerAnalytics />} />
-      <Route path="/analytics/officer/profile/:officerId" element={<OfficerProfileAnalytics />} />
-      <Route path="/analytics/thana" element={<ThanaAnalytics />} />
-      <Route path="/analytics/jail" element={<JailAnalytics />} />
+      <Route element={<ProtectedRoute allowedRoles={["admin", "thana", "officer", "jail"]} />}>
+        <Route path="/analytics/officer" element={<OfficerAnalytics />} />
+        <Route path="/analytics/officer/profile/:officerId" element={<OfficerProfileAnalytics />} />
+        <Route path="/analytics/thana" element={<ThanaAnalytics />} />
+        <Route path="/analytics/jail" element={<JailAnalytics />} />
+      </Route>
 
       {/* User */}
       <Route path="/user-registration" element={<RegisterUser />} />
       <Route path="/user-signin" element={<SigninUser />} />
-      <Route path="/user/dashboard" element={<UserDashboard />} />
-      <Route path="/user/dashboard/profile" element={<UserProfile />} />
-      <Route path="/user/dashboard/profile/edit" element={<EditProfile />} />
-      <Route path="/user/dashboard/add-gd-report" element={<AddGDReport />} />
-      <Route path="/user/dashboard/gd-reports" element={<GDReports />} />
-      <Route
-        path="/user/dashboard/wanted-criminals"
-        element={<WantedCriminals />}
-      />
-      <Route
-        path="/user/dashboard/criminals-by-area"
-        element={<CriminalsByArea />}
-      />
-      <Route
-        path="/user/dashboard/notifications"
-        element={<UserNotificationCenter />}
-      />
+      <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
+        <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/user/dashboard/profile" element={<UserProfile />} />
+        <Route path="/user/dashboard/profile/edit" element={<EditProfile />} />
+        <Route path="/user/dashboard/add-gd-report" element={<AddGDReport />} />
+        <Route path="/user/dashboard/gd-reports" element={<GDReports />} />
+        <Route path="/user/dashboard/wanted-criminals" element={<WantedCriminals />} />
+        <Route path="/user/dashboard/criminals-by-area" element={<CriminalsByArea />} />
+        <Route path="/user/dashboard/notifications" element={<UserNotificationCenter />} />
+      </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -45,13 +45,25 @@ export const getIncarcerationByIdRepository = async (incId) => {
   try {
     const query = `
             SELECT i.*, j.jail_name, c.cell_number, cb.block_name,
-                   cr.full_name AS criminal_name, ar.custody_status
+                   cr.full_name AS criminal_name, ar.custody_status,
+                   from_transfer.from_jail_id,
+                   from_jail.jail_name AS from_jail_name
             FROM incarceration i
             JOIN jail j ON i.jail_id = j.jail_id
             JOIN arrest_record ar ON i.arrest_id = ar.arrest_id
             JOIN criminal cr ON ar.criminal_id = cr.criminal_id
             LEFT JOIN cell c ON i.cell_id = c.cell_id
             LEFT JOIN cell_block cb ON c.block_id = cb.block_id
+            LEFT JOIN LATERAL (
+              SELECT ct.from_jail_id
+              FROM criminal_transfer ct
+              WHERE ct.criminal_id = ar.criminal_id
+                AND ct.to_jail_id = i.jail_id
+                AND ct.transferred_at BETWEEN i.admitted_at - INTERVAL '5 minutes' AND i.admitted_at + INTERVAL '5 minutes'
+              ORDER BY ABS(EXTRACT(EPOCH FROM (ct.transferred_at - i.admitted_at))) ASC
+              LIMIT 1
+            ) from_transfer ON TRUE
+            LEFT JOIN jail from_jail ON from_jail.jail_id = from_transfer.from_jail_id
             WHERE i.incarceration_id = $1;
         `;
     const result = await pool.query(query, [incId]);
@@ -66,14 +78,28 @@ export const getIncarcerationByIdRepository = async (incId) => {
 export const getIncarcerationsByJailRepository = async (jailId) => {
   try {
     const query = `
-            SELECT i.*, ar.criminal_id, ar.custody_status, cr.full_name AS criminal_name, cr.status AS criminal_status, c.cell_number, cb.block_name
+            SELECT i.*, ar.criminal_id, ar.custody_status, cr.full_name AS criminal_name, cr.status AS criminal_status,
+                   c.cell_number, cb.block_name,
+                   from_transfer.from_jail_id,
+                   from_jail.jail_name AS from_jail_name,
+                   CASE WHEN i.released_at IS NULL THEN 'active' ELSE 'historical' END AS incarceration_state
             FROM incarceration i
             JOIN arrest_record ar ON i.arrest_id = ar.arrest_id
             JOIN criminal cr ON ar.criminal_id = cr.criminal_id
             LEFT JOIN cell c ON i.cell_id = c.cell_id
             LEFT JOIN cell_block cb ON c.block_id = cb.block_id
-            WHERE i.jail_id = $1 AND i.released_at IS NULL
-            ORDER BY i.admitted_at DESC;
+            LEFT JOIN LATERAL (
+              SELECT ct.from_jail_id
+              FROM criminal_transfer ct
+              WHERE ct.criminal_id = ar.criminal_id
+                AND ct.to_jail_id = i.jail_id
+                AND ct.transferred_at BETWEEN i.admitted_at - INTERVAL '5 minutes' AND i.admitted_at + INTERVAL '5 minutes'
+              ORDER BY ABS(EXTRACT(EPOCH FROM (ct.transferred_at - i.admitted_at))) ASC
+              LIMIT 1
+            ) from_transfer ON TRUE
+            LEFT JOIN jail from_jail ON from_jail.jail_id = from_transfer.from_jail_id
+            WHERE i.jail_id = $1
+            ORDER BY COALESCE(i.released_at, i.admitted_at) DESC NULLS LAST, i.admitted_at DESC;
         `;
     const result = await pool.query(query, [jailId]);
     return result.rows;

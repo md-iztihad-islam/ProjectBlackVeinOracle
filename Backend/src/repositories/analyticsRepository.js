@@ -6,7 +6,7 @@ export const getCriminalFullProfileRepository = async (criminalId) => {
     try {
         const query = `
             SELECT 
-                c.criminal_id, c.full_name, c.nid, c.status, c.risk_level,
+                c.criminal_id, c.full_name, c.nid, c.status, c.risk_level, c.image_url,
                 t.thana_name AS registered_thana,
                 (SELECT COUNT(*) FROM case_file cf WHERE cf.criminal_id = c.criminal_id) AS total_cases,
                 (SELECT COUNT(*) FROM arrest_record ar WHERE ar.criminal_id = c.criminal_id) AS total_arrests,

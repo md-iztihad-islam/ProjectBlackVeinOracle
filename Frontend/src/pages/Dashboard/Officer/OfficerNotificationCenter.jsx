@@ -7,6 +7,46 @@ import {
   markNotificationRead,
 } from "@/services/Notification/notificationApi";
 
+const pickFirst = (...values) => values.find((v) => typeof v === "string" && v.trim() !== "") || null;
+
+const parseNotificationMessageMeta = (message) => {
+  const text = String(message || "");
+
+  const criminalIdMatch =
+    text.match(/Criminal\s*ID\s*:\s*([^\n]+)/i) ||
+    text.match(/Criminal\s*:\s*.*\(([^)]+)\)/i) ||
+    text.match(/\b(CRM-[A-Za-z0-9-]+|CR-[A-Za-z0-9-]+|CID-[A-Za-z0-9-]+)\b/i);
+
+  const locationMatch =
+    text.match(/Last\s*Known\s*Location\s*:\s*([^\n]+)/i) ||
+    text.match(/Last\s*known\s*:\s*([^\n.]+)/i) ||
+    text.match(/Location\s*:\s*([^\n]+)/i);
+
+  const escapedFromMatch = text.match(/Escaped\s*From\s*:\s*([^\n]+)/i);
+
+  return {
+    criminalId: criminalIdMatch?.[1]?.trim() || null,
+    location: locationMatch?.[1]?.trim() || null,
+    escapedFrom: escapedFromMatch?.[1]?.trim() || null,
+  };
+};
+
+const getNotificationMeta = (n) => {
+  const parsed = parseNotificationMessageMeta(n?.message);
+
+  return {
+    criminalId: pickFirst(n?.criminal_id, n?.criminalId, parsed.criminalId),
+    location: pickFirst(
+      n?.last_known_location,
+      n?.lastKnownLocation,
+      n?.location_name,
+      n?.location,
+      parsed.location
+    ),
+    escapedFrom: pickFirst(n?.escape_from, n?.escaped_from, n?.escapedFrom, parsed.escapedFrom),
+  };
+};
+
 function OfficerNotificationCenter() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,8 +107,8 @@ function OfficerNotificationCenter() {
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Officer Notifications</h1>
-                <p className="text-sm text-slate-400 mt-1">Escape alerts and GD assignment updates</p>
+                <h1 className="text-2xl font-bold">Notification Center</h1>
+                <p className="text-sm text-slate-400 mt-1">Operational alerts</p>
               </div>
             </div>
           </div>
@@ -118,6 +158,30 @@ function OfficerNotificationCenter() {
                 <li key={n.notification_id} className="p-4 flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-medium text-slate-100">{n.title}</p>
+                    {(() => {
+                      const meta = getNotificationMeta(n);
+                      if (!meta.criminalId && !meta.location && !meta.escapedFrom) return null;
+
+                      return (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {meta.criminalId && (
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/20">
+                              Criminal ID: {meta.criminalId}
+                            </span>
+                          )}
+                          {meta.location && (
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20 max-w-full truncate">
+                              Last Location: {meta.location}
+                            </span>
+                          )}
+                          {meta.escapedFrom && (
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-400/20 max-w-full truncate">
+                              Escaped From: {meta.escapedFrom}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <p className="text-sm text-slate-400 mt-1 whitespace-pre-line">{n.message}</p>
                     <p className="text-xs text-slate-500 mt-2">
                       {n.created_at ? new Date(n.created_at).toLocaleString() : "—"}

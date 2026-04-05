@@ -13,26 +13,17 @@ const custodyOptions = [
 
 function Field({ label, hint, children }) {
   return (
-    <div style={{ marginBottom: "1.25rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.4rem" }}>
-        <label style={{
-          fontSize: "0.72rem", fontWeight: "600",
-          letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a6278",
-        }}>{label}</label>
-        {hint && <span style={{ fontSize: "0.7rem", color: "#3a4055" }}>{hint}</span>}
+    <div className="mb-5">
+      <div className="flex justify-between items-baseline mb-1.5">
+        <label className="text-xs font-semibold tracking-widest uppercase text-gray-500">
+          {label}
+        </label>
+        {hint && <span className="text-xs text-gray-400">{hint}</span>}
       </div>
       {children}
     </div>
   );
 }
-
-const inputStyle = {
-  width: "100%", padding: "0.65rem 0.9rem",
-  background: "#0d1017", border: "1px solid #1e2330",
-  borderRadius: "8px", color: "#e8eaf0",
-  fontSize: "0.9rem", outline: "none",
-  boxSizing: "border-box",
-};
 
 function toDateInputValue(iso) {
   if (!iso) return "";
@@ -41,11 +32,11 @@ function toDateInputValue(iso) {
 
 function SkeletonForm() {
   return (
-    <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem" }}>
+    <div className="bg-white border border-gray-200 rounded-2xl p-8">
       {[...Array(5)].map((_, i) => (
-        <div key={i} style={{ marginBottom: "1.25rem" }}>
-          <div style={{ height: "11px", width: "25%", borderRadius: "3px", background: "#1a1f2a", marginBottom: "0.5rem" }} />
-          <div style={{ height: "38px", borderRadius: "8px", background: "#1a1f2a" }} />
+        <div key={i} className="mb-5 animate-pulse">
+          <div className="h-2.5 w-1/4 rounded bg-gray-100 mb-2" />
+          <div className="h-10 rounded-lg bg-gray-100" />
         </div>
       ))}
     </div>
@@ -66,9 +57,9 @@ export default function UpdateArrestRecord() {
 
   const arrestRecord = arrestRecordData?.data || null;
 
-  const [criminalId, setCriminalId]     = useState("");
-  const [arrestDate, setArrestDate]     = useState("");
-  const [bailDueDate, setBailDueDate]   = useState("");
+  const [criminalId, setCriminalId]       = useState("");
+  const [arrestDate, setArrestDate]       = useState("");
+  const [bailDueDate, setBailDueDate]     = useState("");
   const [custodyStatus, setCustodyStatus] = useState("in_custody");
   const [caseReference, setCaseReference] = useState("");
 
@@ -83,10 +74,10 @@ export default function UpdateArrestRecord() {
   }, [arrestRecord]);
 
   const { mutate: updateArrestRecord, isPending, isSuccess, isError } = useMutation({
-    mutationFn: (data) => updateArrestRecordApi(arrestId, data),
+    mutationFn: (updatedData) => updateArrestRecordApi({ arrestRecordId: arrestId, updatedData }),
     onSuccess: () => {
-      queryClient.invalidateQueries(["arrestRecord", arrestId]);
-      queryClient.invalidateQueries(["arrestRecords"]);
+      queryClient.invalidateQueries({ queryKey: ["arrestRecord", arrestId] });
+      queryClient.invalidateQueries({ queryKey: ["arrestRecords"] });
     },
   });
 
@@ -94,48 +85,51 @@ export default function UpdateArrestRecord() {
 
   const handleUpdate = () => {
     if (!isValid) return;
-    updateArrestRecord({
+    const updatedData = {
       criminal_id: criminalId.trim(),
       arrest_date: arrestDate,
       bail_due_date: bailDueDate || null,
       custody_status: custodyStatus,
       case_reference: caseReference.trim() || null,
-    });
+    };
+
+    updateArrestRecord(updatedData);
   };
 
+  const inputClass =
+    "w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
+
   return (
-    <div style={{
-      minHeight: "100vh", background: "#0a0c0f",
-      color: "#e8eaf0", fontFamily: "'DM Sans','Segoe UI',sans-serif",
-      padding: "2rem", display: "flex", alignItems: "flex-start", justifyContent: "center",
-    }}>
-      <div style={{ width: "100%", maxWidth: "580px" }}>
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans p-8 flex items-start justify-center">
+      <div className="w-full max-w-xl">
 
         {/* Back */}
         <button
           onClick={() => navigate(-1)}
-          style={{ background: "none", border: "none", color: "#5a6278", fontSize: "0.82rem", cursor: "pointer", padding: 0, marginBottom: "1.5rem" }}
+          className="text-gray-400 text-sm mb-6 hover:text-gray-600 transition bg-transparent border-none cursor-pointer p-0"
         >
           ← Back
         </button>
 
-        {isLoading ? <SkeletonForm /> : error ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#e05252", fontSize: "0.9rem", background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px" }}>
+        {isLoading ? (
+          <SkeletonForm />
+        ) : error ? (
+          <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-red-500 text-sm shadow-sm">
             Failed to load record.
           </div>
         ) : (
-          <div style={{ background: "#12151a", border: "1px solid #1e2330", borderRadius: "14px", padding: "2rem" }}>
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
 
             {/* Title */}
-            <div style={{ marginBottom: "2rem" }}>
-              <p style={{ fontSize: "0.72rem", color: "#5a6278", fontWeight: "600", letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 4px" }}>
+            <div className="mb-8">
+              <p className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-1">
                 Editing
               </p>
-              <h1 style={{ fontSize: "1.3rem", fontWeight: "700", color: "#e8eaf0", margin: 0, fontFamily: "monospace" }}>
+              <h1 className="text-xl font-bold text-gray-900 font-mono">
                 {arrestId}
               </h1>
               {arrestRecord?.criminal_name && (
-                <p style={{ color: "#9aa3b8", margin: "6px 0 0", fontSize: "0.85rem" }}>
+                <p className="text-gray-500 mt-1.5 text-sm">
                   {arrestRecord.criminal_name}
                 </p>
               )}
@@ -143,22 +137,12 @@ export default function UpdateArrestRecord() {
 
             {/* Banners */}
             {isSuccess && (
-              <div style={{
-                background: "#0c2218", border: "1px solid #1b4530",
-                borderRadius: "8px", padding: "0.7rem 1rem",
-                color: "#3dba78", fontSize: "0.83rem", marginBottom: "1.5rem",
-                display: "flex", alignItems: "center", gap: "8px",
-              }}>
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-green-700 text-sm mb-6">
                 <span>✓</span> Record updated successfully.
               </div>
             )}
             {isError && (
-              <div style={{
-                background: "#2a0e0e", border: "1px solid #4a1a1a",
-                borderRadius: "8px", padding: "0.7rem 1rem",
-                color: "#e05252", fontSize: "0.83rem", marginBottom: "1.5rem",
-                display: "flex", alignItems: "center", gap: "8px",
-              }}>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm mb-6">
                 <span>✕</span> Failed to update. Please try again.
               </div>
             )}
@@ -166,7 +150,7 @@ export default function UpdateArrestRecord() {
             {/* Criminal ID */}
             <Field label="Criminal ID" hint="required">
               <input
-                style={inputStyle}
+                className={inputClass}
                 value={criminalId}
                 onChange={e => setCriminalId(e.target.value)}
                 placeholder="CRM-0000001"
@@ -174,10 +158,10 @@ export default function UpdateArrestRecord() {
             </Field>
 
             {/* Dates */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div className="grid grid-cols-2 gap-4">
               <Field label="Arrest Date" hint="required">
                 <input
-                  style={inputStyle}
+                  className={inputClass}
                   type="date"
                   value={arrestDate}
                   onChange={e => setArrestDate(e.target.value)}
@@ -185,7 +169,7 @@ export default function UpdateArrestRecord() {
               </Field>
               <Field label="Bail Due Date" hint="optional">
                 <input
-                  style={inputStyle}
+                  className={inputClass}
                   type="date"
                   value={bailDueDate}
                   onChange={e => setBailDueDate(e.target.value)}
@@ -196,9 +180,9 @@ export default function UpdateArrestRecord() {
 
             {/* Status */}
             <Field label="Custody Status">
-              <div style={{ position: "relative" }}>
+              <div className="relative">
                 <select
-                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                  className={`${inputClass} appearance-none cursor-pointer pr-8`}
                   value={custodyStatus}
                   onChange={e => setCustodyStatus(e.target.value)}
                 >
@@ -206,49 +190,37 @@ export default function UpdateArrestRecord() {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
-                <span style={{
-                  position: "absolute", right: "10px", top: "50%",
-                  transform: "translateY(-50%)", pointerEvents: "none",
-                  color: "#5a6278", fontSize: "0.65rem",
-                }}>▼</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
+                  ▼
+                </span>
               </div>
             </Field>
 
             {/* Case Reference */}
             <Field label="Case Reference" hint="optional">
               <input
-                style={inputStyle}
+                className={inputClass}
                 value={caseReference}
                 onChange={e => setCaseReference(e.target.value)}
                 placeholder="CF-2024-DHK-001"
               />
             </Field>
 
-            <div style={{ borderTop: "1px solid #1e2330", margin: "1.5rem 0" }} />
+            <div className="border-t border-gray-100 my-6" />
 
             {/* Actions */}
-            <div style={{ display: "flex", gap: "0.75rem" }}>
+            <div className="flex gap-3">
               <button
-                onClick={() => navigate(`/arrest-records/${arrestId}`)}
-                style={{
-                  flex: 1, padding: "0.7rem", background: "transparent",
-                  border: "1px solid #1e2330", borderRadius: "8px",
-                  color: "#9aa3b8", fontSize: "0.88rem", fontWeight: "500", cursor: "pointer",
-                }}
+                onClick={() => navigate(-1)}
+                className="flex-1 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdate}
                 disabled={isPending || !isValid}
-                style={{
-                  flex: 2, padding: "0.7rem", background: "#2c5fe6",
-                  border: "none", borderRadius: "8px",
-                  color: "#fff", fontSize: "0.88rem", fontWeight: "600",
-                  cursor: isPending || !isValid ? "not-allowed" : "pointer",
-                  opacity: isPending || !isValid ? 0.55 : 1,
-                  transition: "opacity 0.15s",
-                }}
+                className={`flex-[2] py-2.5 bg-blue-600 border-none rounded-lg text-white text-sm font-semibold transition
+                  ${isPending || !isValid ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700 cursor-pointer"}`}
               >
                 {isPending ? "Saving…" : "Save Changes"}
               </button>

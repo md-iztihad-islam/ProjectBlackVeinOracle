@@ -168,6 +168,8 @@ function CriminalProfile() {
 
   const p = profileData?.data;
 
+  console.log("Profile data:", p);
+
   const initials = p?.full_name
     ? p.full_name
         .split(" ")
@@ -210,7 +212,7 @@ function CriminalProfile() {
               <div className="flex gap-5 items-start flex-wrap">
                 {/* Avatar */}
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white text-xl font-extrabold shrink-0 tracking-tight">
-                  {initials}
+                  <img src={p.image_url} alt="" className="rounded-full" />
                 </div>
 
                 {/* Name / IDs / badges */}

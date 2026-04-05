@@ -69,19 +69,19 @@ export default function JailAnalyticsOverview() {
   const occupancyPct = totals.capacity > 0 ? ((totals.occupants / totals.capacity) * 100).toFixed(1) : "0.0";
 
   return (
-    <div className="w-full max-w-6xl mx-auto text-slate-200">
-      <div className="bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+    <div className="w-full max-w-6xl mx-auto text-slate-900">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-xs uppercase tracking-widest text-blue-400">Jail Analytics</p>
+            <p className="text-xs uppercase tracking-widest text-blue-600">Jail Analytics</p>
             <h1 className="text-3xl font-bold mt-1">Facility Operations Overview</h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-500 mt-1">
               {jail?.jail_name ? `${jail.jail_name} (${jail.jail_id})` : "Loading facility..."}
             </p>
           </div>
           <button
             onClick={handleBack}
-            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-700"
           >
             Back
           </button>
@@ -119,7 +119,7 @@ export default function JailAnalyticsOverview() {
                 </thead>
                 <tbody>
                   {blockRows.map((r, idx) => (
-                    <tr key={r.block_id} className={`border-b border-white/5 hover:bg-blue-500/[0.06] ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
+                    <tr key={r.block_id} className={`border-b border-white/5 hover:bg-blue-500/6 ${idx % 2 === 0 ? "bg-white/1" : ""}`}>
                       <td className="p-3">
                         <div className="font-medium text-slate-100">{r.block_name}</div>
                         <div className="text-xs text-slate-400 font-mono">{r.block_id}</div>
@@ -160,7 +160,7 @@ export default function JailAnalyticsOverview() {
                 </thead>
                 <tbody>
                   {dueRows.map((r, idx) => (
-                    <tr key={`${r.arrest_id}-${r.criminal_id}`} className={`border-b border-white/5 hover:bg-blue-500/[0.06] ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
+                    <tr key={`${r.arrest_id}-${r.criminal_id}`} className={`border-b border-white/5 hover:bg-blue-500/6 ${idx % 2 === 0 ? "bg-white/1" : ""}`}>
                       <td className="p-3">
                         <div className="font-medium text-slate-100">{r.full_name}</div>
                         <div className="text-xs text-slate-400 font-mono">{r.criminal_id}</div>
@@ -197,7 +197,7 @@ export default function JailAnalyticsOverview() {
                 </thead>
                 <tbody>
                   {custodyRows.map((r, idx) => (
-                    <tr key={r.status} className={`border-b border-white/5 hover:bg-blue-500/[0.06] ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
+                    <tr key={r.status} className={`border-b border-white/5 hover:bg-blue-500/6 ${idx % 2 === 0 ? "bg-white/1" : ""}`}>
                       <td className="p-3 capitalize">{String(r.status || "").replaceAll("_", " ")}</td>
                       <td className="p-3">{r.total_count}</td>
                       <td className="p-3">{r.percentage}%</td>
@@ -216,9 +216,9 @@ export default function JailAnalyticsOverview() {
 
 function StatCard({ label, value, accent = false }) {
   return (
-    <div className="bg-gradient-to-br from-gray-900/90 to-slate-900/70 border border-white/10 rounded-xl p-4">
-      <p className="text-xs uppercase tracking-widest text-slate-400">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${accent ? "text-blue-300" : "text-slate-100"}`}>{value}</p>
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+      <p className="text-xs uppercase tracking-widest text-slate-500">{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${accent ? "text-blue-600" : "text-slate-900"}`}>{value}</p>
     </div>
   );
 }

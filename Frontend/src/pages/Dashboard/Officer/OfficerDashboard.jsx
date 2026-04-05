@@ -7,7 +7,7 @@ import { getUnreadNotificationCount } from "@/services/Notification/notification
 import userStore from "@/state/userStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 /* ─── Config ─────────────────────────────────────────────── */
 const gdStatusConfig = {
@@ -326,6 +326,15 @@ function AddArrestModal({ thanaId, onClose, onSuccess }) {
 /* ─── Main Dashboard ─────────────────────────────────────── */
 export default function OfficerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+    const openOfficerModal = (path) => {
+      navigate(path, {
+        state: {
+          modal: true,
+          backgroundLocation: location,
+        },
+      });
+    };
   const { user } = userStore();
   const officerId = user?.officer_id || "";
   const thanaId   = user?.thana_id   || "";
@@ -403,7 +412,7 @@ export default function OfficerDashboard() {
 
             {/* Notifications */}
             <button
-              onClick={() => navigate("/officer/dashboard/notifications")}
+              onClick={() => openOfficerModal("/officer/dashboard/notifications")}
               className="relative w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition flex items-center justify-center"
               aria-label="Notifications"
             >

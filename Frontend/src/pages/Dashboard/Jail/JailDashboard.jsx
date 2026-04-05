@@ -115,8 +115,7 @@ export default function JailDashboard() {
   const jailOccupancy = occupancyList.find((o) => o.jail_id === jailId) || occupancyList[0] || null;
   const incarcerations = Array.isArray(incarcerationData?.data) ? incarcerationData.data : [];
   const unreadCount = Number(unreadData?.data?.unread_count || 0);
-  const activeIncarcerations = incarcerations.filter((i) => !i.released_at && !i.release_date);
-  const recentIncarcerations = activeIncarcerations.slice(0, 8);
+  const recentIncarcerations = incarcerations.slice(0, 12);
 
   const isLoading = jailDataLoading || jailOccupancyLoading;
 
@@ -188,7 +187,7 @@ export default function JailDashboard() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             {unreadCount > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute -top-2 -right-2 min-w-4.5 h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
@@ -214,7 +213,7 @@ export default function JailDashboard() {
         </div>
       </div>
 
-      <div className="h-px bg-gradient-to-r from-blue-400/30 via-blue-400/10 to-transparent mb-10" />
+      <div className="h-px bg-linear-to-r from-blue-400/30 via-blue-400/10 to-transparent mb-10" />
 
       {/* ── Loading ── */}
       {isLoading && (
@@ -342,14 +341,14 @@ export default function JailDashboard() {
             </button>
           </div>
 
-          {/* ── Active Incarcerations ── */}
+          {/* ── Incarceration History (Current + Past) ── */}
           <div className="text-[10px] tracking-[0.22em] uppercase text-slate-400 pb-3 mt-10 mb-5 border-b border-slate-700/80">
-            // Active Incarcerations (Recent)
+            // Incarcerations (Current + Historical)
           </div>
           {incarcerationLoading ? (
             <p className="text-slate-400 text-sm">Loading incarceration records...</p>
           ) : recentIncarcerations.length === 0 ? (
-            <p className="text-slate-400 text-sm">No active incarceration records found for this jail.</p>
+            <p className="text-slate-400 text-sm">No incarceration records found for this jail.</p>
           ) : (
             <div className="overflow-x-auto border border-slate-800 bg-slate-900/30">
               <table className="w-full text-sm">
@@ -357,7 +356,9 @@ export default function JailDashboard() {
                   <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase tracking-widest">
                     <th className="text-left px-3 py-3">Incarceration ID</th>
                     <th className="text-left px-3 py-3">Criminal</th>
+                    <th className="text-left px-3 py-3">State</th>
                     <th className="text-left px-3 py-3">Arrest ID</th>
+                    <th className="text-left px-3 py-3">From Jail</th>
                     <th className="text-left px-3 py-3">Block/Cell</th>
                     <th className="text-left px-3 py-3">Custody</th>
                     <th className="text-left px-3 py-3">Admitted At</th>
@@ -386,7 +387,17 @@ export default function JailDashboard() {
                           <span className="text-blue-300 font-mono">({row.criminal_id || "CRM-Unknown"})</span>
                         </button>
                       </td>
+                      <td className="px-3 py-3 text-xs">
+                        {row.released_at ? (
+                          <span className="rounded-full px-2 py-1 text-[10px] border border-amber-500/30 text-amber-300 bg-amber-500/10">Historical</span>
+                        ) : (
+                          <span className="rounded-full px-2 py-1 text-[10px] border border-emerald-500/30 text-emerald-300 bg-emerald-500/10">Current</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3 text-slate-300 font-mono text-xs">{row.arrest_id || "ARS-Unknown"}</td>
+                      <td className="px-3 py-3 text-slate-300 text-xs">
+                        {row.from_jail_name || row.from_jail_id || "—"}
+                      </td>
                       <td className="px-3 py-3 text-slate-300 text-xs">
                         {(row.block_name || "Block N/A") + " / " + (row.cell_number || row.cell_id || "Unassigned")}
                       </td>
@@ -395,17 +406,21 @@ export default function JailDashboard() {
                         {row.admitted_at ? new Date(row.admitted_at).toLocaleString() : "Date unavailable"}
                       </td>
                       <td className="px-3 py-3">
-                        <button
-                          disabled={releaseMut.isPending}
-                          onClick={() => {
-                            if (confirm(`Release incarceration ${row.incarceration_id}?`)) {
-                              releaseMut.mutate(row.incarceration_id);
-                            }
-                          }}
-                          className="rounded-xl text-xs px-3 py-1.5 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-50"
-                        >
-                          Release
-                        </button>
+                        {row.released_at ? (
+                          <span className="text-xs text-slate-500">Released/Transferred</span>
+                        ) : (
+                          <button
+                            disabled={releaseMut.isPending}
+                            onClick={() => {
+                              if (confirm(`Release incarceration ${row.incarceration_id}?`)) {
+                                releaseMut.mutate(row.incarceration_id);
+                              }
+                            }}
+                            className="rounded-xl text-xs px-3 py-1.5 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-50"
+                          >
+                            Release
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -431,6 +446,8 @@ export default function JailDashboard() {
                   <DashInfo label="Incarceration ID" value={selectedIncarceration.incarceration_id} />
                   <DashInfo label="Arrest ID" value={selectedIncarceration.arrest_id || "ARS-Unknown"} />
                   <DashInfo label="Jail ID" value={selectedIncarceration.jail_id || jailId || "JAL-Unknown"} />
+                  <DashInfo label="From Jail ID" value={selectedIncarceration.from_jail_id || "—"} />
+                  <DashInfo label="From Jail Name" value={selectedIncarceration.from_jail_name || "—"} />
                   <DashInfo label="Block" value={selectedIncarceration.block_name || "Block N/A"} />
                   <DashInfo label="Cell" value={selectedIncarceration.cell_number || selectedIncarceration.cell_id || "Unassigned"} />
                   <DashInfo label="Custody Status" value={selectedIncarceration.custody_status || "in_custody"} />
@@ -545,7 +562,7 @@ function DashInfo({ label, value }) {
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2">
       <p className="text-[10px] uppercase tracking-widest text-slate-400">{label}</p>
-      <p className="text-sm text-slate-100 mt-1 break-words">{value || "Not available"}</p>
+      <p className="text-sm text-slate-100 mt-1 wrap-break-word">{value || "Not available"}</p>
     </div>
   );
 }
