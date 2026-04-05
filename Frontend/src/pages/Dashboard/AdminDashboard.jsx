@@ -58,12 +58,17 @@ function AdminDashboard() {
   const [selectedJailDistrict, setSelectedJailDistrict] = useState("");
   const [selectedGdDistrict, setSelectedGdDistrict] = useState("");
   const [selectedGdThanaId, setSelectedGdThanaId] = useState("");
-  const [gdTypeSort, setGdTypeSort] = useState("none");
-  const [caseTypeSort, setCaseTypeSort] = useState("none");
+  const [gdTypeFilter, setGdTypeFilter] = useState("");
+  const [caseTypeFilter, setCaseTypeFilter] = useState("");
   const [thanaSearch, setThanaSearch] = useState("");
   const [officerSearch, setOfficerSearch] = useState("");
   const [criminalSearch, setCriminalSearch] = useState("");
   const [jailSearch, setJailSearch] = useState("");
+  const [organizationSearch, setOrganizationSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [relationSearch, setRelationSearch] = useState("");
+  const [orgLinkSearch, setOrgLinkSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [selectedGDReport, setSelectedGDReport] = useState(null);
   const [selectedOfficerProfile, setSelectedOfficerProfile] = useState(null);
   const [selectedCriminalProfile, setSelectedCriminalProfile] = useState(null);
@@ -478,12 +483,7 @@ function AdminDashboard() {
       thana_name: thanaById[g.thana_id]?.thana_name || g.thana_name || g.thana_id,
       district: thanaById[g.thana_id]?.district || "—",
     }))
-    .sort((a, b) => {
-      if (gdTypeSort === "none") return 0;
-      const av = String(a?.gd_type || "").toLowerCase();
-      const bv = String(b?.gd_type || "").toLowerCase();
-      return gdTypeSort === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
+    .filter((g) => !gdTypeFilter || String(g?.gd_type || "") === gdTypeFilter);
 
   const selectedJailDetails = selectedJailDetailsData?.data || null;
 
@@ -494,12 +494,84 @@ function AdminDashboard() {
 
   const caseFilesForSelectedThana = allCaseFiles
     .filter((c) => c?.thana_id && c.thana_id === selectedCaseThanaId)
-    .sort((a, b) => {
-      if (caseTypeSort === "none") return 0;
-      const av = String(a?.case_type || "").toLowerCase();
-      const bv = String(b?.case_type || "").toLowerCase();
-      return caseTypeSort === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
+    .filter((c) => !caseTypeFilter || String(c?.case_type || "") === caseTypeFilter);
+
+  const gdTypeOptions = [...new Set(
+    gdReports
+      .filter((g) => !selectedGdThanaId || g?.thana_id === selectedGdThanaId)
+      .map((g) => String(g?.gd_type || "").trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+
+  const caseTypeOptions = [...new Set(
+    allCaseFiles
+      .filter((c) => !selectedCaseThanaId || c?.thana_id === selectedCaseThanaId)
+      .map((c) => String(c?.case_type || "").trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+
+  const filteredOrganizations = organizations.filter((o) => {
+    const q = organizationSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      String(o?.name || "").toLowerCase().includes(q) ||
+      String(o?.org_id || "").toLowerCase().includes(q) ||
+      String(o?.ideology || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredLocations = locations.filter((l) => {
+    const q = locationSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      String(l?.location_id || "").toLowerCase().includes(q) ||
+      String(l?.district || "").toLowerCase().includes(q) ||
+      String(l?.zone || "").toLowerCase().includes(q) ||
+      String(l?.address || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredCriminalRelations = criminalRelations.filter((r) => {
+    const q = relationSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      String(r?.relation_id || "").toLowerCase().includes(q) ||
+      String(r?.criminal_id_1 || "").toLowerCase().includes(q) ||
+      String(r?.criminal_1_name || "").toLowerCase().includes(q) ||
+      String(r?.criminal_id_2 || "").toLowerCase().includes(q) ||
+      String(r?.criminal_2_name || "").toLowerCase().includes(q) ||
+      String(r?.relation_type || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredCriminalOrgLinks = criminalOrgLinks.filter((l) => {
+    const q = orgLinkSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      String(l?.criminal_id || "").toLowerCase().includes(q) ||
+      String(l?.criminal_name || "").toLowerCase().includes(q) ||
+      String(l?.org_id || "").toLowerCase().includes(q) ||
+      String(l?.organization_name || "").toLowerCase().includes(q) ||
+      String(l?.role || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredUsers = users.filter((u) => {
+    const q = userSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      String(u?.user_id || "").toLowerCase().includes(q) ||
+      String(u?.full_name || "").toLowerCase().includes(q) ||
+      String(u?.email || "").toLowerCase().includes(q) ||
+      String(u?.phone || "").toLowerCase().includes(q)
+    );
+  });
+
+  const organizationSuggestions = [...new Set(filteredOrganizations.slice(0, 20).map((o) => o?.name).filter(Boolean))].slice(0, 12);
+  const locationSuggestions = [...new Set(filteredLocations.slice(0, 20).map((l) => l?.district || l?.zone || l?.address).filter(Boolean))].slice(0, 12);
+  const relationSuggestions = [...new Set(filteredCriminalRelations.slice(0, 20).map((r) => r?.criminal_1_name || r?.criminal_2_name).filter(Boolean))].slice(0, 12);
+  const orgLinkSuggestions = [...new Set(filteredCriminalOrgLinks.slice(0, 20).map((l) => l?.organization_name || l?.criminal_name).filter(Boolean))].slice(0, 12);
+  const userSuggestions = [...new Set(filteredUsers.slice(0, 20).map((u) => u?.full_name).filter(Boolean))].slice(0, 12);
 
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200">
@@ -1256,85 +1328,156 @@ function AdminDashboard() {
         )}
 
         {/* Organizations */}
-        {activeTab === "organizations" &&
-          renderTable(organizations, [
-            { key: "org_id", label: "ID" },
-            { key: "name", label: "Name" },
-            { key: "ideology", label: "Ideology" },
-            { key: "threat_level", label: "Threat" },
-          ])}
+        {activeTab === "organizations" && (
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Search organization</label>
+              <input
+                value={organizationSearch}
+                onChange={(e) => setOrganizationSearch(e.target.value)}
+                placeholder="Type organization name, ID, ideology..."
+                list="admin-organization-search-suggestions"
+                className={`${inputCls} max-w-md`}
+              />
+              <datalist id="admin-organization-search-suggestions">
+                {organizationSuggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+            {renderTable(filteredOrganizations, [
+              { key: "org_id", label: "ID" },
+              { key: "name", label: "Name" },
+              { key: "ideology", label: "Ideology" },
+              { key: "threat_level", label: "Threat" },
+            ])}
+          </div>
+        )}
 
         {/* Locations */}
-        {activeTab === "locations" &&
-          renderTable(locations, [
-            { key: "location_id", label: "ID" },
-            { key: "district", label: "District" },
-            { key: "zone", label: "Zone" },
-            { key: "address", label: "Address" },
-          ])}
+        {activeTab === "locations" && (
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Search location</label>
+              <input
+                value={locationSearch}
+                onChange={(e) => setLocationSearch(e.target.value)}
+                placeholder="Type district, zone, address, location ID..."
+                list="admin-location-search-suggestions"
+                className={`${inputCls} max-w-md`}
+              />
+              <datalist id="admin-location-search-suggestions">
+                {locationSuggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+            {renderTable(filteredLocations, [
+              { key: "location_id", label: "ID" },
+              { key: "district", label: "District" },
+              { key: "zone", label: "Zone" },
+              { key: "address", label: "Address" },
+            ])}
+          </div>
+        )}
 
         {/* Criminal Relations */}
         {activeTab === "criminal-relations" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">Relation ID</th>
-                  <th className="text-left p-3">Criminal A ID</th>
-                  <th className="text-left p-3">Criminal A Name</th>
-                  <th className="text-left p-3">Criminal B ID</th>
-                  <th className="text-left p-3">Criminal B Name</th>
-                  <th className="text-left p-3">Type</th>
-                </tr>
-              </thead>
-              <tbody>
-                {criminalRelations.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">No data found</td>
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Search relation</label>
+              <input
+                value={relationSearch}
+                onChange={(e) => setRelationSearch(e.target.value)}
+                placeholder="Type criminal name, ID, relation type..."
+                list="admin-relation-search-suggestions"
+                className={`${inputCls} max-w-md`}
+              />
+              <datalist id="admin-relation-search-suggestions">
+                {relationSuggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">Relation ID</th>
+                    <th className="text-left p-3">Criminal A ID</th>
+                    <th className="text-left p-3">Criminal A Name</th>
+                    <th className="text-left p-3">Criminal B ID</th>
+                    <th className="text-left p-3">Criminal B Name</th>
+                    <th className="text-left p-3">Type</th>
                   </tr>
-                ) : (
-                  criminalRelations.map((r, idx) => (
-                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02]">
-                      <td className="p-3 text-slate-200">{r?.relation_id ?? "—"}</td>
-                      <td className="p-3 text-slate-200">
-                        <button onClick={() => openCriminalProfileById(r?.criminal_id_1)} className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs">
-                          {r?.criminal_id_1 ?? "—"}
-                        </button>
-                      </td>
-                      <td className="p-3 text-slate-200">
-                        <button onClick={() => openCriminalProfileById(r?.criminal_id_1)} className="text-blue-300 hover:text-blue-200 hover:underline text-left">
-                          {r?.criminal_1_name ?? "—"}
-                        </button>
-                      </td>
-                      <td className="p-3 text-slate-200">
-                        <button onClick={() => openCriminalProfileById(r?.criminal_id_2)} className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs">
-                          {r?.criminal_id_2 ?? "—"}
-                        </button>
-                      </td>
-                      <td className="p-3 text-slate-200">
-                        <button onClick={() => openCriminalProfileById(r?.criminal_id_2)} className="text-blue-300 hover:text-blue-200 hover:underline text-left">
-                          {r?.criminal_2_name ?? "—"}
-                        </button>
-                      </td>
-                      <td className="p-3 text-slate-200">{r?.relation_type ?? "—"}</td>
+                </thead>
+                <tbody>
+                  {filteredCriminalRelations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-500">No data found</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredCriminalRelations.map((r, idx) => (
+                      <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="p-3 text-slate-200">{r?.relation_id ?? "—"}</td>
+                        <td className="p-3 text-slate-200">
+                          <button onClick={() => openCriminalProfileById(r?.criminal_id_1)} className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs">
+                            {r?.criminal_id_1 ?? "—"}
+                          </button>
+                        </td>
+                        <td className="p-3 text-slate-200">
+                          <button onClick={() => openCriminalProfileById(r?.criminal_id_1)} className="text-blue-300 hover:text-blue-200 hover:underline text-left">
+                            {r?.criminal_1_name ?? "—"}
+                          </button>
+                        </td>
+                        <td className="p-3 text-slate-200">
+                          <button onClick={() => openCriminalProfileById(r?.criminal_id_2)} className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs">
+                            {r?.criminal_id_2 ?? "—"}
+                          </button>
+                        </td>
+                        <td className="p-3 text-slate-200">
+                          <button onClick={() => openCriminalProfileById(r?.criminal_id_2)} className="text-blue-300 hover:text-blue-200 hover:underline text-left">
+                            {r?.criminal_2_name ?? "—"}
+                          </button>
+                        </td>
+                        <td className="p-3 text-slate-200">{r?.relation_type ?? "—"}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Criminal Organization Links */}
-        {activeTab === "criminal-org-links" &&
-          renderTable(criminalOrgLinks, [
-            { key: "criminal_id", label: "Criminal ID" },
-            { key: "criminal_name", label: "Criminal Name" },
-            { key: "org_id", label: "Org ID" },
-            { key: "organization_name", label: "Organization" },
-            { key: "threat_level", label: "Threat" },
-            { key: "role", label: "Role" },
-          ])}
+        {activeTab === "criminal-org-links" && (
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Search organization links</label>
+              <input
+                value={orgLinkSearch}
+                onChange={(e) => setOrgLinkSearch(e.target.value)}
+                placeholder="Type criminal, organization, ID, role..."
+                list="admin-org-link-search-suggestions"
+                className={`${inputCls} max-w-md`}
+              />
+              <datalist id="admin-org-link-search-suggestions">
+                {orgLinkSuggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+            {renderTable(filteredCriminalOrgLinks, [
+              { key: "criminal_id", label: "Criminal ID" },
+              { key: "criminal_name", label: "Criminal Name" },
+              { key: "org_id", label: "Org ID" },
+              { key: "organization_name", label: "Organization" },
+              { key: "threat_level", label: "Threat" },
+              { key: "role", label: "Role" },
+            ])}
+          </div>
+        )}
 
         {/* Analytics */}
         {activeTab === "analytics" && (
@@ -1442,15 +1585,16 @@ function AdminDashboard() {
               </div>
               {selectedCaseDistrict && selectedCaseThanaId && (
                 <div className="md:col-span-2">
-                  <label className="text-xs text-slate-500 uppercase block mb-2">Sort by case type</label>
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Filter by case type</label>
                   <select
-                    value={caseTypeSort}
-                    onChange={(e) => setCaseTypeSort(e.target.value)}
+                    value={caseTypeFilter}
+                    onChange={(e) => setCaseTypeFilter(e.target.value)}
                     className={`${inputCls} max-w-xs`}
                   >
-                    <option value="none">Default order</option>
-                    <option value="asc">Type A-Z</option>
-                    <option value="desc">Type Z-A</option>
+                    <option value="">All case types</option>
+                    {caseTypeOptions.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -1612,34 +1756,51 @@ function AdminDashboard() {
 
         {/* Users */}
         {activeTab === "users" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">ID</th>
-                  <th className="text-left p-3">Name</th>
-                  <th className="text-left p-3">Email</th>
-                  <th className="text-left p-3">Phone</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.user_id} className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer" onClick={() => setSelectedUser(u)}>
-                    <td className="p-3 font-mono text-xs">{u.user_id}</td>
-                    <td className="p-3">{u.full_name}</td>
-                    <td className="p-3 text-slate-400">{u.email}</td>
-                    <td className="p-3 text-slate-400">{u.phone}</td>
-                  </tr>
+          <div className="space-y-4">
+            <div className="bg-gray-900 border border-white/5 rounded-xl p-4">
+              <label className="text-xs text-slate-500 uppercase block mb-2">Search user</label>
+              <input
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                placeholder="Type user name, ID, email, phone..."
+                list="admin-user-search-suggestions"
+                className={`${inputCls} max-w-md`}
+              />
+              <datalist id="admin-user-search-suggestions">
+                {userSuggestions.map((name) => (
+                  <option key={name} value={name} />
                 ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500">
-                      No users found
-                    </td>
+              </datalist>
+            </div>
+            <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
+                    <th className="text-left p-3">ID</th>
+                    <th className="text-left p-3">Name</th>
+                    <th className="text-left p-3">Email</th>
+                    <th className="text-left p-3">Phone</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => (
+                    <tr key={u.user_id} className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer" onClick={() => setSelectedUser(u)}>
+                      <td className="p-3 font-mono text-xs">{u.user_id}</td>
+                      <td className="p-3">{u.full_name}</td>
+                      <td className="p-3 text-slate-400">{u.email}</td>
+                      <td className="p-3 text-slate-400">{u.phone}</td>
+                    </tr>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-6 text-center text-slate-500">
+                        No users found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -1683,15 +1844,16 @@ function AdminDashboard() {
               </div>
               {selectedGdDistrict && selectedGdThanaId && (
                 <div className="md:col-span-2">
-                  <label className="text-xs text-slate-500 uppercase block mb-2">Sort by GD type</label>
+                  <label className="text-xs text-slate-500 uppercase block mb-2">Filter by GD type</label>
                   <select
-                    value={gdTypeSort}
-                    onChange={(e) => setGdTypeSort(e.target.value)}
+                    value={gdTypeFilter}
+                    onChange={(e) => setGdTypeFilter(e.target.value)}
                     className={`${inputCls} max-w-xs`}
                   >
-                    <option value="none">Default order</option>
-                    <option value="asc">Type A-Z</option>
-                    <option value="desc">Type Z-A</option>
+                    <option value="">All GD types</option>
+                    {gdTypeOptions.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
                   </select>
                 </div>
               )}
