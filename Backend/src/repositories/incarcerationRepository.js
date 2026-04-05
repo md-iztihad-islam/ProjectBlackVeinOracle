@@ -278,7 +278,7 @@ export const transferCriminalRepository = async (criminalId, fromJailId, toJailI
 
     let resolvedCellId = toCellId || null;
 
-    // If caller passes a block id (CLB-*), resolve best available cell in that block.
+
     if (resolvedCellId && /^CLB-/i.test(resolvedCellId)) {
       const blockCellQuery = `
         SELECT ce.cell_id
@@ -373,7 +373,7 @@ export const transferCriminalRepository = async (criminalId, fromJailId, toJailI
     return { success: true, toCellId: resolvedCellId };
     } catch (error) {
         console.log("Error at transferCriminalRepository:", error);
-    throw new Error(error?.message || "Transfer failed");
+        throw new Error(error?.message || "Transfer failed");
     }
 };
 
