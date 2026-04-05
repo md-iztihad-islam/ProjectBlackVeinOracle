@@ -138,9 +138,9 @@ function WantedCriminals() {
         ) : filteredRows.length === 0 ? (
           <p className="text-slate-400">No wanted criminals found.</p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-gray-900/70">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-gradient-to-r from-slate-900 to-gray-800 text-slate-300">
+              <thead className="bg-white text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="text-left px-4 py-3">Criminal ID</th>
                   <th className="text-left px-4 py-3">Name</th>
@@ -154,19 +154,19 @@ function WantedCriminals() {
                 {filteredRows.map((r, idx) => (
                   <tr
                     key={r.criminal_id}
-                    className={`user-row-hover border-t border-white/10 hover:bg-blue-500/[0.08] cursor-pointer ${idx % 2 === 0 ? "bg-white/[0.01]" : ""}`}
+                    className={`user-row-hover border-t border-slate-100 hover:bg-blue-50 cursor-pointer ${idx % 2 === 0 ? "bg-slate-50/40" : "bg-white"}`}
                     onClick={() => setSelectedCriminal(r)}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-blue-300">{r.criminal_id}</td>
-                    <td className="px-4 py-3 font-semibold">{r.full_name}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{r.full_name}</td>
                     <td className="px-4 py-3 capitalize">
                       <span className="px-2 py-1 rounded-md text-xs border border-rose-400/30 bg-rose-400/10 text-rose-300">
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium">{r.risk_level}</td>
-                    <td className="px-4 py-3">{r.registered_thana || r.thana_name || r.registered_thana_id || "N/A"}</td>
-                    <td className="px-4 py-3">{r.last_seen_district || r.district || "Unknown"}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">{r.risk_level}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.registered_thana || r.thana_name || r.registered_thana_id || "N/A"}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.last_seen_district || r.district || "Unknown"}</td>
                   </tr>
                 ))}
               </tbody>

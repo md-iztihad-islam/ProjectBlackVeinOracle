@@ -144,9 +144,9 @@ function CriminalsByArea() {
         ) : filteredRows.length === 0 ? (
           <p className="text-slate-400">No records found for this district.</p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-gray-900/70">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-gradient-to-r from-slate-900 to-gray-800 text-slate-300">
+              <thead className="bg-white text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="text-left px-4 py-3">Criminal ID</th>
                   <th className="text-left px-4 py-3">Name</th>
@@ -161,20 +161,20 @@ function CriminalsByArea() {
                 {filteredRows.map((r, i) => (
                   <tr
                     key={`${r.criminal_id || i}-${r.noted_at || i}`}
-                    className={`user-row-hover border-t border-white/10 hover:bg-blue-500/[0.08] cursor-pointer ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}
+                    className={`user-row-hover border-t border-slate-100 hover:bg-blue-50 cursor-pointer ${i % 2 === 0 ? "bg-slate-50/40" : "bg-white"}`}
                     onClick={() => setSelectedCriminal(r)}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-blue-300">{r.criminal_id}</td>
-                    <td className="px-4 py-3 font-semibold">{r.full_name}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{r.full_name}</td>
                     <td className="px-4 py-3 capitalize">
                       <span className="px-2 py-1 rounded-md text-xs border border-white/10 bg-white/[0.04]">
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{r.risk_level}</td>
-                    <td className="px-4 py-3">{r.district || r.last_seen_district || district}</td>
-                    <td className="px-4 py-3">{r.zone || "N/A"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-slate-700">{r.risk_level}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.district || r.last_seen_district || district}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.zone || "N/A"}</td>
+                    <td className="px-4 py-3 text-slate-700">
                       {r.noted_at
                         ? new Date(r.noted_at).toLocaleDateString("en-GB", {
                             day: "2-digit",
