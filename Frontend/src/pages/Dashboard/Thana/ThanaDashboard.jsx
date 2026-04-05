@@ -13,7 +13,6 @@ import {
   getAllLocations,
   getAllCriminalOrganizationLinks,
   getAllCriminalRelations,
-  getAllCriminalLocations,
 } from "@/services/Thana/thanaApi";
 import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
@@ -85,10 +84,6 @@ function ThanaDashboard() {
     queryKey: ["thanaCriminalRelations"],
     queryFn: getAllCriminalRelations,
   });
-  const { data: crimLocData } = useQuery({
-    queryKey: ["thanaCriminalLocations"],
-    queryFn: getAllCriminalLocations,
-  });
   const { data: unreadNotificationData } = useQuery({
     queryKey: ["thanaUnreadNotificationCount"],
     queryFn: getUnreadNotificationCount,
@@ -118,7 +113,6 @@ function ThanaDashboard() {
   const locations = locData?.data || [];
   const orgLinks = orgLinksData?.data || [];
   const relations = relData?.data || [];
-  const criminalLocations = crimLocData?.data || [];
   const unreadNotificationCount = Number(
     unreadNotificationData?.data?.unread_count || 0,
   );
@@ -165,7 +159,6 @@ function ThanaDashboard() {
     { id: "locations", label: `Locations (${locations.length})` },
     { id: "orgLinks", label: `Criminal-Org Links (${orgLinks.length})` },
     { id: "relations", label: `Criminal Relations (${relations.length})` },
-    { id: "crimLocations", label: `Criminal Locations (${criminalLocations.length})` },
   ];
 
   const quickActionClass =
@@ -269,12 +262,6 @@ function ThanaDashboard() {
             className={quickActionClass}
           >
             + Add Criminal Relation
-          </button>
-          <button
-            onClick={() => openThanaModal("/thana/add-criminal-location")}
-            className={quickActionClass}
-          >
-            + Add Criminal Location
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-criminal-organization")}
@@ -791,38 +778,6 @@ function ThanaDashboard() {
           </div>
         )}
 
-        {/* Criminal Locations Tab */}
-        {activeTab === "crimLocations" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">Link ID</th>
-                  <th className="text-left p-3">Criminal ID</th>
-                  <th className="text-left p-3">Location ID</th>
-                  <th className="text-left p-3">Noted At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {criminalLocations.map((cl) => (
-                  <tr key={cl.criminal_location_id} className="border-b border-white/5">
-                    <td className="p-3 font-mono text-xs">{cl.criminal_location_id}</td>
-                    <td className="p-3 font-mono text-xs">{cl.criminal_id}</td>
-                    <td className="p-3 font-mono text-xs">{cl.location_id}</td>
-                    <td className="p-3 text-xs">{cl.noted_at ? new Date(cl.noted_at).toLocaleString() : "—"}</td>
-                  </tr>
-                ))}
-                {criminalLocations.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500">
-                      No criminal-location links found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
       </main>
 
       {selectedCaseFile && (

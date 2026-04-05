@@ -243,15 +243,6 @@ export async function getAllCriminalRelations() {
 	}
 }
 
-export async function getAllCriminalLocations() {
-	try {
-		const res = await axiosInstance.get("/criminal-location/get-all-criminal-locations");
-		return res.data;
-	} catch {
-		return { success: false, data: [] };
-	}
-}
-
 export async function getGDReportsByThana(thanaId) {
 	try {
 		const res = await axiosInstance.get(

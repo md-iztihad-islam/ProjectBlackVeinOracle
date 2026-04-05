@@ -21,7 +21,6 @@ import {
   deleteThana,
 } from "@/services/Admin/adminApi";
 import {
-  getAllCriminalLocations,
   getAllCriminalOrganizationLinks,
   getAllCriminalRelations,
   getAllLocations,
@@ -183,10 +182,6 @@ function AdminDashboard() {
     queryKey: ["allCriminalRelations"],
     queryFn: getAllCriminalRelations,
   });
-  const { data: criminalLocationLinksData } = useQuery({
-    queryKey: ["allCriminalLocationLinks"],
-    queryFn: getAllCriminalLocations,
-  });
   const { data: _overviewData } = useQuery({
     queryKey: ["dashboardOverview"],
     queryFn: getDashboardOverview,
@@ -246,7 +241,6 @@ function AdminDashboard() {
   const locations = locationsData?.data || [];
   const criminalOrgLinks = criminalOrgLinksData?.data || [];
   const criminalRelations = criminalRelationsData?.data || [];
-  const criminalLocationLinks = criminalLocationLinksData?.data || [];
   const unreadNotificationCount = Number(
     unreadNotificationData?.data?.unread_count || 0,
   );
@@ -385,7 +379,6 @@ function AdminDashboard() {
     { id: "locations", label: `Locations (${locations.length})` },
     { id: "criminal-relations", label: `Relations (${criminalRelations.length})` },
     { id: "criminal-org-links", label: `Org Links (${criminalOrgLinks.length})` },
-    { id: "criminal-location-links", label: `Location Links (${criminalLocationLinks.length})` },
     { id: "ranks", label: `Ranks (${ranks.length})` },
     { id: "users", label: `Users (${users.length})` },
     { id: "gd-reports", label: `GD Reports (${gdReports.length})` },
@@ -1341,19 +1334,6 @@ function AdminDashboard() {
             { key: "organization_name", label: "Organization" },
             { key: "threat_level", label: "Threat" },
             { key: "role", label: "Role" },
-          ])}
-
-        {/* Criminal Location Links */}
-        {activeTab === "criminal-location-links" &&
-          renderTable(criminalLocationLinks, [
-            { key: "criminal_location_id", label: "Link ID" },
-            { key: "criminal_id", label: "Criminal ID" },
-            { key: "criminal_name", label: "Criminal Name" },
-            { key: "location_id", label: "Location ID" },
-            { key: "district", label: "District" },
-            { key: "zone", label: "Zone" },
-            { key: "address", label: "Address" },
-            { key: "noted_at", label: "Noted At" },
           ])}
 
         {/* Analytics */}

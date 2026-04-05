@@ -449,20 +449,12 @@ export const getWantedCriminalsRepository = async () => {
                 c.gender,
                 DATE_PART('year', AGE(CURRENT_DATE, c.birth_date))::INT AS age,
                 t.thana_name AS registered_thana,
-                COALESCE(last_loc.district, t.district) AS last_seen_district,
-                last_loc.zone AS last_seen_zone,
-                last_loc.address AS last_seen_address,
-                last_loc.noted_at AS last_seen_at
+                t.district AS last_seen_district,
+                t.thana_name AS last_seen_zone,
+                NULL::text AS last_seen_address,
+                NULL::timestamp AS last_seen_at
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
-            LEFT JOIN LATERAL (
-                SELECT l.district, l.zone, l.address, cl.noted_at
-                FROM criminal_location cl
-                JOIN location l ON l.location_id = cl.location_id
-                WHERE cl.criminal_id = c.criminal_id
-                ORDER BY cl.noted_at DESC NULLS LAST
-                LIMIT 1
-            ) last_loc ON TRUE
             WHERE c.status IN ('wanted', 'escaped')
             ORDER BY c.risk_level DESC;
         `;
@@ -490,22 +482,14 @@ export const getCriminalsByAreaRepository = async (district) => {
                 c.gender,
                 DATE_PART('year', AGE(CURRENT_DATE, c.birth_date))::INT AS age,
                 t.thana_name AS registered_thana,
-                COALESCE(last_loc.district, t.district) AS district,
-                last_loc.zone,
-                last_loc.address,
-                last_loc.noted_at
+                t.district AS district,
+                t.thana_name AS zone,
+                NULL::text AS address,
+                NULL::timestamp AS noted_at
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
-            LEFT JOIN LATERAL (
-                SELECT l.district, l.zone, l.address, cl.noted_at
-                FROM criminal_location cl
-                JOIN location l ON l.location_id = cl.location_id
-                WHERE cl.criminal_id = c.criminal_id
-                ORDER BY cl.noted_at DESC NULLS LAST
-                LIMIT 1
-            ) last_loc ON TRUE
-            WHERE COALESCE(last_loc.district, t.district, '') ILIKE $1
-            ORDER BY c.risk_level DESC, last_loc.noted_at DESC NULLS LAST;
+            WHERE COALESCE(t.district, '') ILIKE $1
+            ORDER BY c.risk_level DESC;
         `;
         const result = await pool.query(query, [`%${normalizedDistrict}%`]);
         return result.rows;
