@@ -1,8 +1,29 @@
 import { useNavigate } from 'react-router-dom';
 import { Shield, Building2, UserCog, Building } from 'lucide-react';
+import userStore from '@/state/userStore';
+
+const resolveRoleFromUser = (user) => {
+    if (!user || typeof user !== 'object') return null;
+    if (typeof user.role === 'string' && user.role.trim() !== '') return user.role.trim().toLowerCase();
+    if (user.admin_id) return 'admin';
+    if (user.officer_id) return 'officer';
+    if (user.jail_id) return 'jail';
+    if (user.thana_id) return 'thana';
+    if (user.user_id) return 'user';
+    return null;
+};
+
+const dashboardRoutes = {
+    admin: '/admin/dashboard',
+    thana: '/thana/dashboard',
+    officer: '/officer/dashboard',
+    jail: '/jail/dashboard',
+    user: '/user/dashboard',
+};
 
 function AccessRedirectionPage() {
     const navigate = useNavigate();
+    const { user } = userStore();
 
     const accessCategories = [
         {
@@ -60,6 +81,11 @@ function AccessRedirectionPage() {
     ];
 
     const handleCategoryClick = (route) => {
+        const loggedInRole = resolveRoleFromUser(user);
+        if (loggedInRole && dashboardRoutes[loggedInRole]) {
+            navigate(dashboardRoutes[loggedInRole]);
+            return;
+        }
         navigate(route);
     };
 
@@ -178,9 +204,7 @@ function AccessRedirectionPage() {
                         </div>
                     </div>
                     
-                    <p className="text-sm text-base-content/50">
-                        Modules: 4 role portals, 20+ secured APIs, and 30+ managed entities in this project.
-                    </p>
+                    
                 </div>
             </div>
 

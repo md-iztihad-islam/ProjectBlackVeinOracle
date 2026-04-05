@@ -122,23 +122,10 @@ export const getBailStatisticsRepository = async () => {
 // criminal er movement history
 export const getCriminalMovementHistoryRepository = async (criminalId) => {
     try {
-        const query = `
-            SELECT 
-                cl.criminal_location_id,
-                c.full_name,
-                l.district, l.address, l.zone,
-                cl.noted_at,
-                LAG(l.district) OVER (ORDER BY cl.noted_at) AS previous_district,
-                LAG(cl.noted_at) OVER (ORDER BY cl.noted_at) AS previous_time,
-                ROW_NUMBER() OVER (ORDER BY cl.noted_at) AS visit_number
-            FROM criminal_location cl
-            JOIN criminal c ON cl.criminal_id = c.criminal_id
-            JOIN location l ON cl.location_id = l.location_id
-            WHERE cl.criminal_id = $1
-            ORDER BY cl.noted_at DESC;
-        `;
-        const result = await pool.query(query, [criminalId]);
-        return result.rows;
+        // Criminal location feature disabled.
+        // Keep endpoint stable for callers by returning an empty list.
+        void criminalId;
+        return [];
     } catch (error) {
         console.log("Error at getCriminalMovementHistoryRepository:", error);
         throw error;
@@ -429,59 +416,27 @@ export const getCrimePeakByYearRepository = async (year = null, district = null,
 export const getWantedByAreaRepository = async (district = null, thanaId = null) => {
     try {
         const query = `
-            WITH latest_location AS (
-                SELECT
-                    cl.criminal_id,
-                    l.district,
-                    l.zone,
-                    ROW_NUMBER() OVER (PARTITION BY cl.criminal_id ORDER BY cl.noted_at DESC) AS rn
-                FROM criminal_location cl
-                JOIN location l ON cl.location_id = l.location_id
-            )
             SELECT
                 COALESCE(
-                    CASE
-                        WHEN ll.district IS NULL OR TRIM(ll.district) = '' OR LOWER(TRIM(ll.district)) = 'unknown' THEN NULL
-                        ELSE ll.district
-                    END,
                     t.district,
                     'Registered District'
                 ) AS district,
                 COALESCE(
-                    CASE
-                        WHEN ll.zone IS NULL OR TRIM(ll.zone) = '' OR LOWER(TRIM(ll.zone)) = 'unknown' THEN NULL
-                        ELSE ll.zone
-                    END,
                     t.thana_name,
                     'Registered Thana'
                 ) AS zone,
                 COUNT(*)::INT AS wanted_count
             FROM criminal c
             LEFT JOIN thana t ON c.registered_thana_id = t.thana_id
-            LEFT JOIN latest_location ll ON ll.criminal_id = c.criminal_id AND ll.rn = 1
             WHERE c.status IN ('wanted', 'escaped')
-              AND ($1::text IS NULL OR COALESCE(
-                    CASE
-                        WHEN ll.district IS NULL OR TRIM(ll.district) = '' OR LOWER(TRIM(ll.district)) = 'unknown' THEN NULL
-                        ELSE ll.district
-                    END,
-                    t.district
-                ) = $1::text)
+              AND ($1::text IS NULL OR COALESCE(t.district, 'Registered District') = $1::text)
               AND ($2::text IS NULL OR c.registered_thana_id = $2::text)
             GROUP BY
                 COALESCE(
-                    CASE
-                        WHEN ll.district IS NULL OR TRIM(ll.district) = '' OR LOWER(TRIM(ll.district)) = 'unknown' THEN NULL
-                        ELSE ll.district
-                    END,
                     t.district,
                     'Registered District'
                 ),
                 COALESCE(
-                    CASE
-                        WHEN ll.zone IS NULL OR TRIM(ll.zone) = '' OR LOWER(TRIM(ll.zone)) = 'unknown' THEN NULL
-                        ELSE ll.zone
-                    END,
                     t.thana_name,
                     'Registered Thana'
                 )
@@ -850,15 +805,14 @@ export const getAdminJailDetailsRepository = async (jailId) => {
         `;
 
         const locationsQuery = `
-            SELECT DISTINCT l.location_id, l.district, l.zone, l.address
-            FROM incarceration i
-            JOIN arrest_record ar ON ar.arrest_id = i.arrest_id
-            JOIN criminal_location cl ON cl.criminal_id = ar.criminal_id
-            JOIN location l ON l.location_id = cl.location_id
-            WHERE i.jail_id = $1
-              AND i.released_at IS NULL
-            ORDER BY l.district ASC, l.zone ASC, l.address ASC
-            LIMIT 30;
+            SELECT
+                $1::text AS location_id,
+                j.district,
+                j.zone,
+                j.address
+            FROM jail j
+            WHERE j.jail_id = $1
+            LIMIT 1;
         `;
 
         const criminalsQuery = `

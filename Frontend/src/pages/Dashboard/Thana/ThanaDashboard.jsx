@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { thanaSignoutApi } from "@/services/authServices/signoutApi";
 import {
@@ -13,15 +13,16 @@ import {
   getAllLocations,
   getAllCriminalOrganizationLinks,
   getAllCriminalRelations,
-  getAllCriminalLocations,
 } from "@/services/Thana/thanaApi";
+import { assignSosOfficer, getThanaSosAlerts } from "@/services/SOS/sosApi";
 import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
 import userStore from "@/state/userStore";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 function ThanaDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user, clearUser } = userStore();
   const thanaId = user?.thana_id;
   const [activeTab, setActiveTab] = useState("criminals");
@@ -33,6 +34,10 @@ function ThanaDashboard() {
   const [caseTypeSort, setCaseTypeSort] = useState("none");
   const [expandedOfficerImage, setExpandedOfficerImage] = useState(null);
   const [expandedCriminalImage, setExpandedCriminalImage] = useState(null);
+  const [sosOfficerMap, setSosOfficerMap] = useState({});
+  const seenSosIdsRef = useRef(new Set());
+  const audioUnlockedRef = useRef(false);
+  const pendingAlarmRef = useRef(false);
 
   const handleSignout = async () => {
     await thanaSignoutApi();
@@ -85,13 +90,25 @@ function ThanaDashboard() {
     queryKey: ["thanaCriminalRelations"],
     queryFn: getAllCriminalRelations,
   });
-  const { data: crimLocData } = useQuery({
-    queryKey: ["thanaCriminalLocations"],
-    queryFn: getAllCriminalLocations,
-  });
   const { data: unreadNotificationData } = useQuery({
     queryKey: ["thanaUnreadNotificationCount"],
     queryFn: getUnreadNotificationCount,
+  });
+  const { data: sosAlertsData } = useQuery({
+    queryKey: ["thanaSosAlerts"],
+    queryFn: getThanaSosAlerts,
+    enabled: !!thanaId,
+    refetchInterval: 2000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const { mutate: assignOfficer, isPending: isAssigningOfficer } = useMutation({
+    mutationFn: assignSosOfficer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["thanaSosAlerts"] });
+      queryClient.invalidateQueries({ queryKey: ["thanaUnreadNotificationCount"] });
+    },
   });
   const selectedCriminalId = selectedCriminal?.criminal_id || "";
   const { data: selectedCriminalProfileData, isLoading: isLoadingCriminalProfile } = useQuery({
@@ -118,10 +135,12 @@ function ThanaDashboard() {
   const locations = locData?.data || [];
   const orgLinks = orgLinksData?.data || [];
   const relations = relData?.data || [];
-  const criminalLocations = crimLocData?.data || [];
+  const sosAlerts = sosAlertsData?.data || [];
   const unreadNotificationCount = Number(
     unreadNotificationData?.data?.unread_count || 0,
   );
+
+  console.log("Criminals:", criminals);
   const selectedCriminalProfile = selectedCriminalProfileData?.data || null;
   const selectedCriminalTimeline = selectedCriminalTimelineData?.data || [];
   const selectedCriminalCaseHistory = selectedCriminalCaseHistoryData?.data || [];
@@ -165,11 +184,105 @@ function ThanaDashboard() {
     { id: "locations", label: `Locations (${locations.length})` },
     { id: "orgLinks", label: `Criminal-Org Links (${orgLinks.length})` },
     { id: "relations", label: `Criminal Relations (${relations.length})` },
-    { id: "crimLocations", label: `Criminal Locations (${criminalLocations.length})` },
   ];
 
   const quickActionClass =
     "thana-quick-action-btn px-4 py-2 text-white text-sm rounded-lg";
+
+  const assignOfficerToAlert = (alertId) => {
+    const officer_id = sosOfficerMap[alertId];
+    if (!officer_id) return;
+    assignOfficer({ sosId: alertId, officer_id });
+  };
+
+  const playUrgentAlarm = () => {
+    if (!audioUnlockedRef.current) {
+      pendingAlarmRef.current = true;
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const now = audioContext.currentTime;
+    const duration = 5;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = "sawtooth";
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    // Siren sweep between low/high tones for the full 5s window.
+    const sampleCount = 400;
+    const curve = new Float32Array(sampleCount);
+    for (let i = 0; i < sampleCount; i += 1) {
+      const t = i / (sampleCount - 1);
+      curve[i] = 700 + 450 * Math.sin(2 * Math.PI * 4 * t);
+    }
+    oscillator.frequency.setValueCurveAtTime(curve, now, duration);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.2, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+
+    setTimeout(() => {
+      audioContext.close().catch(() => {});
+    }, 5400);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const unlockAudio = () => {
+      audioUnlockedRef.current = true;
+      if (pendingAlarmRef.current) {
+        pendingAlarmRef.current = false;
+        playUrgentAlarm();
+      }
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio, { passive: true });
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sosAlerts.length) return;
+
+    let hasNewUrgentAlert = false;
+
+    sosAlerts.forEach((alert) => {
+      if (!seenSosIdsRef.current.has(alert.sos_id)) {
+        seenSosIdsRef.current.add(alert.sos_id);
+        if (alert.status === "triggered") {
+          hasNewUrgentAlert = true;
+        }
+      }
+    });
+
+    if (hasNewUrgentAlert) {
+      playUrgentAlarm();
+    }
+  }, [sosAlerts]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200">
@@ -226,6 +339,85 @@ function ThanaDashboard() {
           ))}
         </div>
 
+        <section className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-red-700 font-semibold">Emergency Feed</p>
+              <h2 className="text-lg font-bold text-slate-900 mt-1 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                SOS Alerts
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-red-700 bg-red-100 px-2.5 py-1 rounded-full">
+              Active: {sosAlerts.length}
+            </span>
+          </div>
+
+          {sosAlerts.length === 0 ? (
+            <p className="text-sm text-slate-600">No active SOS alerts for this thana.</p>
+          ) : (
+            <div className="space-y-3">
+              {sosAlerts.map((alert) => (
+                <div key={alert.sos_id} className="bg-white border border-red-100 rounded-lg p-3">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        SOS #{alert.sos_id} • {alert.user_name} ({alert.user_id})
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">
+                        {alert.user_phone || "No phone"} • {alert.user_address || "No address"}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">
+                        {alert.description || "No description provided."}
+                      </p>
+                      {alert.detected_address && (
+                        <p className="text-xs text-slate-600 mt-1">Location: {alert.detected_address}</p>
+                      )}
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {new Date(alert.created_at).toLocaleString()} • Status: {alert.status}
+                      </p>
+                      {alert.assigned_officer_name && (
+                        <p className="text-xs text-emerald-700 mt-1">
+                          Assigned: {alert.assigned_officer_name} ({alert.assigned_officer_id})
+                        </p>
+                      )}
+                    </div>
+
+                    {alert.status !== "acknowledged" && (
+                      <div className="flex items-center gap-2 min-w-[260px]">
+                        <select
+                          value={sosOfficerMap[alert.sos_id] || ""}
+                          onChange={(e) =>
+                            setSosOfficerMap((prev) => ({
+                              ...prev,
+                              [alert.sos_id]: e.target.value,
+                            }))
+                          }
+                          className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700"
+                        >
+                          <option value="">Assign officer</option>
+                          {officers.map((officer) => (
+                            <option key={officer.officer_id} value={officer.officer_id}>
+                              {officer.full_name} ({officer.officer_id})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => assignOfficerToAlert(alert.sos_id)}
+                          disabled={isAssigningOfficer || !sosOfficerMap[alert.sos_id]}
+                          className="px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-500 disabled:opacity-50"
+                        >
+                          Assign
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 mb-6">
           <button
@@ -269,12 +461,6 @@ function ThanaDashboard() {
             className={quickActionClass}
           >
             + Add Criminal Relation
-          </button>
-          <button
-            onClick={() => openThanaModal("/thana/add-criminal-location")}
-            className={quickActionClass}
-          >
-            + Add Criminal Location
           </button>
           <button
             onClick={() => openThanaModal("/thana/add-criminal-organization")}
@@ -791,38 +977,6 @@ function ThanaDashboard() {
           </div>
         )}
 
-        {/* Criminal Locations Tab */}
-        {activeTab === "crimLocations" && (
-          <div className="bg-gray-900 border border-white/5 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-500 text-xs uppercase">
-                  <th className="text-left p-3">Link ID</th>
-                  <th className="text-left p-3">Criminal ID</th>
-                  <th className="text-left p-3">Location ID</th>
-                  <th className="text-left p-3">Noted At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {criminalLocations.map((cl) => (
-                  <tr key={cl.criminal_location_id} className="border-b border-white/5">
-                    <td className="p-3 font-mono text-xs">{cl.criminal_location_id}</td>
-                    <td className="p-3 font-mono text-xs">{cl.criminal_id}</td>
-                    <td className="p-3 font-mono text-xs">{cl.location_id}</td>
-                    <td className="p-3 text-xs">{cl.noted_at ? new Date(cl.noted_at).toLocaleString() : "—"}</td>
-                  </tr>
-                ))}
-                {criminalLocations.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500">
-                      No criminal-location links found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
       </main>
 
       {selectedCaseFile && (

@@ -58,7 +58,6 @@ import UpdateLocation from "@/pages/Dashboard/Thana/CriminalPart/UpdateLocation"
 import UpdateOrganization from "@/pages/Dashboard/Thana/CriminalPart/UpdateOrganization";
 import AddCriminalRelation from "@/pages/Dashboard/Thana/CriminalPart/AddCriminalRelation";
 import UpdateCriminalOrganization from "@/pages/Dashboard/Thana/CriminalPart/UpdateCriminalOrganization";
-import AddCriminalLocation from "@/pages/Dashboard/Thana/CriminalPart/AddCriminalLocation";
 import AddCriminalOrganization from "@/pages/Dashboard/Thana/CriminalPart/AddCriminalOrganization";
 import UpdateCriminalRelation from "@/pages/Dashboard/Thana/CriminalPart/UpdateCriminalRelation";
 import NotificationCenter from "@/pages/Dashboard/Thana/NotificationCenter";
@@ -67,18 +66,7 @@ import TransferHistoryLookup from "@/pages/Dashboard/Thana/TransferHistoryLookup
 import ManageGDStatus from "@/pages/Dashboard/Thana/GDPart/ManageGDStatus";
 import CellList from "@/pages/Dashboard/Jail/Cell/CellList";
 import AddCell from "@/pages/Dashboard/Jail/Cell/AddCell";
-// <<<<<<< HEAD
-// import ArrestRecordList from "@/pages/Dashboard/Officer/Arrest/ArrestRecordList";
-// import UpdateArrestRecord from "@/pages/Dashboard/Officer/Arrest/UpdateArrestRecord";
-// import ArrestRecordDetails from "@/pages/Dashboard/Officer/Arrest/ArrestRecordDetails";
-// import AddArrestRecord from "@/pages/Dashboard/Officer/Arrest/AddArrestRecord";
-// import AddBailRecord from "@/pages/Dashboard/Officer/Bail/AddBailRecord";
-// import UpdateBailRecord from "@/pages/Dashboard/Officer/Bail/UpdateBailRecord";
-// import BailRecordDetails from "@/pages/Dashboard/Officer/Bail/BailRecordDetails";
-// import ResponseToGD from "@/pages/Dashboard/Officer/GDPart/ResponseToGD";
-// =======
-// import UpdateCell from "@/pages/Dashboard/Jail/Cell/UpdateCell";
-// >>>>>>> 8923ed636c9794a778e6f6dfa662f45b1f178003
+
 
 
 import UpdateCell from "@/pages/Dashboard/Jail/Cell/UpdateCell";
@@ -179,7 +167,6 @@ function Routing() {
         <Route path="/thana/update-organization" element={<UpdateOrganization />} />
         <Route path="/thana/update-organization/:orgId" element={<UpdateOrganization />} />
         <Route path="/thana/add-criminal-relation" element={<AddCriminalRelation />} />
-        <Route path="/thana/add-criminal-location" element={<AddCriminalLocation />} />
         <Route path="/thana/add-criminal-organization" element={<AddCriminalOrganization />} />
         <Route path="/thana/update-criminal-organization" element={<UpdateCriminalOrganization />} />
         <Route path="/thana/update-criminal-relation" element={<UpdateCriminalRelation />} />
@@ -281,7 +268,6 @@ function Routing() {
         <Route path="/thana/update-organization" element={<ModalShell onClose={closeModal}><UpdateOrganization /></ModalShell>} />
         <Route path="/thana/update-organization/:orgId" element={<ModalShell onClose={closeModal}><UpdateOrganization /></ModalShell>} />
         <Route path="/thana/add-criminal-relation" element={<ModalShell onClose={closeModal}><AddCriminalRelation /></ModalShell>} />
-        <Route path="/thana/add-criminal-location" element={<ModalShell onClose={closeModal}><AddCriminalLocation /></ModalShell>} />
         <Route path="/thana/add-criminal-organization" element={<ModalShell onClose={closeModal}><AddCriminalOrganization /></ModalShell>} />
         <Route path="/thana/update-criminal-organization" element={<ModalShell onClose={closeModal}><UpdateCriminalOrganization /></ModalShell>} />
         <Route path="/thana/update-criminal-relation" element={<ModalShell onClose={closeModal}><UpdateCriminalRelation /></ModalShell>} />

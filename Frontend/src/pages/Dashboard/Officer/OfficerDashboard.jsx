@@ -4,6 +4,7 @@ import { officerSignoutApi } from "@/services/authServices/signoutApi";
 import getGDReportByAssignedOfficerApi from "@/services/GDReport/getGDReportByAssignedOfficerApi";
 import getCriminalByNameApi from "@/services/Criminal/getCriminalByNameApi";
 import { getUnreadNotificationCount } from "@/services/Notification/notificationApi";
+import { acknowledgeSosAlert, getOfficerSosAlerts } from "@/services/SOS/sosApi";
 import userStore from "@/state/userStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
@@ -327,6 +328,7 @@ function AddArrestModal({ thanaId, onClose, onSuccess }) {
 export default function OfficerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
     const openOfficerModal = (path) => {
       navigate(path, {
         state: {
@@ -338,6 +340,9 @@ export default function OfficerDashboard() {
   const { user } = userStore();
   const officerId = user?.officer_id || "";
   const thanaId   = user?.thana_id   || "";
+  const seenSosIdsRef = useRef(new Set());
+  const audioUnlockedRef = useRef(false);
+  const pendingAlarmRef = useRef(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState("gd");
@@ -366,10 +371,115 @@ export default function OfficerDashboard() {
     queryKey: ["officerNotificationUnreadCount"],
     queryFn: getUnreadNotificationCount,
   });
+  const { data: sosAlertsData } = useQuery({
+    queryKey: ["officerSosAlerts"],
+    queryFn: getOfficerSosAlerts,
+    enabled: !!officerId,
+    refetchInterval: 2000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+  const { mutate: acknowledgeSos, isPending: isAcknowledgingSos } = useMutation({
+    mutationFn: acknowledgeSosAlert,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["officerSosAlerts"] });
+      queryClient.invalidateQueries({ queryKey: ["officerNotificationUnreadCount"] });
+    },
+  });
   const unreadNotificationCount = Number(unreadNotificationData?.data?.unread_count || 0);
+  const sosAlerts = sosAlertsData?.data || [];
   const pendingGDs    = gdReports.filter(r => r.status === "submitted" || r.status === "assigned");
   const inCustody     = arrestRecords.filter(r => r.custody_status === "in_custody");
   const gdCounts      = gdReports.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
+
+  const playUrgentAlarm = () => {
+    if (!audioUnlockedRef.current) {
+      pendingAlarmRef.current = true;
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const now = audioContext.currentTime;
+    const duration = 5;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = "square";
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    // Siren sweep between low/high tones for the full 5s window.
+    const sampleCount = 400;
+    const curve = new Float32Array(sampleCount);
+    for (let i = 0; i < sampleCount; i += 1) {
+      const t = i / (sampleCount - 1);
+      curve[i] = 720 + 430 * Math.sin(2 * Math.PI * 4 * t);
+    }
+    oscillator.frequency.setValueCurveAtTime(curve, now, duration);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.2, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+
+    setTimeout(() => {
+      audioContext.close().catch(() => {});
+    }, 5400);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const unlockAudio = () => {
+      audioUnlockedRef.current = true;
+      if (pendingAlarmRef.current) {
+        pendingAlarmRef.current = false;
+        playUrgentAlarm();
+      }
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio, { passive: true });
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sosAlerts.length) return;
+
+    let hasNewAssignedAlert = false;
+
+    sosAlerts.forEach((alert) => {
+      if (!seenSosIdsRef.current.has(alert.sos_id)) {
+        seenSosIdsRef.current.add(alert.sos_id);
+        if (alert.status === "assigned") {
+          hasNewAssignedAlert = true;
+        }
+      }
+    });
+
+    if (hasNewAssignedAlert) {
+      playUrgentAlarm();
+    }
+  }, [sosAlerts]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -452,6 +562,61 @@ export default function OfficerDashboard() {
             Thana: <span className="font-mono text-slate-600">{thanaId || "—"}</span>
           </p>
         </div>
+
+        <section className="mb-8 bg-red-50 border border-red-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[0.65rem] font-bold tracking-widest uppercase text-red-700">Emergency Dispatch</p>
+              <h2 className="text-lg font-bold text-slate-900 mt-1 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                Assigned SOS Alerts
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-red-700 bg-red-100 px-2.5 py-1 rounded-full">
+              Active: {sosAlerts.length}
+            </span>
+          </div>
+
+          {sosAlerts.length === 0 ? (
+            <p className="text-sm text-slate-600">No active SOS assignment right now.</p>
+          ) : (
+            <div className="space-y-3">
+              {sosAlerts.map((alert) => (
+                <div key={alert.sos_id} className="bg-white border border-red-100 rounded-lg p-3 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      SOS #{alert.sos_id} • {alert.user_name} ({alert.user_id})
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">{alert.user_phone || "No phone"} • {alert.user_address || "No address"}</p>
+                    <p className="text-xs text-slate-600 mt-1">{alert.description || "No description provided."}</p>
+                    {alert.detected_address && (
+                      <p className="text-xs text-slate-600 mt-1">Location: {alert.detected_address}</p>
+                    )}
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {alert.thana_name} • {new Date(alert.created_at).toLocaleString()} • {alert.status}
+                    </p>
+                  </div>
+
+                  {alert.status === "assigned" && (
+                    <button
+                      onClick={() => acknowledgeSos(alert.sos_id)}
+                      disabled={isAcknowledgingSos}
+                      className="px-4 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-500 disabled:opacity-60"
+                    >
+                      {isAcknowledgingSos ? "Updating..." : "Acknowledge"}
+                    </button>
+                  )}
+
+                  {alert.status === "acknowledged" && (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 h-fit">
+                      Acknowledged
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Stats grid */}
         <div className="grid grid-cols-4 gap-4 mb-8">

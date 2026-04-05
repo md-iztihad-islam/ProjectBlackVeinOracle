@@ -17,9 +17,10 @@ import incarcerationRouter from "./incarcerationRouter.js";
 import bailRecordRouter from "./bailRecordRouter.js";
 import criminalOrganizationRouter from "./criminalOrganizationRouter.js";
 import criminalRelationRouter from "./criminalRelationRouter.js";
-import criminalLocationRouter from "./criminalLocationRouter.js";
+// import criminalLocationRouter from "./criminalLocationRouter.js";
 import analyticsRouter from "./analyticsRouter.js";
 import notificationRouter from "./notificationRouter.js";
+import sosRouter from "./sosRouter.js";
 
 const router = express.Router();
 
@@ -41,9 +42,10 @@ router.use("/incarceration", incarcerationRouter);
 router.use("/bail-record", bailRecordRouter);
 router.use("/criminal-organization", criminalOrganizationRouter);
 router.use("/criminal-relation", criminalRelationRouter);
-router.use("/criminal-location", criminalLocationRouter);
+// router.use("/criminal-location", criminalLocationRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/notification", notificationRouter);
+router.use("/sos", sosRouter);
 
 
 export default router;
