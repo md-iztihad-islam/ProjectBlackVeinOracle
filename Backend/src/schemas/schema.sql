@@ -709,6 +709,8 @@ $$ LANGUAGE plpgsql;
 
 
 --best available cell pawar jonno
+-- UNUSED: kept commented because app now uses repository-level inline SQL for find-cell flow.
+/*
 CREATE OR REPLACE FUNCTION fn_find_available_cell(p_jail_id TEXT)
 RETURNS TEXT AS $$
 DECLARE
@@ -735,6 +737,7 @@ EXCEPTION
         RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+*/
 
 
 

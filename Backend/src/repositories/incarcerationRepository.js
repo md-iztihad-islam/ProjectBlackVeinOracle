@@ -267,7 +267,9 @@ export const findAvailableCellRepository = async (jailId) => {
 
 
 export const transferCriminalRepository = async (criminalId, fromJailId, toJailId, toCellId, reason, authorizedBy) => {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
     if (!criminalId || !fromJailId || !toJailId || !reason) {
       throw new Error("criminalId, fromJailId, toJailId, and reason are required");
     }
@@ -334,7 +336,7 @@ export const transferCriminalRepository = async (criminalId, fromJailId, toJailI
     }
 
     const query = `CALL proc_transfer_criminal($1, $2, $3, $4, $5, $6)`;
-    await pool.query(query, [criminalId, fromJailId, toJailId, resolvedCellId, reason, authorizedBy]);
+      await client.query(query, [criminalId, fromJailId, toJailId, resolvedCellId, reason, authorizedBy]);
 
     // Notify destination jail with transfer details
     const transferDetailsQuery = `
@@ -357,7 +359,7 @@ export const transferCriminalRepository = async (criminalId, fromJailId, toJailI
       ORDER BY ct.transferred_at DESC
       LIMIT 1
     `;
-    const transferDetailsResult = await pool.query(transferDetailsQuery, [criminalId, fromJailId, toJailId]);
+      const transferDetailsResult = await client.query(transferDetailsQuery, [criminalId, fromJailId, toJailId]);
     const t = transferDetailsResult.rows[0];
 
     const notificationTitle = "CRIMINAL TRANSFER RECEIVED";
@@ -365,15 +367,20 @@ export const transferCriminalRepository = async (criminalId, fromJailId, toJailI
       ? `Criminal ${t.criminal_name || "Unknown"} (${t.criminal_id}) has been transferred.\nFrom: ${t.from_jail_name || fromJailId} | Cell: ${t.from_cell_number || "Unassigned"}\nTo: ${t.to_jail_name || toJailId} | Cell: ${t.to_cell_number || "Unassigned"}\nReason: ${reason}`
       : `Criminal transfer received. Criminal ID: ${criminalId}. From jail: ${fromJailId}. To jail: ${toJailId}. To cell: ${resolvedCellId || "Unassigned"}. Reason: ${reason}`;
 
-    await pool.query(
+      await client.query(
       `INSERT INTO notification (target_role, target_id, title, message) VALUES ($1, $2, $3, $4)`,
       ["jail", toJailId, notificationTitle, notificationMessage]
     );
 
+      await client.query('COMMIT');
+
     return { success: true, toCellId: resolvedCellId };
     } catch (error) {
+          await client.query('ROLLBACK');
         console.log("Error at transferCriminalRepository:", error);
-        throw new Error(error?.message || "Transfer failed");
+    throw new Error(error?.message || "Transfer failed");
+      } finally {
+        client.release();
     }
 };
 
