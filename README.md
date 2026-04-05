@@ -7,7 +7,7 @@ It includes role-based dashboards (Admin, Thana, Officer, Jail, User) and featur
 
 ## Authors
 
-- By, Rayyan Khalil
+- Rayyan Khalil
 - Student: 2305098
 - Md Iztihad Islam
 - ID: 2305095
